@@ -1,0 +1,2 @@
+# ZeroBaseLearnAI
+learn ai 
