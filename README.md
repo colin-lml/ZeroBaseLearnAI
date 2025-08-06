@@ -77,10 +77,41 @@ w6
 b2
 outy2
 o2
-都是已知值 常量的导为0
+都是已知值 常量的导数为0，简化表达示
 
 y1 = outh1 * w5 + 0
 outy1 = sigmoid(y1)
 E =  0.5 * (outy1 - o1)^2 + 0
 
+复合函数求导（链式法则）
+若 (y = f(u)) 且 (u = g(x))， 则 f′(u)*g′(x)
+w5' = E'* outy1'* y1' = (0.5 * (outy1 - o1)^2)' * sigmoid(outy1)' * (outh1 * w5)'
 
+
+
+///  w1的导数
+h1 = i1 * w1 + i2 * w2 + b1
+outh1 = sigmoid(h1)
+y1 = outh1 * w5 + outh2 * w6 + b2
+outy1 = sigmoid(y1)
+E =  0.5 * (outy1 - o1)^2 + 0.5 * (outy2 - o2)^2
+
+常量的导数为0，简化表达示
+h1 = i1 * w1
+--------------------------
+outh1 = sigmoid(h1)
+y1 = outh1 * w5 + outh2 * w6 + b2
+---> y1= outh1 * w5 
+
+y2 = outh1 * w7 + outh2 * w8 + b2
+ ---> y2 = outh1 * w7
+--------------------------
+outy1 = sigmoid(y1)
+outy2 = sigmoid(y2)
+
+E = 0.5 * (outy1 - o1)^2 + 0.5 * (outy2 - o2)^2
+
+
+E' = outy1 - o1 +outy2 - o2 
+
+w1' = E'*outh1'*y1'*h1' = (0.5 * (outy1 - o1)^2 )' * sigmoid(h1)' *(sigmoid(h1) * w5)' *( i1 * w1)'

@@ -88,8 +88,38 @@ int main()
     o1Loss = Loss(outy1, o1);
     o2Loss = Loss(outy2, o2);
     totalLoss = o1Loss + o2Loss;
+    
+    ///totalLoss 对 w5的导数
+    double rate = 0.5;
 
+    double pw5 = outh1 *1;
+    double pouty1 = sigmoid_derivative_from_sigmoid(outy1);
+    double pe = outy1 - o1;
+    double lossw5 = pw5 * pouty1 * pe;
+    double oldw5 = w5;
+    w5 = w5 - rate * lossw5;
 
+    /// totalLoss 对 w6的导数
 
+    double pw6 = outh2 * 1;
+    double lossw6 = pw6 * pouty1 * pe;
+    w6 = w6 - rate * lossw6;
 
+    /// totalLoss 对 w7的导数
+    double pw7 = outh1 * 1;
+    double pouty2 = sigmoid_derivative_from_sigmoid(outy2);
+    double pe2 = outy2 - o2;
+    double lossw7 = pw7 * pouty2 * pe2;
+    w7 = w7 - rate * lossw7;
+
+    double pw8 = outh2 * 1;
+    double lossw8 = pw8 * pouty2 * pe2;
+    w8 = w8 - rate * lossw8;
+
+    ///totalLoss 对  w1的导数
+    double pw1 = i1 * 1;
+    double pelossw1 = outy1 - o1 + outy2 - o2;
+    double py1 = sigmoid_derivative_from_sigmoid(outh1) * oldw5;
+    double lossw1 = pelossw1 * pouty1 * py1;
+    w1 = w1 - rate * lossw1;
 }
