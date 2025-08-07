@@ -130,9 +130,10 @@ int main()
 /*********************函数推导*******************************/
 
     ///totalLoss 对  w1的导数
-    pouty1 = pe * sigmoid_derivative_from_sigmoid(outy1) * oldw5;
-    double p2outh1 = pe2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7;
     double pneth1 = sigmoid_derivative_from_sigmoid(outh1) * i1;
+
+    pouty1 = pe * sigmoid_derivative_from_sigmoid(outy1) * oldw5;
+    double p2outh1 = pe2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7;  
     lossw1 = (pouty1 + p2outh1) * pneth1;
     w1 = w1 - rate * lossw1;
 }
