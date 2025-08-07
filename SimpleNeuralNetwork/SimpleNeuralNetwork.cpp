@@ -58,13 +58,13 @@ int main()
     double o1 = 0.01;
     double o2 = 0.99;
 
-    double y1 = 0;
-    double y2 = 0;
+    double nety1 = 0;
+    double nety2 = 0;
     double outy1 = 0;
     double outy2 = 0;
 
-    double h1 = 0;
-    double h2 = 0;
+    double neth1 = 0;
+    double neth2 = 0;
     double outh1 = 0;
     double outh2 = 0;
 
@@ -74,16 +74,16 @@ int main()
 
 
 
-    h1 = YFunction(i1,w1,i2,w2,b1);
-    h2 = YFunction(i1, w3, i2, w4, b1);
-    outh1 = sigmoid(h1);
-    outh2 = sigmoid(h2);
+    neth1 = YFunction(i1,w1,i2,w2,b1);
+    neth2 = YFunction(i1, w3, i2, w4, b1);
+    outh1 = sigmoid(neth1);
+    outh2 = sigmoid(neth2);
 
-    y1 = YFunction(outh1, w5, outh2, w6, b2);
-    y2 = YFunction(outh1, w7, outh2, w8, b2);
+    nety1 = YFunction(outh1, w5, outh2, w6, b2);
+    nety2 = YFunction(outh1, w7, outh2, w8, b2);
 
-    outy1 = sigmoid(y1);
-    outy2 = sigmoid(y2);
+    outy1 = sigmoid(nety1);
+    outy2 = sigmoid(nety2);
 
     o1Loss = Loss(outy1, o1);
     o2Loss = Loss(outy2, o2);
@@ -94,7 +94,7 @@ int main()
 
     double pw5 = outh1 *1;
     double pouty1 = sigmoid_derivative_from_sigmoid(outy1);
-    double pe = outy1 - o1;
+    double pe = (outy1 - o1);
     double lossw5 = pw5 * pouty1 * pe;
     double oldw5 = w5;
     w5 = w5 - rate * lossw5;
@@ -103,23 +103,36 @@ int main()
 
     double pw6 = outh2 * 1;
     double lossw6 = pw6 * pouty1 * pe;
+    double oldw6 = w6;
     w6 = w6 - rate * lossw6;
 
     /// totalLoss 对 w7的导数
     double pw7 = outh1 * 1;
     double pouty2 = sigmoid_derivative_from_sigmoid(outy2);
-    double pe2 = outy2 - o2;
+    double pe2 = (outy2 - o2);
     double lossw7 = pw7 * pouty2 * pe2;
+    double oldw7 = w7;
     w7 = w7 - rate * lossw7;
 
     double pw8 = outh2 * 1;
     double lossw8 = pw8 * pouty2 * pe2;
+    double oldw8 = w8;
     w8 = w8 - rate * lossw8;
 
+/**********************函数推导******************************/
     ///totalLoss 对  w1的导数
     double pw1 = i1 * 1;
-    double pelossw1 = outy1 - o1 + outy2 - o2;
-    double py1 = sigmoid_derivative_from_sigmoid(outh1) * oldw5;
-    double lossw1 = pelossw1 * pouty1 * py1;
+    double eo1 = sigmoid_derivative_from_sigmoid(outy1)* oldw5 *sigmoid_derivative_from_sigmoid(outh1) * i1 ;
+    double eo2 = sigmoid_derivative_from_sigmoid(outy2) * oldw7 * sigmoid_derivative_from_sigmoid(outh2) ;
+    //double py1 = sigmoid_derivative_from_sigmoid(outh1) * oldw5;
+    double lossw1 = (eo1 + eo2)* pouty1;
+    w1 = w1 - rate * lossw1;
+/*********************函数推导*******************************/
+
+    ///totalLoss 对  w1的导数
+    pouty1 = pe * sigmoid_derivative_from_sigmoid(outy1) * oldw5;
+    double p2outh1 = pe2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7;
+    double pneth1 = sigmoid_derivative_from_sigmoid(outh1) * i1;
+    lossw1 = (pouty1 + p2outh1) * pneth1;
     w1 = w1 - rate * lossw1;
 }

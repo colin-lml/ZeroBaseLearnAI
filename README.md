@@ -65,7 +65,7 @@ outy2 = sigmoid(y2)
 
 E =  0.5 * (outy1 - o1)^2 + 0.5 * (outy2 - o2)^2
 
-E对w5的导数，相关函数关系如下
+E对w5的导数，相关函数关系如下    （函数推导）
 
 y1 = outh1 * w5 + outh2 * w6 + b2
 outy1 = sigmoid(y1)
@@ -94,6 +94,9 @@ h1 = i1 * w1 + i2 * w2 + b1
 outh1 = sigmoid(h1)
 y1 = outh1 * w5 + outh2 * w6 + b2
 outy1 = sigmoid(y1)
+y2 = outh1*w7 + outh2 * w8 + b2
+outy2 = sigmoid(y2)
+
 E =  0.5 * (outy1 - o1)^2 + 0.5 * (outy2 - o2)^2
 
 常量的导数为0，简化表达示
@@ -108,10 +111,16 @@ y2 = outh1 * w7 + outh2 * w8 + b2
 --------------------------
 outy1 = sigmoid(y1)
 outy2 = sigmoid(y2)
+E =  0.5*(outy1 - o1)^2 +  0.5*(outy2 - o2)^2
 
-E = 0.5 * (outy1 - o1)^2 + 0.5 * (outy2 - o2)^2
+
+h1 = i1 * w1
+outh1 = sigmoid(h1)
+y1= outh1 * w5  ；y1 不是函数，
+y2 = outh1 * w7 ；y2 不是函数，
+outy1 = sigmoid(y1) 不参加 推导
+outy2 = sigmoid(y2) 不参加 推导
+E =  0.5*(outy1 - o1)^2 +  0.5*(outy2 - o2)^2
 
 
-E' = outy1 - o1 +outy2 - o2 
-
-w1' = E'*outh1'*y1'*h1' = (0.5 * (outy1 - o1)^2 )' * sigmoid(h1)' *(sigmoid(h1) * w5)' *( i1 * w1)'
+///  w1的导数 跳过  输出层点
