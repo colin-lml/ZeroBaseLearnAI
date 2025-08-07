@@ -139,5 +139,6 @@ outy2 = sigmoid(y2)	        outy2(y2) =  sigmoid(y2)
 4. eouty1(outy2)' = (outy2 - o2)*sigmoid_derivative_from_sigmoid(outy2)*sigmoid_derivative_from_sigmoid(outh1)*w7*i1
 
 5. E(w1)' = (outy1 - o1)*sigmoid_derivative_from_sigmoid(outy1)*sigmoid_derivative_from_sigmoid(outh1)*w5*i1 +  (outy2 - o2)*sigmoid_derivative_from_sigmoid(outy2)*sigmoid_derivative_from_sigmoid(outh1)*w7*i1
+
 6. E(w1)' = ((outy1 - o1)*sigmoid_derivative_from_sigmoid(outy1)*w5 + (outy2 - o2)*sigmoid_derivative_from_sigmoid(outy2)*w7)*sigmoid_derivative_from_sigmoid(outh1)*i1
 
