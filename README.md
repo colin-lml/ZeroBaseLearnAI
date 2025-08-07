@@ -67,9 +67,10 @@ E =  0.5 * (outy1 - o1)^2 + 0.5 * (outy2 - o2)^2
 
 E对w5的导数，相关函数关系如下    （函数推导）
 
-y1 = outh1 * w5 + outh2 * w6 + b2
-outy1 = sigmoid(y1)
-E =  0.5 * (outy1 - o1)^2 + 0.5 * (outy2 - o2)^2
+y1 = outh1 * w5 + outh2 * w6 + b2  ->    y1(outh1) = outh1 * w5 + outh2 * w6 + b2
+outy1 = sigmoid(y1)                -->   outy1(y1) = sigmoid(y1) 
+
+E =  0.5 * (outy1 - o1)^2 + 0.5 * (outy2 - o2)^2  -->  E(outy1,outy2) = 0.5 * (outy1 - o1)^2 + 0.5 * (outy2 - o2)^2 
 
 对w5求偏导， 
 outh2
@@ -79,17 +80,19 @@ outy2
 o2
 都是已知值 常量的导数为0，简化表达示
 
-y1 = outh1 * w5 + 0
-outy1 = sigmoid(y1)
-E =  0.5 * (outy1 - o1)^2 + 0
+ y1(outh1) = outh1 * w5
+ outy1(y1) = sigmoid(y1)
+ E(outy1) = 0.5 * (outy1 - o1)^2 
+
 
 复合函数求导（链式法则）
 若 (y = f(u)) 且 (u = g(x))， 则 f′(u)*g′(x)
-w5' = E'* outy1'* y1' = (0.5 * (outy1 - o1)^2)' * sigmoid(outy1)' * (outh1 * w5)'
+E(w5)' =  E(outy1)' * outy1(y1)'* y1(w5)'
+E(outy1)' = outy1 - o1 
+outy1(y1)' = sigmoid(outy1)' 
+y1(w5)' = outh1 * (w5 == 1)
 
-
-
-
+E(w5)' = (outy1 - o1)* sigmoid_derivative_from_sigmoid(outy1) * outh1
 
 
 ///  w1的导数
@@ -115,24 +118,26 @@ y2 = outh1 * w7 + outh2 * w8 + b2
 outy1 = sigmoid(y1)
 outy2 = sigmoid(y2)
 E =  0.5*(outy1 - o1)^2 +  0.5*(outy2 - o2)^2
+---------------------------------------------------------------------------------
 
+h1 = i1 * w1                h1(i1) = i1 * w1
+outh1 = sigmoid(h1)         outh1(h1) = sigmoid(h1)
+y1= outh1 * w5              y1(outh1) = outh1 * w5
+y2 = outh1 * w7 ；          y2(outh1) = outh1 * w7
+outy1 = sigmoid(y1)         outy1(y1) = sigmoid(y1) 
+outy2 = sigmoid(y2)	        outy2(y2) =  sigmoid(y2)
+							eouty1(outy1) = 0.5*(outy1 - o1)^2
+							eouty2(outy2) = 0.5*(outy2 - o2)^2
+						    E(eouty1,eouty2) = eouty1 + eouty2 
+							
+1. E(w1)' = E(eouty1,eouty2)'	
+	
+2. E(eouty1,eouty2)' = eouty1(outy1)' + eouty2(outy2)' 
 
-h1 = i1 * w1      -> h1(i1) = i1 * w1
-outh1 = sigmoid(h1)  outh1(h1) = sigmoid(h1)
-y1= outh1 * w5       y1(outh1) = outh1 * w5
-y2 = outh1 * w7 ；    y2(outh1) = outh1 * w7
-outy1 = sigmoid(y1)   outy1(y1) = sigmoid(y1) 
-outy2 = sigmoid(y2)	  outy1(y2) =  sigmoid(y2)
+3. eouty1(outy1)' = (outy1 - o1)*sigmoid_derivative_from_sigmoid(outy1)*sigmoid_derivative_from_sigmoid(outh1)*w5*i1
 
-E = outy1 + outy2 
-outy1 = 0.5*(outy1 - o1)^2
-outy2 = 0.5*(outy2 - o2)^2
+4. eouty1(outy2)' = (outy2 - o2)*sigmoid_derivative_from_sigmoid(outy2)*sigmoid_derivative_from_sigmoid(outh1)*w7*i1
 
-1. E' = outy1' + outy2'
-2. outy1' = (outy1 - o1)* sigmoid(outy1)' * sigmoid(outh1)'*w5 *li
-3. outy2' = (outy2 - o2)* sigmoid(outy2)' * sigmoid(outh1)'*w7 *li
+5. E(w1)' = (outy1 - o1)*sigmoid_derivative_from_sigmoid(outy1)*sigmoid_derivative_from_sigmoid(outh1)*w5*i1 +  (outy2 - o2)*sigmoid_derivative_from_sigmoid(outy2)*sigmoid_derivative_from_sigmoid(outh1)*w7*i1
+6. E(w1)' = ((outy1 - o1)*sigmoid_derivative_from_sigmoid(outy1)*w5 + (outy2 - o2)*sigmoid_derivative_from_sigmoid(outy2)*w7)*sigmoid_derivative_from_sigmoid(outh1)*i1
 
-
-
-
-///  w1的导数 跳过  输出层点
