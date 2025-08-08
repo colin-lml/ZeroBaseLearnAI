@@ -130,6 +130,8 @@ int main()
         double oldw8 = w8;
         w8 = w8 - rate * lossw8;
 
+        double losswb2 = qOut1 * sigmoid_derivative_from_sigmoid(outy1) * 2.0 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * 2.0;
+        b2 = b2 - rate * losswb2;
 
         ///totalLoss 对  w1的导数
         double lossw1 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw5 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7) * sigmoid_derivative_from_sigmoid(outh1) * i1;
@@ -144,9 +146,16 @@ int main()
 
         double lossw4 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw6 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw8) * sigmoid_derivative_from_sigmoid(outh2) * i2;
         w4 = w4 - rate * lossw4;
+
+        double losswb1 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw5 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7)* sigmoid_derivative_from_sigmoid(outh1) * 2.0 + (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw6 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw8) * sigmoid_derivative_from_sigmoid(outh2) * 2.0;
+        b1 = b1 - rate * losswb1;
+
     }
 
      dwTime = GetTickCount() - dwTime;
      cout <<"time: "<< dwTime << " ms, count: "<< ik <<", outy1:  "<< fixed << setprecision(8) << outy1<<", outy2:  "<< fixed << setprecision(8)<<outy2 << endl;
      cin >> dwTime;
+
+     /// 没有调整 b1, b2 time: 31 ms, count: 228767, outy1:  0.01000052, outy2:  0.98999940 
+     /// 调整 b1,b2      time: 15 ms, count: 89566, outy1:  0.01000060, outy2:   0.98999941
 }
