@@ -33,6 +33,12 @@ double Loss(double y, double targetY)
     return 0.5 * (y - targetY) * (y - targetY);
 }
 
+double Loss_derivative(double computey, double truey)
+{
+    return computey - truey;
+}
+
+
 double YFunction(double x1, double w1, double x2, double w2, double b)
 {
     double y = x1 * w1 + x2 * w2 + b;
@@ -72,10 +78,12 @@ int main()
     double o2Loss = 0;
     double totalLoss = 0;
     int64_t ik = 0;
+    int64_t ikMax = 10000 * 30;
     DWORD dwTime = GetTickCount();
-    double accuracy = 0.00000095;
+    double accuracy = 0.0000006;
+    double rate = 0.5;
 
-    for (int i = 0; true; i++)
+    while (ik< ikMax)
     {
         ik++;
         neth1 = YFunction(i1,w1,i2,w2,b1);
@@ -97,54 +105,48 @@ int main()
             break;
         }
 
-        ///totalLoss 对 w5的导数
-        double rate = 0.5;
+        double qOut1 =  Loss_derivative(outy1,o1);
+        double qOut2 = Loss_derivative(outy2, o2);
 
-        double pw5 = outh1 *1;
-        double pouty1 = sigmoid_derivative_from_sigmoid(outy1);
-        double pe = (outy1 - o1);
-        double lossw5 = (outy1 - o1) * sigmoid_derivative_from_sigmoid(outy1) * outh1;
+        ///totalLoss 对 w5的导数
+        double lossw5 = qOut1 * sigmoid_derivative_from_sigmoid(outy1) * outh1;
         double oldw5 = w5;
         w5 = w5 - rate * lossw5;
 
         /// totalLoss 对 w6的导数
 
-        double pw6 = outh2 * 1;
-        double lossw6 = pw6 * pouty1 * pe;
+        double lossw6 = qOut1 * sigmoid_derivative_from_sigmoid(outy1) * outh2;
         double oldw6 = w6;
         w6 = w6 - rate * lossw6;
 
         /// totalLoss 对 w7的导数
-        double pw7 = outh1 * 1;
-        double pouty2 = sigmoid_derivative_from_sigmoid(outy2);
-        double pe2 = (outy2 - o2);
-        double lossw7 = pw7 * pouty2 * pe2;
+    
+        double lossw7 = qOut2 * sigmoid_derivative_from_sigmoid(outy2)* outh1;
+
         double oldw7 = w7;
         w7 = w7 - rate * lossw7;
 
-        double pw8 = outh2 * 1;
-        double lossw8 = pw8 * pouty2 * pe2;
+        double lossw8 = qOut2 * sigmoid_derivative_from_sigmoid(outy2) * outh2;
         double oldw8 = w8;
         w8 = w8 - rate * lossw8;
 
-   
+
         ///totalLoss 对  w1的导数
-        double lossw1 = ((outy1 - o1) * sigmoid_derivative_from_sigmoid(outy1) * oldw5 + (outy2 - o2) * sigmoid_derivative_from_sigmoid(outy2) * oldw7) * sigmoid_derivative_from_sigmoid(outh1) * i1;
+        double lossw1 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw5 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7) * sigmoid_derivative_from_sigmoid(outh1) * i1;
+        // (outy1 - o1) * sigmoid_derivative_from_sigmoid(outy1) * oldw5 *sigmoid_derivative_from_sigmoid(outh1) * i1  + (outy2 - o2) * sigmoid_derivative_from_sigmoid(outy2) * oldw7 * sigmoid_derivative_from_sigmoid(outh1) * i1;
         w1 = w1 - rate * lossw1;
 
-        double lossw2 = ((outy1 - o1) * sigmoid_derivative_from_sigmoid(outy1) * oldw5 + (outy2 - o2) * sigmoid_derivative_from_sigmoid(outy2) * oldw7) * sigmoid_derivative_from_sigmoid(outh1) * i2;
+        double lossw2 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw5 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7) * sigmoid_derivative_from_sigmoid(outh1) * i2;
         w2 = w2 - rate * lossw2;
 
-        double lossw3 = ((outy1 - o1) * sigmoid_derivative_from_sigmoid(outy1) * oldw6 + (outy2 - o2) * sigmoid_derivative_from_sigmoid(outy2) * oldw8) * sigmoid_derivative_from_sigmoid(outh2) * i1;
+        double lossw3 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw6 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw8) * sigmoid_derivative_from_sigmoid(outh2) * i1;
         w3 = w3 - rate * lossw3;
 
-        double lossw4 = ((outy1 - o1) * sigmoid_derivative_from_sigmoid(outy1) * oldw6 + (outy2 - o2) * sigmoid_derivative_from_sigmoid(outy2) * oldw8) * sigmoid_derivative_from_sigmoid(outh2) * i2;
+        double lossw4 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw6 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw8) * sigmoid_derivative_from_sigmoid(outh2) * i2;
         w4 = w4 - rate * lossw4;
     }
 
      dwTime = GetTickCount() - dwTime;
-     outy1;
-     outy2;
-     cout <<"time: "<< dwTime << ", count: "<< ik <<", outy1:  " << outy1<<", outy2:  "<< outy2 << endl;
+     cout <<"time: "<< dwTime << " ms, count: "<< ik <<", outy1:  "<< fixed << setprecision(8) << outy1<<", outy2:  "<< fixed << setprecision(8)<<outy2 << endl;
      cin >> dwTime;
 }
