@@ -8,15 +8,15 @@ double sigmoid(double x)
 {
     return 1.0 / (1.0 + std::exp(-x));
 }
-
+/* 
 double sigmoid_derivative(double x) 
 {
     double s = sigmoid(x);
     return s * (1.0 - s);
 }
+*/
 
-
-double sigmoid_derivative_from_sigmoid(double s) 
+double sigmoid_derivative(double s)
 {
     return s * (1.0 - s);
 }
@@ -109,45 +109,45 @@ int main()
         double qOut2 = Loss_derivative(outy2, o2);
 
         ///totalLoss 对 w5的导数
-        double lossw5 = qOut1 * sigmoid_derivative_from_sigmoid(outy1) * outh1;
+        double lossw5 = qOut1 * sigmoid_derivative(outy1) * outh1;
         double oldw5 = w5;
         w5 = w5 - rate * lossw5;
 
         /// totalLoss 对 w6的导数
 
-        double lossw6 = qOut1 * sigmoid_derivative_from_sigmoid(outy1) * outh2;
+        double lossw6 = qOut1 * sigmoid_derivative(outy1) * outh2;
         double oldw6 = w6;
         w6 = w6 - rate * lossw6;
 
         /// totalLoss 对 w7的导数
     
-        double lossw7 = qOut2 * sigmoid_derivative_from_sigmoid(outy2)* outh1;
+        double lossw7 = qOut2 * sigmoid_derivative(outy2)* outh1;
 
         double oldw7 = w7;
         w7 = w7 - rate * lossw7;
 
-        double lossw8 = qOut2 * sigmoid_derivative_from_sigmoid(outy2) * outh2;
+        double lossw8 = qOut2 * sigmoid_derivative(outy2) * outh2;
         double oldw8 = w8;
         w8 = w8 - rate * lossw8;
 
-        double losswb2 = qOut1 * sigmoid_derivative_from_sigmoid(outy1) * 2.0 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * 2.0;
+        double losswb2 = qOut1 * sigmoid_derivative(outy1) * 2.0 + qOut2 * sigmoid_derivative(outy2) * 2.0;
         b2 = b2 - rate * losswb2;
 
         ///totalLoss 对  w1的导数
-        double lossw1 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw5 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7) * sigmoid_derivative_from_sigmoid(outh1) * i1;
+        double lossw1 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh1) * i1;
         // (outy1 - o1) * sigmoid_derivative_from_sigmoid(outy1) * oldw5 *sigmoid_derivative_from_sigmoid(outh1) * i1  + (outy2 - o2) * sigmoid_derivative_from_sigmoid(outy2) * oldw7 * sigmoid_derivative_from_sigmoid(outh1) * i1;
         w1 = w1 - rate * lossw1;
 
-        double lossw2 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw5 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7) * sigmoid_derivative_from_sigmoid(outh1) * i2;
+        double lossw2 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh1) * i2;
         w2 = w2 - rate * lossw2;
 
-        double lossw3 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw6 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw8) * sigmoid_derivative_from_sigmoid(outh2) * i1;
+        double lossw3 = (qOut1 * sigmoid_derivative(outy1) * oldw6 + qOut2 * sigmoid_derivative(outy2) * oldw8) * sigmoid_derivative(outh2) * i1;
         w3 = w3 - rate * lossw3;
 
-        double lossw4 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw6 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw8) * sigmoid_derivative_from_sigmoid(outh2) * i2;
+        double lossw4 = (qOut1 * sigmoid_derivative(outy1) * oldw6 + qOut2 * sigmoid_derivative(outy2) * oldw8) * sigmoid_derivative(outh2) * i2;
         w4 = w4 - rate * lossw4;
 
-        double losswb1 = (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw5 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw7)* sigmoid_derivative_from_sigmoid(outh1) * 2.0 + (qOut1 * sigmoid_derivative_from_sigmoid(outy1) * oldw6 + qOut2 * sigmoid_derivative_from_sigmoid(outy2) * oldw8) * sigmoid_derivative_from_sigmoid(outh2) * 2.0;
+        double losswb1 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7)* sigmoid_derivative(outh1) * 2.0 + (qOut1 * sigmoid_derivative(outy1) * oldw6 + qOut2 * sigmoid_derivative(outy2) * oldw8) * sigmoid_derivative(outh2) * 2.0;
         b1 = b1 - rate * losswb1;
 
     }
