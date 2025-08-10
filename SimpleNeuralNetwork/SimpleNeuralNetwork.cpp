@@ -59,7 +59,9 @@ int main()
     double w7 = 0.5;
     double w8 = 0.55;
     double b1 = 0.35;
-    double b2 = 0.6;
+    double b2 = 0.35;
+    double b3 = 0.6;
+    double b4 = 0.6;
   
     double o1 = 0.01;
     double o2 = 0.99;
@@ -87,12 +89,12 @@ int main()
     {
         ik++;
         neth1 = YFunction(i1,w1,i2,w2,b1);
-        neth2 = YFunction(i1, w3, i2, w4, b1);
+        neth2 = YFunction(i1, w3, i2, w4, b2);
         outh1 = sigmoid(neth1);
         outh2 = sigmoid(neth2);
 
-        nety1 = YFunction(outh1, w5, outh2, w6, b2);
-        nety2 = YFunction(outh1, w7, outh2, w8, b2);
+        nety1 = YFunction(outh1, w5, outh2, w6, b3);
+        nety2 = YFunction(outh1, w7, outh2, w8, b4);
 
         outy1 = sigmoid(nety1);
         outy2 = sigmoid(nety2);
@@ -130,8 +132,11 @@ int main()
         double oldw8 = w8;
         w8 = w8 - rate * lossw8;
 
-        double losswb2 = qOut1 * sigmoid_derivative(outy1) * 2.0 + qOut2 * sigmoid_derivative(outy2) * 2.0;
-        b2 = b2 - rate * losswb2;
+        double losswb3 = qOut1 * sigmoid_derivative(outy1);
+        b3 = b3 - rate * losswb3;
+
+        double losswb4 = qOut2 * sigmoid_derivative(outy2);
+        b4 = b4 - rate * losswb4;
 
         ///totalLoss 对  w1的导数
         double lossw1 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh1) * i1;
@@ -147,8 +152,12 @@ int main()
         double lossw4 = (qOut1 * sigmoid_derivative(outy1) * oldw6 + qOut2 * sigmoid_derivative(outy2) * oldw8) * sigmoid_derivative(outh2) * i2;
         w4 = w4 - rate * lossw4;
 
-        double losswb1 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7)* sigmoid_derivative(outh1) * 2.0 + (qOut1 * sigmoid_derivative(outy1) * oldw6 + qOut2 * sigmoid_derivative(outy2) * oldw8) * sigmoid_derivative(outh2) * 2.0;
+        double losswb1 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7)* sigmoid_derivative(outh1);
         b1 = b1 - rate * losswb1;
+       
+        double losswb2 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh2);
+        b2 = b2 - rate * losswb1;
+
 
     }
 
@@ -156,6 +165,7 @@ int main()
      cout <<"time: "<< dwTime << " ms, count: "<< ik <<", outy1:  "<< fixed << setprecision(8) << outy1<<", outy2:  "<< fixed << setprecision(8)<<outy2 << endl;
      cin >> dwTime;
 
-     /// 没有调整 b1, b2 time: 31 ms, count: 228767, outy1:  0.01000052, outy2:  0.98999940 
-     /// 调整 b1,b2      time: 15 ms, count: 89566, outy1:  0.01000060, outy2:   0.98999941
+     /// 没有调整 b1,b2,b3,b4   time: 31 ms, count: 228767, outy1:  0.01000052, outy2:  0.98999940 
+     /// 调整 b1,b2,b3,b4       time: 15 ms, count: 74038, outy1:  0.01000060, outy2:  0.98999952
+     /// 调整 b1,b2,b3,b4       time: 0 ms,  count: 10000, outy1:  0.01158534, outy2:  0.98846063
 }
