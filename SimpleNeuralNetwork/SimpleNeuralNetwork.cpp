@@ -6,6 +6,7 @@
 
 double sigmoid(double x)
 {
+
     return 1.0 / (1.0 + std::exp(-x));
 }
 /* 
@@ -44,6 +45,7 @@ double YFunction(double x1, double w1, double x2, double w2, double b)
     double y = x1 * w1 + x2 * w2 + b;
     return y;
 }
+
 
 
 int main()
