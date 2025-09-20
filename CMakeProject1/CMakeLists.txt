@@ -11,15 +11,16 @@ endif()
 
 project ("CMakeProject1")
 
-set(pytoch_path D:/libtorch/include D:/libtorch/include/torch/csrc/api/include)
+set(torchpath D:/libtorch/2.8.0cpu.debug/)
 
-file(GLOB pytoch_lib "D:/libtorch/lib/*.lib")
+set(pytoch_path ${torchpath}/include ${torchpath}/include/torch/csrc/api/include)
+
+file(GLOB pytoch_lib "${torchpath}/lib/*.lib")
 
 
 include_directories(
   ${pytoch_path}
 )
-
 
 # 将源代码添加到此项目的可执行文件。
 add_executable (CMakeProject1 "CMakeProject1.cpp" "CMakeProject1.h")
