@@ -144,3 +144,11 @@ $E(w1)=h1'*w5*o1'*E(o1)'+h1'*w7*o2'*E(o2)'=(E(o1)'*w5*o1'+E(o2)'*w7*o2')*h1'$
 4. $E(w5)'=(outy1-o1)*sigmoid_derivative(outy1)*outh1$
 
 x
+
+
+https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.2.0%2Bcpu.zip
+
+https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-debug-2.2.0%2Bcpu.zip
+
+D:\libtorch2.2.0\cpu
+D:\libtorch2.2.0\debug
