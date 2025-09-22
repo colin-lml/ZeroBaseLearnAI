@@ -2,11 +2,20 @@
 //
 #include "torch/torch.h"
 #include "LibtorchSimpleNeuralNetwork.h"
-
 using namespace std;
+
+struct NetModule : torch::nn::Module
+{
+
+};
+
+
+
+
 
 int main()
 {
-	cout << "Hello CMake." << endl;
+
+	cin.get();
 	return 0;
 }
