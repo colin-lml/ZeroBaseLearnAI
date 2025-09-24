@@ -111,6 +111,11 @@ struct Net : torch::nn::Module
        l2->weight.data() = torch::tensor({ {0.4,0.5}
                                            ,{0.45,0.55} });
                                        
+       float xxx = 0.15 * 0.05 + 0.2 * 0.1 + 0.35;
+       float xxx2 = 0.25 * 0.05 + 0.3 * 0.1 + 0.35;
+
+       std::cout << "l: " << xxx <<" l2: "<< xxx2 << std::endl;
+
 
        l2->bias.data() = torch::tensor({ 0.6,0.6 });
        
@@ -124,7 +129,9 @@ struct Net : torch::nn::Module
 
     torch::Tensor forward(torch::Tensor x)
     {
-        x = torch::sigmoid(fc1->forward(x));
+        torch::Tensor t = fc1->forward(x);
+        std::cout << "t:" << t << std::endl;
+        x = torch::sigmoid(t);
 
         x = torch::sigmoid(fc2->forward(x));
 
@@ -159,7 +166,7 @@ int main()
    // std::cout << "xxx:\n" << input << std::endl<< input.sizes()<< std::endl;
     Net m;
     torch::Tensor v = m.forward(input);
-    std::cout << "r :\n" << v << std::endl;
+    std::cout << "r : " << v << std::endl;
 
     std::cin.get();
 
