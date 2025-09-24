@@ -12,7 +12,7 @@ endif()
 project ("CMakeProject1")
 
 
-find_package(OpenCV REQUIRED PATHS D:/opencv_all/build)
+find_package(OpenCV REQUIRED PATHS D:/opencv/build)
 
 ## find_package(Torch REQUIRED PATHS D:/libtorch2.2.0/cpu/share/cmake/Torch)
 ## find_package(Torch REQUIRED PATHS D:/libtorch2.2.0/debug/share/cmake/Torch)
@@ -28,7 +28,7 @@ endif()
 add_executable (CMakeProject1 "CMakeProject1.cpp" "CMakeProject1.h")
 
 file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll"
-                     "D:/opencv_all/build/x64/vc16/bin/*.dll")
+                     "D:/opencv/build/x64/vc16/bin/*.dll")
 
 
 add_custom_command(TARGET CMakeProject1
