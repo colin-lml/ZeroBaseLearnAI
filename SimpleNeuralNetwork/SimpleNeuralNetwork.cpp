@@ -4,46 +4,46 @@
 #include "pch.h"
 
 
-float sigmoid(float x)
+double sigmoid(double x)
 {
 
     return 1.0 / (1.0 + std::exp(-x));
 }
 /* 
-float sigmoid_derivative(float x) 
+double sigmoid_derivative(double x) 
 {
-    float s = sigmoid(x);
+    double s = sigmoid(x);
     return s * (1.0 - s);
 }
 */
 
-float sigmoid_derivative(float s)
+double sigmoid_derivative(double s)
 {
     return s * (1.0 - s);
 }
 
 
-float WeightedSum(float x, float w)
+double WeightedSum(double x, double w)
 {
-    float z =   x * w ;
+    double z =   x * w ;
     return z;
 }
 
-float Loss(float y, float targetY)
+double Loss(double y, double targetY)
 {
     
     return 0.5 * (y - targetY) * (y - targetY);
 }
 
-float Loss_derivative(float computey, float truey)
+double Loss_derivative(double computey, double truey)
 {
     return computey - truey;
 }
 
 
-float YFunction(float x1, float w1, float x2, float w2, float b)
+double YFunction(double x1, double w1, double x2, double w2, double b)
 {
-    float y = x1 * w1 + x2 * w2 + b;
+    double y = x1 * w1 + x2 * w2 + b;
     return y;
 }
 
@@ -51,42 +51,42 @@ float YFunction(float x1, float w1, float x2, float w2, float b)
 
 int main()
 {
-    float i1 = 0.05;
-    float i2 = 0.1;
-    float w1 = 0.15;
-    float w2 = 0.2;
-    float w3 = 0.25;
-    float w4 = 0.3;
-    float w5 = 0.4;
-    float w6 = 0.45;
-    float w7 = 0.5;
-    float w8 = 0.55;
-    float b1 = 0.35;
-    float b2 = 0.35;
-    float b3 = 0.6;
-    float b4 = 0.6;
+    double i1 = 0.05;
+    double i2 = 0.1;
+    double w1 = 0.15;
+    double w2 = 0.2;
+    double w3 = 0.25;
+    double w4 = 0.3;
+    double w5 = 0.4;
+    double w6 = 0.45;
+    double w7 = 0.5;
+    double w8 = 0.55;
+    double b1 = 0.35;
+    double b2 = 0.35;
+    double b3 = 0.6;
+    double b4 = 0.6;
   
-    float o1 = 0.01;
-    float o2 = 0.99;
+    double o1 = 0.01;
+    double o2 = 0.99;
 
-    float nety1 = 0;
-    float nety2 = 0;
-    float outy1 = 0;
-    float outy2 = 0;
+    double nety1 = 0;
+    double nety2 = 0;
+    double outy1 = 0;
+    double outy2 = 0;
 
-    float neth1 = 0;
-    float neth2 = 0;
-    float outh1 = 0;
-    float outh2 = 0;
+    double neth1 = 0;
+    double neth2 = 0;
+    double outh1 = 0;
+    double outh2 = 0;
 
-    float o1Loss = 0;
-    float o2Loss = 0;
-    float totalLoss = 0;
+    double o1Loss = 0;
+    double o2Loss = 0;
+    double totalLoss = 0;
     int64_t ik = 0;
     int64_t ikMax = 10000 * 30;
     DWORD dwTime = GetTickCount();
-    float accuracy = 0.0000006;
-    float rate = 0.5;
+    double accuracy = 0.0000006;
+    double rate = 0.5;
 
     while (ik< ikMax)
     {
@@ -110,55 +110,55 @@ int main()
             break;
         }
 
-        float qOut1 =  Loss_derivative(outy1,o1);
-        float qOut2 = Loss_derivative(outy2, o2);
+        double qOut1 =  Loss_derivative(outy1,o1);
+        double qOut2 = Loss_derivative(outy2, o2);
 
         ///totalLoss 对 w5的导数
-        float lossw5 = qOut1 * sigmoid_derivative(outy1) * outh1;
-        float oldw5 = w5;
+        double lossw5 = qOut1 * sigmoid_derivative(outy1) * outh1;
+        double oldw5 = w5;
         w5 = w5 - rate * lossw5;
 
         /// totalLoss 对 w6的导数
 
-        float lossw6 = qOut1 * sigmoid_derivative(outy1) * outh2;
-        float oldw6 = w6;
+        double lossw6 = qOut1 * sigmoid_derivative(outy1) * outh2;
+        double oldw6 = w6;
         w6 = w6 - rate * lossw6;
 
         /// totalLoss 对 w7的导数
     
-        float lossw7 = qOut2 * sigmoid_derivative(outy2)* outh1;
+        double lossw7 = qOut2 * sigmoid_derivative(outy2)* outh1;
 
-        float oldw7 = w7;
+        double oldw7 = w7;
         w7 = w7 - rate * lossw7;
 
-        float lossw8 = qOut2 * sigmoid_derivative(outy2) * outh2;
-        float oldw8 = w8;
+        double lossw8 = qOut2 * sigmoid_derivative(outy2) * outh2;
+        double oldw8 = w8;
         w8 = w8 - rate * lossw8;
 
-        float losswb3 = qOut1 * sigmoid_derivative(outy1);
+        double losswb3 = qOut1 * sigmoid_derivative(outy1);
         b3 = b3 - rate * losswb3;
 
-        float losswb4 = qOut2 * sigmoid_derivative(outy2);
+        double losswb4 = qOut2 * sigmoid_derivative(outy2);
         b4 = b4 - rate * losswb4;
 
         ///totalLoss 对  w1的导数
-        float lossw1 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh1) * i1;
+        double lossw1 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh1) * i1;
         // (outy1 - o1) * sigmoid_derivative_from_sigmoid(outy1) * oldw5 *sigmoid_derivative_from_sigmoid(outh1) * i1  + (outy2 - o2) * sigmoid_derivative_from_sigmoid(outy2) * oldw7 * sigmoid_derivative_from_sigmoid(outh1) * i1;
         w1 = w1 - rate * lossw1;
 
-        float lossw2 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh1) * i2;
+        double lossw2 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh1) * i2;
         w2 = w2 - rate * lossw2;
 
-        float lossw3 = (qOut1 * sigmoid_derivative(outy1) * oldw6 + qOut2 * sigmoid_derivative(outy2) * oldw8) * sigmoid_derivative(outh2) * i1;
+        double lossw3 = (qOut1 * sigmoid_derivative(outy1) * oldw6 + qOut2 * sigmoid_derivative(outy2) * oldw8) * sigmoid_derivative(outh2) * i1;
         w3 = w3 - rate * lossw3;
 
-        float lossw4 = (qOut1 * sigmoid_derivative(outy1) * oldw6 + qOut2 * sigmoid_derivative(outy2) * oldw8) * sigmoid_derivative(outh2) * i2;
+        double lossw4 = (qOut1 * sigmoid_derivative(outy1) * oldw6 + qOut2 * sigmoid_derivative(outy2) * oldw8) * sigmoid_derivative(outh2) * i2;
         w4 = w4 - rate * lossw4;
 
-        float losswb1 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7)* sigmoid_derivative(outh1);
+        double losswb1 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7)* sigmoid_derivative(outh1);
         b1 = b1 - rate * losswb1;
        
-        float losswb2 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh2);
+        double losswb2 = (qOut1 * sigmoid_derivative(outy1) * oldw5 + qOut2 * sigmoid_derivative(outy2) * oldw7) * sigmoid_derivative(outh2);
         b2 = b2 - rate * losswb1;
 
 
