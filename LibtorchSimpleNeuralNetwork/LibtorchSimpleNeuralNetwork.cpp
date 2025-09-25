@@ -74,8 +74,6 @@ int main()
 	{
 		auto out = net.forward(input);
 
-		//std::cout << "out  " << out << std::endl;
-
 		auto loss = funloss(out, labels);
 
 		optimizer.zero_grad();  
@@ -89,12 +87,12 @@ int main()
 			break;
 		}
 
-
+		
 		if ((epoch + 1) % 100 == 0) 
 		{
 			std::cout << "Epoch [" << epoch + 1 << "/" << epochs << "], Loss: " << loss << std::endl;
-
 		}
+		
 	}
 
 	auto end_time = chrono::high_resolution_clock::now();
