@@ -16,19 +16,22 @@ struct NetModule : torch::nn::Module
 	{
 		fc1 = register_module("fc1", torch::nn::Linear(2, 2));
 		fc2 = register_module("fc2", torch::nn::Linear(2, 2));
+		fc1->to(torch::kDouble);
+		fc2->to(torch::kDouble);
+	
+		fc1->weight.set_data(torch::tensor({ {0.15,0.25},
+											 {0.20, 0.30} }, torch::kDouble));
+		fc1->bias.set_data(torch::tensor({ 0.35,0.35 }, torch::kDouble));
+
+
+		fc2->weight.set_data(torch::tensor({ {0.40,0.50}
+										   ,{0.45,0.55} }, torch::kDouble));
+		fc2->bias.set_data(torch::tensor({ 0.60,0.60 }, torch::kDouble));
 
 	
-		fc1->weight.set_data(torch::tensor({ {0.15f,0.25f},
-											 {0.20f, 0.30f} }, torch::kFloat));
-		fc1->bias.set_data(torch::tensor({ 0.35f,0.35f }, torch::kFloat));
-
-
-		fc2->weight.set_data(torch::tensor({ {0.40f,0.50f}
-										   ,{0.45f,0.55f} }, torch::kFloat));
-		fc2->bias.set_data(torch::tensor({ 0.60f,0.60f }, torch::kFloat));
-
 		cout << "<<<-------------------------------------------------->>>" << endl;
-		cout << fc1->weight <<endl << fc1->bias << endl;
+		std::cout << std::fixed << std::setprecision(10);
+		cout << fc1->weight << endl << fc1->bias << endl;
 		cout<<"-----------------------------------------------------" << endl;
 		cout << fc2->weight << endl << fc2->bias << endl;
 		cout << "<<<<-------------------------------------------------- >>>" << endl << endl;
@@ -55,18 +58,19 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
+
 	NetModule net;
 	float learning_rate = 0.5;
-	torch::Device device(torch::kCPU);
-	net.to(device);
+	//torch::Device device(torch::kCPU);
+	///net.to(device);
 	torch::nn::MSELoss funloss;
 	torch::optim::Adam optimizer(net.parameters(), torch::optim::AdamOptions(learning_rate));
-	auto input = torch::tensor({ {0.050f,0.10f} }, torch::kFloat);
-	auto labels = torch::tensor({ {0.10f,0.99f} });
+	auto input = torch::tensor({ {0.050,0.10} }, torch::kDouble);
+	auto labels = torch::tensor({ {0.10,0.99} }, torch::kDouble);
 
 	int64_t epochs = 10000 * 30;
 
-	float accuracy = 0.0000006;
+	double accuracy = 0.0000006;
 	
 	auto start_time = chrono::high_resolution_clock::now();
 
@@ -80,8 +84,8 @@ int main()
 		loss.backward();        
 		optimizer.step();   
 		
-		if (abs(out.index({ 0,0 }).item<float>() - labels.index({ 0,0 }).item<float>()) <= accuracy && 
-			abs(out.index({ 0,1 }).item<float>() - labels.index({ 0,1 }).item<float>()) <= accuracy)
+		if (abs(out.index({ 0,0 }).item<double>() - labels.index({ 0,0 }).item<double>()) <= accuracy &&
+			abs(out.index({ 0,1 }).item<double>() - labels.index({ 0,1 }).item<double>()) <= accuracy)
 		{
 			std::cout << " break [" << epoch + 1 << "/" << epochs << "], Loss: " << loss.item<double>() <<", out "<< out << std::endl;
 			break;
