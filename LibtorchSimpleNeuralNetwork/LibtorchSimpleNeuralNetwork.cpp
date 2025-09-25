@@ -58,9 +58,8 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
-
 	NetModule net;
-	float learning_rate = 0.5;
+	double learning_rate = 0.5;
 	//torch::Device device(torch::kCPU);
 	///net.to(device);
 	torch::nn::MSELoss funloss;
