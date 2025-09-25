@@ -91,9 +91,9 @@ int main()
 		}
 
 		
-		if ((epoch + 1) % 100 == 0) 
+		if ((epoch) % 50 == 0) 
 		{
-			std::cout << "Epoch [" << epoch + 1 << "/" << epochs << "], Loss: " << loss << std::endl;
+			std::cout << "Epoch [" << epoch + 1 << "/" << epochs << "], Loss: " << loss << ", out " << out << std::endl;
 		}
 		
 	}
