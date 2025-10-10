@@ -18,14 +18,15 @@ struct NetModule : torch::nn::Module
 		fc2 = register_module("fc2", torch::nn::Linear(2, 2));
 		fc1->to(torch::kDouble);
 		fc2->to(torch::kDouble);
-	
-		fc1->weight.set_data(torch::tensor({ {0.15,0.25},
-											 {0.20, 0.30} }, torch::kDouble));
+
+
+		fc1->weight.set_data(torch::tensor({ {0.15,0.20},
+											 {0.25, 0.30} }, torch::kDouble));
 		fc1->bias.set_data(torch::tensor({ 0.35,0.35 }, torch::kDouble));
 
 
-		fc2->weight.set_data(torch::tensor({ {0.40,0.50}
-										   ,{0.45,0.55} }, torch::kDouble));
+		fc2->weight.set_data(torch::tensor({ {0.40,0.45}
+										   ,{0.50,0.55} }, torch::kDouble));
 		fc2->bias.set_data(torch::tensor({ 0.60,0.60 }, torch::kDouble));
 
 	
@@ -39,10 +40,10 @@ struct NetModule : torch::nn::Module
 	}
 	
 	torch::Tensor forward(torch::Tensor x) 
-	{	
+	{		
 		auto t = torch::sigmoid(fc1->forward(x));
 		auto l2 = torch::sigmoid(fc2->forward(t));
-		//cout << "---------- >>> " << x << endl << endl;
+
 		return 	l2;
 	}
 
@@ -58,14 +59,15 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
+
 	NetModule net;
 	double learning_rate = 0.5;
 	//torch::Device device(torch::kCPU);
-	///net.to(device);
+	//net.to(device);
 	torch::nn::MSELoss funloss;
 	torch::optim::Adam optimizer(net.parameters(), torch::optim::AdamOptions(learning_rate));
-	auto input = torch::tensor({ {0.050,0.10} }, torch::kDouble);
-	auto labels = torch::tensor({ {0.10,0.99} }, torch::kDouble);
+	auto input = torch::tensor({0.050,0.10}, torch::kDouble);
+	auto labels = torch::tensor({0.10,0.99}, torch::kDouble);
 
 	int64_t epochs = 10000 * 30;
 
@@ -76,24 +78,23 @@ int main()
 	for (int64_t epoch = 0; epoch < epochs; ++epoch)
 	{
 		auto out = net.forward(input);
-
 		auto loss = funloss(out, labels);
 
 		optimizer.zero_grad();  
 		loss.backward();        
 		optimizer.step();   
 		
-		if (abs(out.index({ 0,0 }).item<double>() - labels.index({ 0,0 }).item<double>()) <= accuracy &&
-			abs(out.index({ 0,1 }).item<double>() - labels.index({ 0,1 }).item<double>()) <= accuracy)
+		if (abs(out.index({ 0}).item<double>() - labels.index({ 0 }).item<double>()) <= accuracy &&
+			abs(out.index({ 1 }).item<double>() - labels.index({ 1 }).item<double>()) <= accuracy)
 		{
 			std::cout << " break [" << epoch + 1 << "/" << epochs << "], Loss: " << loss.item<double>() <<", out "<< out << std::endl;
 			break;
 		}
 
 		
-		if ((epoch) % 50 == 0) 
+		if ((epoch + 1) % 100 == 0) 
 		{
-			std::cout << "Epoch [" << epoch + 1 << "/" << epochs << "], Loss: " << loss << ", out " << out << std::endl;
+			std::cout << "Epoch [" << epoch + 1 << "/" << epochs << "], Loss: " << loss << std::endl;
 		}
 		
 	}
@@ -116,13 +117,13 @@ int main()
 
 /*
 * 
- Epoch [100/300000], Loss: 0.0031318587716668844
-[ CPUFloatType{} ]
-Epoch [200/300000], Loss: 1.4559006444869738e-07
-[ CPUFloatType{} ]
-Epoch [300/300000], Loss: 1.6511814138198133e-10
-[ CPUFloatType{} ]
- break [394/300000], Loss: 1.44329e-13, out  0.1000  0.9900
-[ CPUFloatType{1,2} ]
-end-time 1479
+Epoch [100/300000], Loss: 0.00474282563058449
+[ CPUDoubleType{} ]
+Epoch [200/300000], Loss: 7.291057731648669e-07
+[ CPUDoubleType{} ]
+Epoch [300/300000], Loss: 2.949105028972649e-10
+[ CPUDoubleType{} ]
+ break [393/300000], Loss: 0.0000000000, out  0.1000  0.9900
+[ CPUDoubleType{2} ]
+end-time 2295
 */
