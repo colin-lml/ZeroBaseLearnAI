@@ -14,11 +14,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{8ab786aa-3ca3-4d97-9577-4a708e0574b7}</ProjectGuid>
+    <ProjectGuid>{e90c3d5b-0e80-47b4-bca1-e76e583aca4f}</ProjectGuid>
     <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
     <Keyword>Win32Proj</Keyword>
     <Platform>x64</Platform>
-    <ProjectName>TorchProject</ProjectName>
+    <ProjectName>LibtorchNeuralNetwork2</ProjectName>
     <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -43,15 +43,15 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\Administrator\Desktop\ZeroBaseLearnAI\TorchProject\x64\Debug\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TorchProject.dir\Debug\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TorchProject</TargetName>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\lml-core\ZeroBaseLearnAI\LibtorchNeuralNetwork2\x64\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">LibtorchNeuralNetwork2.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">LibtorchNeuralNetwork2</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\Administrator\Desktop\ZeroBaseLearnAI\TorchProject\x64\Release\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TorchProject.dir\Release\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TorchProject</TargetName>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\lml-core\ZeroBaseLearnAI\LibtorchNeuralNetwork2\x64\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">LibtorchNeuralNetwork2.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">LibtorchNeuralNetwork2</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
@@ -92,7 +92,7 @@
       <Message>
       </Message>
       <Command>setlocal
-xcopy "D:\libtorch2.2.0\debug\libtorch\lib" "C:\Users\Administrator\Desktop\ZeroBaseLearnAI\TorchProject\x64\Debug" /D /Y
+xcopy "D:\libtorch2.2.0\debug\libtorch\lib" "D:\lml-core\ZeroBaseLearnAI\LibtorchNeuralNetwork2\x64\Debug" /D /Y
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -107,8 +107,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <ImportLibrary>C:\Users\Administrator\Desktop\ZeroBaseLearnAI\TorchProject/x64/Debug/TorchProject.lib</ImportLibrary>
-      <ProgramDataBaseFile>C:\Users\Administrator\Desktop\ZeroBaseLearnAI\TorchProject/x64/Debug/TorchProject.pdb</ProgramDataBaseFile>
+      <ImportLibrary>D:\lml-core\ZeroBaseLearnAI\LibtorchNeuralNetwork2/x64/Debug/LibtorchNeuralNetwork2.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:\lml-core\ZeroBaseLearnAI\LibtorchNeuralNetwork2/x64/Debug/LibtorchNeuralNetwork2.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
     </Link>
     <ProjectReference>
@@ -117,7 +117,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\libtorch2.2.0\cpu\libtorch\include;D:\libtorch2.2.0\cpu\libtorch\include\torch\csrc\api\include;;;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\libtorch2.2.0\Release\libtorch\include;D:\libtorch2.2.0\Release\libtorch\include\torch\csrc\api\include;;;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <DisableSpecificWarnings>4267;4251;4522;4838;4305;4244;4190;4101;4996;4275</DisableSpecificWarnings>
@@ -151,7 +151,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Message>
       </Message>
       <Command>setlocal
-xcopy "D:\libtorch2.2.0\cpu\libtorch\lib" "C:\Users\Administrator\Desktop\ZeroBaseLearnAI\TorchProject\x64\Release" /D /Y
+xcopy "D:\libtorch2.2.0\Release\libtorch\lib" "D:\lml-core\ZeroBaseLearnAI\LibtorchNeuralNetwork2\x64\Release" /D /Y
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -161,13 +161,13 @@ exit /b %1
 if %errorlevel% neq 0 goto :VCEnd</Command>
     </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>D:\libtorch2.2.0\cpu\libtorch\lib\c10.lib;D:\libtorch2.2.0\cpu\libtorch\lib\torch.lib;D:\libtorch2.2.0\cpu\libtorch\lib\torch_cpu.lib;;;;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>D:\libtorch2.2.0\Release\libtorch\lib\c10.lib;D:\libtorch2.2.0\Release\libtorch\lib\torch.lib;D:\libtorch2.2.0\Release\libtorch\lib\torch_cpu.lib;;;;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <ImportLibrary>C:\Users\Administrator\Desktop\ZeroBaseLearnAI\TorchProject/x64/Release/TorchProject.lib</ImportLibrary>
-      <ProgramDataBaseFile>C:\Users\Administrator\Desktop\ZeroBaseLearnAI\TorchProject/x64/Release/TorchProject.pdb</ProgramDataBaseFile>
+      <ImportLibrary>D:\lml-core\ZeroBaseLearnAI\LibtorchNeuralNetwork2/x64/Release/LibtorchNeuralNetwork2.lib</ImportLibrary>
+      <ProgramDataBaseFile>D:\lml-core\ZeroBaseLearnAI\LibtorchNeuralNetwork2/x64/Release/LibtorchNeuralNetwork2.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
     </Link>
     <ProjectReference>
