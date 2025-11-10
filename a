@@ -1,0 +1,730 @@
+#!/bin/bash
+#users=$(git log --pretty=format:"%ae %an" | sort | uniq)
+#echo "$users"
+
+START_DATE="2025-04-01 00:00:00"
+END_DATE="2025-12-31 23:59:59"
+
+uisrc[1]=".scss"
+uisrc[2]=".html"
+uisrc[3]=".xaml"
+uisrc[4]=".xaml.cs"
+scriptsrc[1]=".bat"
+scriptsrc[2]=".iss"
+scriptsrc[3]="AssemblyInfo.cs"
+scriptsrc[4]="Designer.cs"
+srcfile[1]=".cs"
+srcfile[2]=".h"
+srcfile[3]=".cpp"
+srcfile[4]=".ts"
+srcfile[5]=".py"
+
+
+arrstrs1="${uisrc[*]}"
+arrstrs2="${scriptsrc[*]}"
+arrstrs3="${srcfile[*]}"
+
+
+function checkadddelfile(){
+	local str1="$1" 
+	local str2="$2"
+	local alltext=""
+	if [ $str1 == "all" ]; then
+		alltext=$(git log  --since="$START_DATE" --until="$END_DATE" --name-status  --pretty=format:"%cd %ad" --date=format:"%Y-%m-%d")
+	else
+		alltext=$(git log --author="$str2"  --since="$START_DATE" --until="$END_DATE" --name-status  --pretty=format:"%cd %ad" --date=format:"%Y-%m-%d")
+	fi
+	
+	
+	echo  "$alltext" | gawk -v arrstr1="$arrstrs1" -v arrstr2="$arrstrs2" -v arrstr3="$arrstrs3" '
+			BEGIN {
+				y=1
+				yd=1
+				month=""
+				n1 = split(arrstr1, data1, " ")
+				n2 = split(arrstr2, data2, " ")
+				n3 = split(arrstr3, data3, " ")
+			}
+			
+			function endsWith(str,suffix){
+				len_str = length(str)         
+				len_suffix = length(suffix) 
+				if (len_suffix > len_str) { 
+					return 0
+					}  
+				substr_end = substr(str, len_str - len_suffix + 1, len_suffix)
+				return (substr_end == suffix) 
+			}
+			
+			function isvalidfile(zfile){
+				r=0;
+				for (i=1; i<=n1; i++) {
+					if(endsWith(zfile,data1[i])){
+						r=1;
+						return r
+					}
+					
+				}
+				
+				for (i=1; i<=n2; i++) {
+					if(endsWith(zfile,data2[i])){
+						r=2;
+						return r
+					}
+					
+				}
+				
+				for (i=1; i<=n3; i++) {
+					if(endsWith(zfile,data3[i])){
+						r=3;
+						return r
+					}
+					
+				}
+				
+				return r
+			}
+		
+		$1 ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ {
+			month = $2;
+			next;
+		}
+		
+		 /^A/ {
+			aa=isvalidfile($2)
+			if(0<aa){
+				addfiles[month "-" y++]=$2
+			}
+		}
+		
+		/^D/ {
+			aa=isvalidfile($2)
+			if(0<aa){
+				delfiles[month "-" yd++]=$2
+			}
+		}
+		
+		END {
+			system("rm -f  newfile.log")
+			system("rm -f  delfile.log")
+			
+			for(itm in addfiles)
+			{
+				split(itm, idx, "-")
+				print idx[1] "-" idx[2] "-" idx[3] " " addfiles[itm] >> "newfile.log"
+			}
+
+			for(itm in delfiles)
+			{
+				split(itm, idx, "-")
+				print idx[1] "-" idx[2] "-" idx[3] " " delfiles[itm] >> "delfile.log"
+			}
+		}
+		
+	'
+	
+}
+
+
+
+
+function mainw(){
+	local cmds="$1"
+	local u="$2"  
+	local nfile="$3"
+	local branch2=$(git branch --show-current)
+	local alltext=""
+	local dir="$branch2 _git_log"
+	local outfile="$dir/$nfile $start to $end.txt"
+	local all=0
+	if [[ -d "$dir" ]]; then
+		if [ $cmds != "all" ]; then
+			echo "$u ...."
+		fi
+	else
+		mkdir "$dir"
+		
+		if [ $cmds != "all" ]; then
+			echo "$u ...."
+		fi
+	fi
+	
+	start=$(date -d "$START_DATE" +"%Y-%m-%d")
+	end=$(date -d "$END_DATE" +"%Y-%m-%d")
+	
+	if [ $cmds == "all" ]; then
+		alltext=$(git log  --since="$START_DATE" --until="$END_DATE" --pretty=format:"%cd %ad" --date=format:"%Y-%m-%d" --numstat)
+		outfile="./alluser.log"
+		all=1
+	else
+		alltext=$(git log --author="$u" --since="$START_DATE" --until="$END_DATE" --pretty=format:"%cd %ad" --date=format:"%Y-%m-%d" --numstat)
+		outfile="$dir/$nfile $start to $end.txt"
+		all=0
+	fi
+	
+
+	echo "$alltext" | gawk -v arrstr1="$arrstrs1" -v arrstr2="$arrstrs2" -v arrstr3="$arrstrs3" -v isall="$all" '
+	  
+		  BEGIN {
+				n1 = split(arrstr1, data1, " ")
+				n2 = split(arrstr2, data2, " ")
+				n3 = split(arrstr3, data3, " ")
+		}
+		
+	   function endsWith(str,suffix){
+				len_str = length(str)         
+				len_suffix = length(suffix) 
+				if (len_suffix > len_str) { 
+					return 0
+					}  
+				substr_end = substr(str, len_str - len_suffix + 1, len_suffix)
+				return (substr_end == suffix) 
+			}
+			
+			function isvalidfile(zfile){
+				r=0;
+				for (i=1; i<=n1; i++) {
+					if(endsWith(zfile,data1[i])){
+						r=1;
+						return r
+					}
+					
+				}
+				
+				for (i=1; i<=n2; i++) {
+					if(endsWith(zfile,data2[i])){
+						r=2;
+						return r
+					}
+					
+				}
+				
+				for (i=1; i<=n3; i++) {
+					if(endsWith(zfile,data3[i])){
+						r=3;
+						return r
+					}
+					
+				}
+				
+				return r
+			}
+	   
+		function printheaderinfo(){
+		
+			print "----------------------------------------个人项目代码贡献度------------------------------------------------------------------"
+			stringui1="ui文件("
+			for (i=1; i<=n1; i++) {
+					if(i<n1){
+						stringui1=stringui1 data1[i] "|"
+					}else{
+						stringui1=stringui1 data1[i] 
+					}
+
+				}
+			stringui1=stringui1 ")"	
+			print stringui1	
+			
+			stringui1="脚本文件("
+			for (i=1; i<=n2; i++) {
+					if(i<n2){
+						stringui1=stringui1 data2[i] "|"
+					}else{
+						stringui1=stringui1 data2[i] 
+					}
+
+				}
+			stringui1=stringui1 ")"	
+			print stringui1	
+			
+			stringui1="后台文件("
+			for (i=1; i<=n3; i++) {
+					if(i<n3){
+						stringui1=stringui1 data3[i] "|"
+					}else{
+						stringui1=stringui1 data3[i] 
+					}
+
+				}
+			stringui1=stringui1 ")"	
+			print stringui1	
+			print ""	
+		}
+		
+
+		
+		function printalluserdata(){
+		
+			print delfilecode1 "," delfilenum1 
+			print delfilecode2 "," delfilenum2 
+			print delfilecode3 "," delfilenum3
+			
+
+			#print  "adds:"
+			print  addfilecode1 "," addfilenum1
+			print  addfilecode2 "," addfilenum2 
+			print  addfilecode3 "," addfilenum3
+			
+			#print  "updates:" 
+			print   updateaddcolde1 "," updateadddelcolde1 "," updatedelcolde1 "," updatefilenum1
+			print   updateaddcolde2 "," updateadddelcolde2 "," updatedelcolde2 "," updatefilenum2
+			print   updateaddcolde3  "," updateadddelcolde3 "," updatedelcolde3 "," updatefilenum3
+		}
+	
+		$1 ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ {
+			month = $1;
+			createmonth = $2
+			next;
+		}
+
+		$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/{
+		   opt="modifys"
+		   aa=isvalidfile($3);
+		  
+		   while ((getline line < "newfile.log") > 0) {
+				split(line, idx, " ")
+				if($3 == idx[2]){
+					if((month == createmonth && idx[1]== month)||(month != createmonth && idx[1]== createmonth)){
+						opt="news"
+						break;
+					} 
+				}
+			}
+			close("newfile.log") 
+			
+			while ((getline line < "delfile.log") > 0) {
+				split(line, idx, " ")
+				if($3 == idx[2]){
+					if((month == createmonth && idx[1]== month)||(month != createmonth && idx[1]== createmonth)){
+						opt="dels"
+						break;
+					} 
+				}
+			}
+			close("delfile.log")
+			
+			if(0<aa){
+				abs=""
+				if(aa==1){
+					abs="vui"
+				}
+				else if(aa==2){
+					abs="vscript"
+				}
+				else{
+					abs="vsrc"
+				}
+				conditionfiles[month "," opt "," abs "," $3]=1;				
+				addtable[month "," opt "," abs] += $1; 
+				deltable[month "," opt "," abs] += $2; 	
+
+			}
+			
+		}
+		
+		END {
+			 if(isall==0){
+				printheaderinfo();
+			 }
+			
+			updateaddcolde1=0
+			updatedelcolde1=0
+			updateadddelcolde1=0
+			updatefilenum1=0
+			
+			updateaddcolde2=0
+			updatedelcolde2=0
+			updateadddelcolde2=0
+			updatefilenum2=0
+			
+			updateaddcolde3=0
+			updatedelcolde3=0
+			updateadddelcolde3=0
+			updatefilenum3=0
+			
+			addfilecode1=0
+			addfilenum1=0
+			
+			addfilecode2=0
+			addfilenum2=0
+			
+			addfilecode3=0
+			addfilenum3=0
+			
+			delfilecode1=0
+			delfilenum1=0
+			
+			delfilecode2=0
+			delfilenum2=0
+			
+			delfilecode3=0
+			delfilenum3=0
+			
+			## 
+			for (additem in addtable){
+				split(additem, idx, ",")
+				split(idx[1], idx2, "-")
+				adds[idx2[1] "-" idx2[2] "," idx[2] "," idx[3]] += addtable[additem]
+				dels[idx2[1] "-" idx2[2] "," idx[2] "," idx[3]] += deltable[additem]
+				
+				
+			}
+			
+			for (additem in conditionfiles){
+				split(additem, idx, ",")
+				split(idx[1], idx2, "-")
+				conds[idx2[1] "-" idx2[2] "," idx[2] "," idx[3]] += conditionfiles[additem];	
+			}
+			
+			
+			num = asorti(adds, ad)
+			split(ad[1], idx3, ",")
+			ma=idx3[1]
+			for(i=1; i<=num;i++){
+				split(ad[i], idx, ",")
+				if(isall==0 && ma != idx[1]){
+					ma=idx[1]
+					print ""
+			   }
+			   
+			   		   
+				### update code 
+				upindex = idx[1] ",modifys,vsrc"
+				if(ad[i] == upindex){
+					tmpad = adds[upindex] -  dels[upindex]
+					updateaddcolde1+=adds[upindex]
+					updatedelcolde1+=dels[upindex]
+					updateadddelcolde1+=tmpad
+					updatefilenum1 += conds[upindex]
+					if(isall==0){
+						print idx[1] "(修改)后台文件 添加行数: " adds[upindex] ",净增行数: " tmpad ",删除行数: " dels[upindex] ",文件(总量次): " conds[upindex]
+					}
+				}
+				
+				upindex = idx[1] ",modifys,vui"
+				if(ad[i] == upindex){
+					tmpad = adds[upindex] -  dels[upindex]
+					updateaddcolde2+=adds[upindex]
+					updatedelcolde2+=dels[upindex]
+					updateadddelcolde2+=tmpad
+					updatefilenum2 += conds[upindex]
+					if(isall==0){
+						print idx[1] "(修改)UI文件 添加行数: " adds[upindex] ",净增行数: " tmpad ",删除行数: " dels[upindex] ",文件(总量次): " conds[upindex]
+					}
+				}
+				
+				upindex = idx[1] ",modifys,vscript"
+				if(ad[i] == upindex){
+					tmpad = adds[upindex] -  dels[upindex]
+					updateaddcolde3+=adds[upindex]
+					updatedelcolde3+=dels[upindex]
+					updateadddelcolde3+=tmpad
+					updatefilenum3 += conds[upindex]
+					
+					if(isall==0){
+						print idx[1] "(修改)脚本文件 添加行数: " adds[upindex] ",净增行数: " tmpad ",删除行数: " dels[upindex] ",文件(总量次): " conds[upindex]
+					}
+					
+				}
+				### update code end
+				
+				### add file 
+				upindex = idx[1] ",news,vsrc"
+				if(ad[i] == upindex){
+					addfilecode1+=adds[upindex]
+					addfilenum1+=conds[upindex]
+					if(isall==0){
+						print idx[1] "(添加文件)后台文件 添加行数: " adds[upindex] ",文件总数: " conds[upindex]
+					}
+				}
+				
+				upindex = idx[1] ",news,vui"
+				if(ad[i] == upindex){
+					addfilecode2+=adds[upindex]
+					addfilenum2+=conds[upindex]
+					if(isall==0){				
+						print idx[1] "(添加文件)ui文件 新添行数: " adds[upindex] ",文件总数: " conds[upindex]
+					}				
+				}
+				
+				upindex = idx[1] ",news,vscript"
+				if(ad[i] == upindex){
+					addfilecode3+=adds[upindex]
+					addfilenum3+=conds[upindex]
+					if(isall==0){
+						print idx[1] "(添加文件)脚本文件 新添行数: " adds[upindex] ",文件总数: " conds[upindex]
+					}
+				}
+			   ### add file end
+			   
+			    ### del file 
+				upindex = idx[1] ",dels,vsrc"
+				if(ad[i] == upindex){
+					delfilecode1+=dels[upindex]
+					delfilenum1+=conds[upindex]
+					if(isall==0){
+						print idx[1] "(删除文件)后台文件 删除行数: " dels[upindex] ",文件总数: " conds[upindex]
+					}
+				}
+				
+				upindex = idx[1] ",dels,vui"
+				if(ad[i] == upindex){
+					delfilecode2+=dels[upindex]
+					delfilenum2+=conds[upindex]
+					if(isall==0){
+						print idx[1] "(删除文件)ui文件 删除行数: " dels[upindex] ",文件总数: " conds[upindex]
+					}
+				}
+				
+				upindex = idx[1] ",dels,vscript"
+				if(ad[i] == upindex){
+					delfilecode3+=dels[upindex]
+					delfilenum3+=conds[upindex]
+				}
+			   ### del file end
+			}
+
+		
+		
+			if(isall==1)
+			{
+				printalluserdata();
+				
+			}else{
+				allIndex=1
+				while ((getline line < "alluser.log") > 0)
+				{
+					if(allIndex<=3){
+						split(line, idx, ",")
+						alldel[allIndex ",1"]= idx[1]
+						alldel[allIndex ",2"]= idx[2]
+					}else if(3<allIndex && allIndex<=6){
+						split(line, idx, ",")
+						alladd[allIndex-3 ",1"]= idx[1]
+						alladd[allIndex-3 ",2"]= idx[2]
+					}else if(6<allIndex){
+						split(line, idx, ",")
+						allupdate[allIndex-6 ",1"]= idx[1]
+						allupdate[allIndex-6 ",2"]= idx[2]
+						allupdate[allIndex-6 ",3"]= idx[3]
+						allupdate[allIndex-6 ",4"]= idx[4]
+					}
+				
+					allIndex++;
+				}
+				
+				print  ""
+				print  "--------------------------------------总计-----------------------------------------------------------"
+				print  ""
+				
+				print "\n后台文件:"
+				if(allupdate["1,4"] !=0 ){
+					a=0
+					if(allupdate["1,1"] != 0){
+						a=(updateaddcolde1 / allupdate["1,1"])*100 
+					}
+					str1 = sprintf(" 添加行数: %d / %d = %.2f%%",updateaddcolde1,allupdate["1,1"], a)
+					
+					b=0
+					if(allupdate["1,2"]){
+						b=(updateadddelcolde1 / allupdate["1,2"])*100 
+					}
+					str2 = sprintf(" ,净增行数: %d / %d = %.2f%%",updateadddelcolde1,allupdate["1,2"], b)
+					
+					c=0
+					if(allupdate["1,3"]!=0){
+						c=(updatedelcolde1 / allupdate["1,3"])*100 
+					}
+					str3 = sprintf(" ,删除行数: %d / %d = %.2f%%",updatedelcolde1,allupdate["1,3"], c)
+					
+					d=0
+					if(allupdate["1,4"]!=0){
+						d=(updatefilenum1 / allupdate["1,4"])*100 
+					}
+					str4 = sprintf(" ,文件频次: %d / %d = %.2f%%",updatefilenum1,allupdate["1,4"], d)
+					
+					print  "     修改文件(1)" str1  str2 str3 str4
+				}
+					if(alladd["1,2"] !=0 ){
+					a=0
+					if(alladd["1,1"]!=0){
+						a=(addfilecode1 / alladd["1,1"])*100 
+					}
+					str1 = sprintf(" 添加行数: %d / %d = %.2f%%",addfilecode1,alladd["1,1"], a)
+					
+					b=0
+					if(alladd["1,2"]!=0){
+						b=(addfilenum1 / alladd["1,2"])*100 
+					}
+					
+					str2 = sprintf(" ,文件数量: %d / %d = %.2f%%",addfilenum1,alladd["1,2"], b)
+					print  "     新增文件(2)" str1  str2
+					}
+			
+				if(alldel["1,2"] != 0){
+					a=0
+					if(alldel["1,1"]!=0){
+						a = (delfilecode1 / alldel["1,1"])*100 
+					}
+					str1 = sprintf(" 删除行数: %d / %d = %.2f%%",delfilecode1,alldel["1,1"],a)
+					b=0
+					
+					if(alldel["1,2"]!=0){
+						b = (delfilenum1 / alldel["1,2"])*100 
+					}
+					
+					str2 = sprintf(" ,文件数量: %d / %d = %.2f%%",delfilenum1,alldel["1,2"], b)
+					print  "     删除文件(3)" str1  str2
+				}
+			
+				print "\nUI文件:"
+				if(allupdate["2,4"] !=0 ){
+				
+					a=0
+					if(allupdate["2,1"]!=0){
+						a = (updateaddcolde2 / allupdate["2,1"])*100 
+					}
+					str1 = sprintf(" 添加行数: %d /%d = %.2f%%",updateaddcolde2,allupdate["2,1"], a)
+					
+					b=0
+					if(allupdate["2,2"]!=0){
+						b = (updateadddelcolde2 / allupdate["2,2"])*100 
+					}
+					str2 = sprintf(" ,净增行数: %d / %d = %.2f%%",updateadddelcolde2,allupdate["2,2"], b)
+					
+					c=0
+					if(allupdate["2,3"] != 0){
+						c = (updatedelcolde2 / allupdate["2,3"])*100 
+					}
+					
+					str3 = sprintf(" ,删除行数: %d / %d = %.2f%%",updatedelcolde2, allupdate["2,3"], c)
+					
+					d=0
+					if(allupdate["2,4"]!=0){
+						d = (updatefilenum2 / allupdate["2,4"])*100
+					}
+
+					str4 = sprintf(" ,文件频次: %d / %d = %.2f%%",updatefilenum2,allupdate["2,4"],d)
+					print  "     修改文件(1)" str1  str2 str3 str4
+				}
+				
+				if(alladd["2,2"] !=0 ){
+					a=0
+					if(alladd["2,1"]!=0){
+						a = (addfilecode2 / alladd["2,1"])*100 
+					}
+					
+					str1 = sprintf(" 添加行数: %d /%d = %.2f%%",addfilecode2,alladd["2,1"], a)
+					
+					b=0
+					if(alladd["2,2"]!=0){
+						b=(addfilenum2 / alladd["2,2"])*100 
+					}
+					
+					str2 = sprintf(" ,文件数量: %d / %d = %.2f%%",addfilenum2,alladd["2,2"], b)
+					print  "     新增文件(2)" str1  str2 
+				}
+				
+				if(alldel["2,2"] != 0){
+					a=0
+					if(alldel["2,1"]!=0){
+						a=(delfilecode2 / alldel["2,1"])*100
+					}
+					 
+					str1 = sprintf(" 删除行数: %d / %d = %.2f%%", delfilecode2,alldel["2,1"],a)
+					b=0
+					if(alldel["2,2"]!=0){
+						b = (delfilenum2 / alldel["2,2"])*100 
+					}
+					
+					str2 = sprintf(" ,文件数量: %d / %d = %.2f%%",delfilenum2,alldel["2,2"], b)
+					print  "     删除文件(3)" str1  str2 
+				}
+			
+				print  "\n脚本文件:"
+				if(allupdate["3,4"] !=0 ){
+					a=0
+					if(allupdate["3,1"]!=0){
+						a = (updateaddcolde3 / allupdate["3,1"])*100 
+					}
+					
+					str1 = sprintf(" 添加行数: %d / %d = %.2f%%",updateaddcolde3,allupdate["3,1"], a)
+					b=0
+					if(allupdate["3,2"]!=0){
+						b = (updateadddelcolde3 / allupdate["3,2"])*100 
+					}
+					
+					str2 = sprintf(" 净增行数: %d / %d = %.2f%%",updateadddelcolde3,allupdate["3,2"], b)
+					c = 0
+					if(allupdate["3,3"]!=0){
+						c = (updatedelcolde3 / allupdate["3,3"])*100 
+					}
+									
+					str3 = sprintf(" 删除行数: %d / %d = %.2f%%",updatedelcolde3,allupdate["3,3"], c)
+					
+					d=0
+					if(allupdate["3,4"]!=0){
+						d = (updatefilenum3 / allupdate["3,4"])*100 
+					}
+					
+					str4 = sprintf(" ,文件频次: %d / %d = %.2f%%",updatefilenum3,allupdate["3,4"],d)
+
+					print  "     修改文件(1)" str1  str2 str3 str4
+				
+				}
+			
+				if(alladd["3,2"] !=0 ){
+					a=0
+					if(alladd["3,1"]!=0){
+						a = (addfilecode3 / alladd["3,1"])*100 
+					}
+					str1 = sprintf(" 添加行数: %d / %d = %.2f%%",addfilecode3,alladd["3,1"], a)
+					b = (addfilenum3 / alladd["3,2"])*100 
+					str2 = sprintf(" ,文件数量: %d / %d = %.2f%%",addfilenum3,alladd["3,2"],b)
+					print  "     新增文件(2)" str1  str2 
+				}
+			
+				if(alldel["3,2"] != 0){
+					a=0
+					if(alldel["3,1"]!=0){
+						a=(delfilecode3 / alldel["3,1"])*100
+					}
+					 
+					str1 = sprintf(" 删除行数: %d / %d = %.2f%%",delfilecode3, alldel["3,1"],a)
+					
+					b = (delfilenum3 / alldel["3,2"])*100 
+					str2 = sprintf(" ,文件数量: %d / %d = %.2f%%",delfilenum3,alldel["3,2"], b)
+		
+					print  "     删除文件(3)" str1  str2 
+				}
+				
+				
+			}
+			
+		}
+	' > "$outfile"
+  
+}
+
+
+
+readarray -t lines < <(git log --since="$START_DATE" --until="$END_DATE"  --pretty=format:"%ae %an" | sort | uniq)
+
+
+
+checkadddelfile "all" "all2"
+mainw "all" "all2" "all3"
+
+for line in "${lines[@]}"; do
+   rm -f newfile.log
+   rm -f delfile.log
+   IFS=' ' read -r nameid nameid2  <<< "$line"
+   checkadddelfile "no" "$nameid"
+   mainw "no" "$nameid" "$nameid2"
+done
+
+rm -f newfile.log
+rm -f delfile.log
+rm -f alluser.log
+
+ 
