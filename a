@@ -29,10 +29,12 @@ function checkadddelfile(){
 	local str1="$1" 
 	local str2="$2"
 	local alltext=""
+	
 	if [ $str1 == "all" ]; then
 		alltext=$(git log  --since="$START_DATE" --until="$END_DATE" --name-status  --pretty=format:"%cd %ad" --date=format:"%Y-%m-%d")
 	else
 		alltext=$(git log --author="$str2"  --since="$START_DATE" --until="$END_DATE" --name-status  --pretty=format:"%cd %ad" --date=format:"%Y-%m-%d")
+		
 	fi
 	
 	
@@ -137,6 +139,8 @@ function mainw(){
 	local dir="$branch2 _git_log"
 	local outfile="$dir/$nfile $start to $end.txt"
 	local all=0
+	local urlorigin=""
+	
 	if [[ -d "$dir" ]]; then
 		if [ $cmds != "all" ]; then
 			echo "$u ...."
@@ -160,10 +164,11 @@ function mainw(){
 		alltext=$(git log --author="$u" --since="$START_DATE" --until="$END_DATE" --pretty=format:"%cd %ad" --date=format:"%Y-%m-%d" --numstat)
 		outfile="$dir/$nfile $start to $end.txt"
 		all=0
+		urlorigin=$(git remote get-url origin)
 	fi
 	
 
-	echo "$alltext" | gawk -v arrstr1="$arrstrs1" -v arrstr2="$arrstrs2" -v arrstr3="$arrstrs3" -v isall="$all" '
+	echo "$alltext" | gawk -v arrstr1="$arrstrs1" -v arrstr2="$arrstrs2" -v arrstr3="$arrstrs3" -v isall="$all" -v urlorigins="$urlorigin" -v branch1="$branch2" '
 	  
 		  BEGIN {
 				n1 = split(arrstr1, data1, " ")
@@ -211,8 +216,14 @@ function mainw(){
 			}
 	   
 		function printheaderinfo(){
-		
 			print "----------------------------------------个人项目代码贡献度------------------------------------------------------------------"
+			print ""
+			print "git-url: " urlorigins
+			print "git-branch:  "  branch1
+			print ""
+			print ""
+			
+			
 			stringui1="ui文件("
 			for (i=1; i<=n1; i++) {
 					if(i<n1){
