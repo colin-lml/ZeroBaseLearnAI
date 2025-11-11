@@ -8,7 +8,7 @@
 //#include "LibtorchSimpleNeuralNetwork.h"
 using namespace std;
 
-
+int autogradMain();
 
 struct NetModule : torch::nn::Module
 {
@@ -59,7 +59,9 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
+	autogradMain();
 
+#if 0
 	NetModule net;
 	double learning_rate = 0.5;
 	//torch::Device device(torch::kCPU);
@@ -110,8 +112,10 @@ int main()
 	cout << net.fc2->weight << endl << net.fc2->bias << endl;
 	cout << "<<<<-------------------------------------------------- >>>" << endl << endl;
 
-	cin.get();
+	
+#endif
 
+	cin.get();
 	return 0;
 }
 
