@@ -3,6 +3,69 @@
 
 using namespace torch::autograd;
 
+
+void basic_autograd_example()
+{
+    std::cout << "Running: basic autograd example ..." << std::endl;
+    std::cout << "-------------------1---------------" << std::endl;
+    auto x = torch::tensor(1.0f).requires_grad_();
+    auto y = x + 2;
+    auto z = y * y * 3;
+    std::cout << "y.grad_fn " << y.grad_fn()->name() << std::endl;
+    std::cout << y << std::endl;
+    
+    std::cout << "z.grad_fn " << z.grad_fn()->name() << std::endl;
+    std::cout << z << std::endl;
+    
+    z.backward();
+    std::cout << "z.backward() d(z)/dx " << x.grad() << std::endl;
+    std::cout << "-------------------1---------------" << std::endl;
+
+    std::cout << "-------------------2---------------" << std::endl<< std::endl;
+    x = torch::ones({ 2, 2 }, torch::requires_grad());
+
+    std::cout <<"x " << std::endl << x << std::endl;
+
+    y = x + 2;
+    z = y * y * 3;
+
+    std::cout << "y.grad_fn " << y.grad_fn()->name() << std::endl;
+    std::cout << y << std::endl;
+
+    std::cout << "z.grad_fn " << z.grad_fn()->name() << std::endl;
+    std::cout << z << std::endl;
+
+    z.backward(torch::tensor({ { 1,1 },{1,1} }));
+    std::cout << "z.backward() d(z)/dx "<< std::endl << x.grad() << std::endl;
+    std::cout << "-------------------2---------------" << std::endl;
+
+
+    std::cout << "-------------------3---------------" << std::endl << std::endl;
+    x = torch::tensor({ 1, 2 }, torch::kFloat).requires_grad_();
+    
+    std::cout << "x " << std::endl << x << std::endl;
+
+    y = x + 2;
+    z = y * y * 3;
+
+    std::cout << "y.grad_fn " << y.grad_fn()->name() << std::endl;
+    std::cout << y << std::endl;
+
+    std::cout << "z.grad_fn " << z.grad_fn()->name() << std::endl;
+    std::cout << z << std::endl;
+
+    z.backward(torch::tensor({ 1,1 }));
+    std::cout << "z.backward() d(z)/dx " << std::endl << x.grad() << std::endl;
+    std::cout << "-------------------3---------------" << std::endl;
+
+
+
+
+    std::cout << std::endl << "... basic autograd example" << std::endl;
+}
+
+
+
 void basic_autograd_operations_example() {
   std::cout << "====== Running: \"Basic autograd operations\" ======" << std::endl;
 
@@ -16,37 +79,35 @@ void basic_autograd_operations_example() {
   std::cout << y << std::endl;
 
   // ``y`` was created as a result of an operation, so it has a ``grad_fn``.
-  std::cout << y.grad_fn()->name() << std::endl;
+  std::cout <<"y.grad_fn() " << y.grad_fn()->name() << std::endl;
 
   // Do more operations on ``y``
   auto z = y * y * 3;
   auto out = z.mean();
 
-  std::cout << z << std::endl;
-  std::cout << z.grad_fn()->name() << std::endl;
-  std::cout << out << std::endl;
-  std::cout << out.grad_fn()->name() << std::endl;
+  std::cout <<"z " << z << std::endl;
+  std::cout <<"z.grad_fn() " << z.grad_fn()->name() << std::endl;
+  std::cout <<"out: " << out << std::endl;
+  std::cout << "out.grad_fn " << out.grad_fn()->name() << std::endl;
 
-  ///std::cout <<"end torch::ones({2, 2}, torch::requires_grad()) " << std::endl << std::endl;
+  //std::cout <<"end torch::ones({2, 2}, torch::requires_grad()) " << std::endl << std::endl;
 
   // ``.requires_grad_( ... )`` changes an existing tensor's ``requires_grad`` flag in-place.
   auto a = torch::randn({2, 2});
 
   a = ((a * 3) / (a - 1));
-  std::cout << a.requires_grad() << std::endl;
+  std::cout <<"a.requires_grad() " << a.requires_grad() << std::endl;
 
   a.requires_grad_(true);
-  std::cout << a.requires_grad() << std::endl;
+  std::cout <<"a.requires_grad() " << a.requires_grad() << std::endl;
 
   auto b = (a * a).sum();
-  std::cout << b.grad_fn()->name() << std::endl;
+  std::cout << "b.grad_fn() " << b.grad_fn()->name() << std::endl;
 
   // Let's backprop now. Because ``out`` contains a single scalar, ``out.backward()``
   // is equivalent to ``out.backward(torch::tensor(1.))``.
   out.backward();
-
-  // Print gradients d(out)/dx
-  std::cout << x.grad() << std::endl;
+  std::cout<<"out.backward()  " << x.grad() << std::endl;
 
   // Now let's take a look at an example of vector-Jacobian product:
   x = torch::randn(3, torch::requires_grad());
@@ -66,6 +127,7 @@ void basic_autograd_operations_example() {
 
   std::cout << x.grad() << std::endl;
 
+
   // You can also stop autograd from tracking history on tensors that require gradients
   // either by putting ``torch::NoGradGuard`` in a code block
   std::cout << x.requires_grad() << std::endl;
@@ -73,7 +135,7 @@ void basic_autograd_operations_example() {
 
   {
     torch::NoGradGuard no_grad;
-    std::cout << x.pow(2).requires_grad() << std::endl;
+    std::cout <<"torch::NoGradGuard  " << x.pow(2).requires_grad() << std::endl;
   }
 
   // Or by using ``.detach()`` to get a new tensor with the same content but that does
@@ -98,7 +160,7 @@ void compute_higher_order_gradients_example() {
 
   auto input = torch::randn({3, 4}).requires_grad_(true);
   auto output = model(input);
-
+  std::cout << output << std::endl;
   // Calculate loss
   auto target = torch::randn({3, 3});
   auto loss = torch::nn::MSELoss()(output, target);
@@ -188,7 +250,9 @@ void custom_autograd_function_example() {
 int autogradMain() {
   std::cout << std::boolalpha;
 
-  basic_autograd_operations_example();
+  basic_autograd_example();
+
+  ///basic_autograd_operations_example();
 
   std::cout << "\n";
 
