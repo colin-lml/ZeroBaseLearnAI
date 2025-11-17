@@ -155,88 +155,54 @@ D:\libtorch2.2.0\debug
 
 
 
+00000000
+00011000
+00011000
+00011000
+00011000
+00011000
+00011000
+00000000
 
-torch 张量常用创建方式
-
-1. torch::tensor()   手动输入数据     
-   auto input = torch::tensor({ 0.050,0.10 }, torch::kDouble);
-   
-2.    torch::randn()  随机初始化（正态）  标准正态分布（N (0,1)）
-	  auto a = torch::randn({2, 2});	
-
-3.   torch::rand() / torch::randint()
-   
-4.  torch::zeros() / torch::ones() / torch::full()  固定值填充   全 0、全 1 或指定常数
-
-    auto x = torch::ones({2, 2});
-	
-5. 	torch::zeros_like() 基于现有张量创建   复用形状和属性，减少代码冗余
-
-6.  torch::from_blob() 与 NumPy 互操作 共享内存，高效转换
-
-
-torch 求导
-
-自定义平方函数求导
+00000000
+01111100
+01111100
+00001100
+00001100
+00001100
+00001100
+00000000
 
 
-在 PyTorch C++ API 中，若要对自定义函数（Function）实现自动求导，需要通过继承 torch::autograd::Function 并手动定义前向传播（forward）和反向传播（backward）逻辑。
-这与 Python 中的 torch.autograd.Function 机制类似，核心是显式实现梯度计算规则。
+卷积在图像处理中主要用于特征提取、滤波和模式识别，通过卷积核（滤波器）对图像局部区域进行加权计算，生成特征图。
+常见卷积核效果
+高斯模糊：平滑图像，减少噪声。 ‌
+边缘检测：提取图像轮廓（如 Sobel、 Canny算子）。 ‌
+锐化：增强图像细节（如 Laplacian核）。 ‌
+浮雕效果：模拟光照变化（如特定方向的梯度核）
+卷积
+高斯模糊
+边缘检测
+锐化
+浮雕效果
 
-基本步骤继承 torch::autograd::Function，并指定模板参数（输入 / 输出张量的类型）。实现静态 forward 函数：定义前向传播的计算逻辑。实现静态 backward 函数：根据链式法则，定义输入张量的梯度计算逻辑。封装为可调用接口：通过 apply 方法调用自定义函数。
-示例：自定义平方函数求导假设我们要实现一个自定义函数 \(y = x^2\)，并手动定义其导数 \(\frac{dy}{dx} = 2x\)。
+一维卷积
 
-#include <torch/torch.h>
-#include <iostream>
 
-// 1. 继承 torch::autograd::Function，模板参数为输入和输出的类型（此处均为 Tensor）
-class SquareFunction : public torch::autograd::Function<SquareFunction> {
-public:
-    // 2. 前向传播：计算 y = x^2
-    static torch::Tensor forward(
-        torch::autograd::AutogradContext* ctx,  // 上下文，用于保存反向传播需要的信息
-        const torch::Tensor& x                  // 输入张量
-    ) {
-        // 保存输入 x 到上下文，供反向传播使用
-        ctx->save_for_backward({x});
-        // 前向计算：y = x^2
-        return x * x;
-    }
 
-    // 3. 反向传播：计算输入 x 的梯度（dy/dx = 2x * 上游梯度）
-    static torch::autograd::tensor_list backward(
-        torch::autograd::AutogradContext* ctx,  // 上下文，用于获取前向保存的信息
-        torch::autograd::tensor_list grad_output  // 上游梯度（即 dy/dy'，其中 y' 是依赖 y 的下游变量）
-    ) {
-        // 从上下文获取前向保存的 x
-        auto saved = ctx->get_saved_variables();
-        torch::Tensor x = saved[0];
 
-        // 上游梯度（通常是标量或与 y 同形状的张量，此处假设为 grad_output[0]）
-        torch::Tensor grad_x = 2 * x * grad_output[0];
+假设输入序列为 [1, 2, 3, 4, 5]（长度 = 5），卷积核为 [0.2, 0.5, 0.3]（kernel_size=3），stride=1，padding=0：
+卷积核覆盖 [1, 2, 3] → 计算：1*0.2 + 2*0.5 + 3*0.3 = 0.2 + 1 + 0.9 = 2.1
+滑动 1 步，覆盖 [2, 3, 4] → 计算：2*0.2 + 3*0.5 + 4*0.3 = 0.4 + 1.5 + 1.2 = 3.1
+滑动 1 步，覆盖 [3, 4, 5] → 计算：3*0.2 + 4*0.5 + 5*0.3 = 0.6 + 2 + 1.5 = 4.1
+输出序列为 [2.1, 3.1, 4.1]（长度 = 3）。
 
-        // 返回输入 x 的梯度（若有多个输入，按顺序返回对应梯度）
-        return {grad_x};
-    }
-};
+out_length = floor((in_length + 2*padding - dilation*(kernel_size - 1) - 1) / stride + 1)
 
-// 4. 封装为方便调用的函数
-torch::Tensor square(const torch::Tensor& x) {
-    return SquareFunction::apply(x);
-}
+空洞卷积 
+ 
 
-int main() {
-    // 创建需要求导的输入张量
-    torch::Tensor x = torch::tensor(3.0, torch::requires_grad(true));
-    
-    // 调用自定义函数：y = x^2
-    torch::Tensor y = square(x);
-    
-    // 反向传播（求 y 对 x 的导数）
-    y.backward();
-    
-    // 输出结果：x=3 时，dy/dx=2*3=6
-    std::cout << "x.grad() = " << x.grad() << std::endl;  // 输出：6.0
 
-    return 0;
-}
+
+
+又称扩张卷积
