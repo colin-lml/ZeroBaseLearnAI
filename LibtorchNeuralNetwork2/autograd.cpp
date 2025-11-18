@@ -1,6 +1,6 @@
 #include <torch/torch.h>
 #include <iostream>
-
+#include <torch/data/datasets/mnist.h>
 using namespace torch::autograd;
 
 
@@ -111,7 +111,7 @@ void basic_autograd_operations_example() {
 
   // Now let's take a look at an example of vector-Jacobian product:
   x = torch::randn(3, torch::requires_grad());
-
+  std::cout << "torch::randn  " << x << std::endl;
   y = x * 2;
   while (y.norm().item<double>() < 1000) 
   {
@@ -247,8 +247,13 @@ void custom_autograd_function_example() {
   }
 }
 
-int autogradMain() {
+int autogradMain() 
+{
   std::cout << std::boolalpha;
+  auto  x = torch::randn(3, torch::requires_grad());
+  std::cout << "torch::randn  " << x << std::endl;
+  //auto ky = torch::ones({ 128, 128 });
+  //std::cout << ky << "\n";
 
   basic_autograd_example();
 
