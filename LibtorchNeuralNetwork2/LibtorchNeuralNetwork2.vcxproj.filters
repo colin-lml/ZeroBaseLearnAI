@@ -7,6 +7,9 @@
     <ClCompile Include="autograd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CNNExample.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
