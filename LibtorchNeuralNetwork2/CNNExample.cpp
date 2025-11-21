@@ -6,15 +6,22 @@ using namespace std;
 
 struct CNNModule : torch::nn::Module
 {
-	CNNModule()
+	CNNModule(int dim)
 	{
-		conv = torch::nn::Conv2d(torch::nn::Conv2dOptions(torch::nn::Conv2dOptions(1, 3, 3).stride(1).padding(0)));
-		max_pool2d = torch::nn::MaxPool2d(torch::nn::MaxPool2dOptions(2).stride(1));
+		conv = torch::nn::Conv2d(torch::nn::Conv2dOptions(torch::nn::Conv2dOptions(1, kernelOutchannel, Conv2kernel).stride(1).padding(1)));
+		max_pool2d = torch::nn::MaxPool2d(torch::nn::MaxPool2dOptions(Pool2dkernel).stride(1));
 		
-		in = register_module("in", torch::nn::Linear(75, 100));
-		out = register_module("out", torch::nn::Linear(100, 2));
+		dim = dim + 3 - Conv2kernel;
+		
+		dimLinear = dim - Pool2dkernel + 1;
+		dimLinear = dimLinear * dimLinear * kernelOutchannel;
+		
+		in = register_module("in", torch::nn::Linear(dimLinear, 512));
+		hide = register_module("hide", torch::nn::Linear(512, 128));
+		out = register_module("out", torch::nn::Linear(128, 10));
 
 		in->to(torch::kFloat);
+		hide->to(torch::kFloat);
 		out->to(torch::kFloat);
 
 	}
@@ -24,22 +31,28 @@ struct CNNModule : torch::nn::Module
 	 	x = conv->forward(x);
 		x = max_pool2d->forward(x);
 		x = torch::relu(x);
-		x = x.view(-1);
-		///std::cout << "卷积层输出结果: \n" << x << std::endl;
-
+		x = x.view({ -1,dimLinear });
+		
 		x = in->forward(x);
 		x = torch::relu(x);
+
+		x = hide->forward(x);
+		x = torch::relu(x);
+
 		x = out->forward(x);
-		std::cout << "输出结果xx: \n" << x << std::endl;
-		return torch::log_softmax(x, /*dim=*/1);
+
+		return torch::log_softmax(x, 1);
 	}
 
-
-
-	torch::nn::Linear in{ nullptr }, out{ nullptr };
+	torch::nn::Linear in{ nullptr }, hide{ nullptr },out{ nullptr };
 
 	torch::nn::Conv2d conv{ nullptr };
 	torch::nn::MaxPool2d max_pool2d{ nullptr };
+	int64_t dimLinear = 0;
+	int Conv2kernel = 3;
+	int kernelOutchannel = 16;
+	int Pool2dkernel = 3;
+
 };
 
 
@@ -48,56 +61,100 @@ struct CNNModule : torch::nn::Module
 
 void CnnMain()
 {
+	torch::manual_seed(1);
 
-	torch::Tensor input1 = torch::tensor({{ 0, 0, 0, 0, 0, 0, 0, 0},
-										  { 0, 0, 0, 1, 1, 0, 0, 0},
-										  { 0, 0, 0, 1, 1, 0, 0, 0},
-										  { 0, 0, 0, 1, 1, 0, 0, 0},
-										  { 0, 0, 0, 1, 1, 0, 0, 0},
-										  { 0, 0, 0, 1, 1, 0, 0, 0},
-										  { 0, 0, 0, 1, 1, 0, 0, 0},
-										  { 0, 0, 0, 0, 0, 0, 0, 0},
-		}, torch::kFloat).view({ 1, 1, 8, 8 });
+	torch::Tensor input1 = torch::tensor({{ 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+										  { 0, 0, 0, 1, 1, 0, 0, 0,0,0},
+										  { 0, 0, 0, 1, 1, 0, 0, 0,0,0},
+										  { 0, 0, 0, 1, 1, 0, 0, 0,0,0},
+										  { 0, 0, 0, 1, 1, 0, 0, 0,0,0},
+										  { 0, 0, 0, 1, 1, 0, 0, 0,0,0},
+										  { 0, 0, 0, 1, 1, 0, 0, 0,0,0},
+										  { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+										  { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+										  { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+		}, torch::kFloat).view({ 1, 1, 10, 10 });
 		
-	  torch::Tensor input7 = torch::tensor({{ 0, 0, 0, 0, 0, 0, 0, 0},
-											{ 0, 1, 1, 1, 1, 1, 0, 0},
-											{ 0, 1, 1, 1, 1, 1, 0, 0},
-										    { 0, 0, 0, 0, 1, 1, 0, 0},
-										    { 0, 0, 0, 0, 1, 1, 0, 0},
-										    { 0, 0, 0, 0, 1, 1, 0, 0},
-										    { 0, 0, 0, 0, 1, 1, 0, 0},
-										    { 0, 0, 0, 0, 0, 0, 0, 0},
-		}, torch::kFloat).view({ 1, 1, 8, 8 });
+	  torch::Tensor input7 = torch::tensor({{ 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+											{ 0, 1, 1, 1, 1, 1, 0, 0,0,0},
+											{ 0, 1, 1, 1, 1, 1, 0, 0,0,0},
+										    { 0, 0, 0, 0, 1, 1, 0, 0,0,0},
+										    { 0, 0, 0, 0, 1, 1, 0, 0,0,0},
+										    { 0, 0, 0, 0, 1, 1, 0, 0,0,0},
+										    { 0, 0, 0, 0, 1, 1, 0, 0,0,0},
+										    { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+											{ 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+											{ 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+		}, torch::kFloat).view({ 1, 1, 10, 10 });
 
+	 torch::Tensor target1 = torch::tensor({ 1 }, torch::kLong);
+	 torch::Tensor target7 = torch::tensor({ 7 }, torch::kLong);
 
-#if 0	
-	// 步长1，用一个填充位
-	torch::nn::Conv2d conv(torch::nn::Conv2dOptions(1, 3, 3).stride(1).padding(0));
+	CNNModule cnn(input1.size(2));
 
-	//conv->weight.data() = torch::tensor({ { 1.0, 0.0, 1.0 }, { 1.0, 0.0, 1.0 }, { 1.0, 0.0, 1.0 } });
-	std::cout << "卷积核: \n" << conv->weight << std::endl;
+	double learning_rate = 0.01;
 
-
-	torch::Tensor output = conv->forward(input1);   //卷积运算
-	std::cout << "卷积输出结果: \n" << output << std::endl;
-
-	//最大池化 窗口大小 2X2 步长1 
-	torch::nn::MaxPool2d max_pool2d(torch::nn::MaxPool2dOptions(2).stride(1));
-
-	torch::Tensor output2 = max_pool2d->forward(output); 
-	torch::Tensor output3 = output2.view({ -1});
-	
-	std::cout << "池化输出结果:\n" << output2 << std::endl;
-	std::cout << "output2.view({ -1}):\n" << output3 << std::endl;
-#endif
-
-
-	CNNModule cnn;
-	double learning_rate = 0.5;
-
-	torch::nn::MSELoss funloss;
 	torch::optim::Adam optimizer(cnn.parameters(), torch::optim::AdamOptions(learning_rate));
+	
+	
+	int64_t epochs = 10000;
+	double accuracy = 0.003;
+	auto start_time = chrono::high_resolution_clock::now();
+	
+	cnn.train();
+	
+	for (int64_t epoch = 0; epoch < epochs; ++epoch)
+	{
+		optimizer.zero_grad();
 
-	torch::Tensor  output= cnn.forward(input1);
-	std::cout << "output:\n" << output << std::endl;
+		auto  output = cnn.forward(input1);
+		auto loss = torch::nll_loss(output, target1);
+
+		loss.backward();
+		optimizer.step();
+
+		auto output7 = cnn.forward(input7);
+		auto loss7 = torch::nll_loss(output7, target7);
+		loss7.backward();
+		optimizer.step();
+		if (epoch % 10 == 0)
+		{
+			std::cout << "Epoch: " << epoch + 1 << "], Loss1: " << loss << ", loss7:" << loss7 << std::endl;
+		}
+			
+		if (loss.item<double>() <= accuracy && loss7.item<double>() <= accuracy) 
+		{
+			std::cout << "Epoch: " << epoch + 1 << "], Loss1: " << loss << ", loss7:" << loss7 << std::endl;
+			break;
+		}
+	}
+	
+	auto end_time = chrono::high_resolution_clock::now();
+	auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+	std::cout << "end-time: " << duration_ms <<" ms, => "<< duration_ms/1000 <<" s" << endl;
+	
+	{
+
+		torch::Tensor test1 = torch::tensor({ { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+											  { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+											  { 0, 0, 0, 0, 0, 1, 1, 0,0,0},
+											  { 0, 0, 0, 0, 0, 1, 1, 0,0,0},
+											  { 0, 0, 0, 0, 0, 1, 1, 0,0,0},
+											  { 0, 0, 0, 0, 0, 1, 1, 0,0,0},
+											  { 0, 0, 0, 0, 0, 1, 1, 0,0,0},
+											  { 0, 0, 0, 0, 0, 1, 1, 0,0,0},
+											  { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+											  { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+			}, torch::kFloat).view({ 1, 1, 10, 10 });
+
+
+		torch::NoGradGuard no_grad;
+		cnn.eval();
+		auto  output = cnn.forward(test1);
+		auto  loss = torch::nll_loss(output, target1);
+		std::cout << endl << "eval-output:\n "  << endl << "loss: " << loss << endl;
+
+	}
+
+
 }
