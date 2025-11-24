@@ -29,6 +29,7 @@ struct CNNModule : torch::nn::Module
 	{
 	 	x = conv->forward(x);
 		//x = conv2_drop->forward(x);
+		//x = torch::relu(x);
 		x = max_pool2d->forward(x);
 		pooldata = x;
 		x = torch::relu(x);
@@ -154,12 +155,10 @@ void TrainData(CNNModule& cnn)
 		}
 	}
 
-	//std::cout << endl;
-
-	//std::cout << endl << "pooldata1: " << endl << pooldata1.view({ 1,1,8,8 }) << endl;
-	//std::cout << endl << "pooldata7: " << endl << pooldata7.view({ 1,1,8,8 }) << endl;
-	//std::cout << endl << "pooldata8: " << endl << pooldata8.view({ 1,1,8,8 }) << endl;
 	
+	//std::cout << endl << "pooldata1: " << endl << pooldata1 << endl;
+	//std::cout << endl << "pooldata7: " << endl << pooldata7 << endl;
+	//std::cout << endl << "pooldata8: " << endl << pooldata8 << endl;
 	//std::cout << endl;
 
 
