@@ -8,11 +8,11 @@ struct CNNModule : torch::nn::Module
 {
 	CNNModule(int dim)
 	{
-		int s = 2;
+		int s = 1;
 		int p = 1;
 		conv = torch::nn::Conv2d(torch::nn::Conv2dOptions(torch::nn::Conv2dOptions(1, kernelOutchannel, Conv2kernel).stride(s).padding(p).bias(false)));
 		max_pool2d = torch::nn::MaxPool2d(torch::nn::MaxPool2dOptions(Pool2dkernel).stride(s));
-		conv2_drop = torch::nn::Dropout2d(torch::nn::Dropout2dOptions(0.1));
+		//conv2_drop = torch::nn::Dropout2d(torch::nn::Dropout2dOptions(0.1));
 
 		dim = (dim + 2 * p - (Conv2kernel - 1) - 1) / s + 1;
 		p = 0;
@@ -49,10 +49,10 @@ struct CNNModule : torch::nn::Module
 
 	torch::nn::Conv2d conv{ nullptr };
 	torch::nn::MaxPool2d max_pool2d{ nullptr };
-	torch::nn::Dropout2d conv2_drop;
+	//torch::nn::Dropout2d conv2_drop;
 	int64_t dimLinear = 0;
 	int Conv2kernel = 3;
-	int kernelOutchannel = 16;
+	int kernelOutchannel = 8;
 	int Pool2dkernel = 2;
 	torch::Tensor pooldata;
 };
@@ -89,15 +89,15 @@ void TrainData(CNNModule& cnn)
 		}, torch::kFloat).view({ 1, 1, 10, 10 });
 
 	torch::Tensor train8 = torch::tensor({ { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
-									   { 0, 1, 1, 1, 1, 1, 1, 0,0,0},
-									   { 0, 1, 0, 0, 0, 0, 1, 0,0,0},
-									   { 0, 1, 0, 0, 0, 0, 1, 0,0,0},
-									   { 0, 1, 1, 1, 1, 1, 1, 0,0,0},
-									   { 0, 1, 1, 1, 1, 1, 1, 0,0,0},
-									   { 0, 1, 0, 0, 0, 0, 1, 0,0,0},
-									   { 0, 1, 0, 0, 0, 0, 1, 0,0,0},
-									   { 0, 1, 1, 1, 1, 1, 1, 0,0,0},
-									   { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
+										   { 0, 1, 1, 1, 1, 1, 1, 0,0,0},
+										   { 0, 1, 0, 0, 0, 0, 1, 0,0,0},
+										   { 0, 1, 0, 0, 0, 0, 1, 0,0,0},
+										   { 0, 1, 1, 1, 1, 1, 1, 0,0,0},
+										   { 0, 1, 1, 1, 1, 1, 1, 0,0,0},
+										   { 0, 1, 0, 0, 0, 0, 1, 0,0,0},
+										   { 0, 1, 0, 0, 0, 0, 1, 0,0,0},
+										   { 0, 1, 1, 1, 1, 1, 1, 0,0,0},
+										   { 0, 0, 0, 0, 0, 0, 0, 0,0,0},
 		}, torch::kFloat).view({ 1, 1, 10, 10 });
 
 	
@@ -110,8 +110,8 @@ void TrainData(CNNModule& cnn)
 	torch::optim::Adam optimizer(cnn.parameters(), torch::optim::AdamOptions(learning_rate));
 
 
-	int64_t epochs = 10000;
-	double accuracy = 0.001;
+	int64_t epochs = 150;
+	double accuracy = 0.008;
 	auto start_time = chrono::high_resolution_clock::now();
 	torch::Tensor pooldata1;
 	torch::Tensor pooldata7;
@@ -154,13 +154,13 @@ void TrainData(CNNModule& cnn)
 		}
 	}
 
-	std::cout << endl;
+	//std::cout << endl;
 
-	std::cout << endl << "pooldata1: " << endl << pooldata1.view({ 1,1,8,8 }) << endl;
-	std::cout << endl << "pooldata7: " << endl << pooldata7.view({ 1,1,8,8 }) << endl;
-	std::cout << endl << "pooldata8: " << endl << pooldata8.view({ 1,1,8,8 }) << endl;
+	//std::cout << endl << "pooldata1: " << endl << pooldata1.view({ 1,1,8,8 }) << endl;
+	//std::cout << endl << "pooldata7: " << endl << pooldata7.view({ 1,1,8,8 }) << endl;
+	//std::cout << endl << "pooldata8: " << endl << pooldata8.view({ 1,1,8,8 }) << endl;
 	
-	std::cout << endl;
+	//std::cout << endl;
 
 
 	auto end_time = chrono::high_resolution_clock::now();
@@ -228,15 +228,15 @@ void TestData(CNNModule& cnn)
 		}, torch::kFloat).view({ 1, 1, 10, 10 });
 
 	torch::Tensor test8 = torch::tensor({ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-									   { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0},
-									   { 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-									   { 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-									   { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0},
-									   { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0},
-									   { 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-									   { 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-									   { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0},
-									   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+										   { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0},
+										   { 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
+										   { 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
+										   { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0},
+										   { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0},
+										   { 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
+										   { 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
+										   { 0, 0, 0, 1, 1, 1, 1, 1, 1, 0},
+										   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		}, torch::kFloat).view({ 1, 1, 10, 10 });
 
 
