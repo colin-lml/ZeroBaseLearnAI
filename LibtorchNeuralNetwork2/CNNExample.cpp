@@ -276,6 +276,9 @@ void CnnMain()
 
 	CNNModule cnn(10);
 
+	TestData(cnn);
+	std::cout  << endl;
+
 	TrainData(cnn);
 
 	TestData(cnn);
