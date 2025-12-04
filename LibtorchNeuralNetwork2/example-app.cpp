@@ -8,6 +8,7 @@
 //#include "LibtorchSimpleNeuralNetwork.h"
 using namespace std;
 void CnnMain();
+void RnnMain();
 int autogradMain();
 
 struct NetModule : torch::nn::Module
@@ -134,8 +135,9 @@ int mainx2() {
 
 int main()
 {
-	CnnMain();
+	//CnnMain();
 	///autogradMain();
+	RnnMain();
 
 #if 0
 	NetModule net;

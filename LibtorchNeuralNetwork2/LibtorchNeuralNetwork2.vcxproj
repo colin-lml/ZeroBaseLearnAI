@@ -180,6 +180,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="autograd.cpp" />
     <ClCompile Include="CNNExample.cpp" />
     <ClCompile Include="example-app.cpp" />
+    <ClCompile Include="RNN_Example.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
