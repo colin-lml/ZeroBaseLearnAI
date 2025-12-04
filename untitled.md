@@ -320,3 +320,35 @@ AI 基础知识六 libtorch构建卷积神经网络
 
 
 
+AI 基础知识六 libtorch构建卷积神经网络
+
+AI 基础知识七 数据集与循环神经网络RNN
+
+torch::data::datasets::Dataset 
+
+抽象基类，定义数据集的 “接口规范”
+1. 必须重写 size()（返回总样本数）和 get()（返回单样本）；
+2. 支持 CRTP 模式（Dataset<Self>），实现类型推导；
+3. 是 DataLoader 加载数据的唯一数据源。
+
+torch::data::Example
+单样本容器，封装 “数据 + 标签”（或纯数据）
+
+1. 模板类，默认是 Example<Tensor, Tensor>（数据 + 标签）；
+2. 可自定义为单张量（Example<Tensor>）或多标签（Example<Tensor, std::tuple<Tensor, Tensor>>）；
+3. 是 Dataset::get() 的返回类型，也是 DataLoader 拼接批量的最小单元。
+
+
+Dataset 生产 Example：
+Dataset 的 get(size_t index) 方法必须返回一个 Example 对象，即 “每个样本都被封装为 Example”；
+Example 是批量拼接的基础：
+DataLoader 收集多个 Example，通过 Stack 变换将其中的 data 和 target 分别拼接为批量张量（[batch_size, ...]）；
+类型对齐：
+Dataset 的模板参数（如 Dataset<MyDataset>）需与 Example 的类型匹配，确保 DataLoader 能正确推导批量张量的类型。
+
+
+数据加载器（DataLoader）
+
+torch::data::make_data_loader 是 LibTorch 中创建数据加载器（DataLoader）的核心函数，负责将 Dataset 封装为可迭代的批量数据生成器，实现「单样本→批量数据」的转换，同时支持多线程加载、数据打乱、批量大小配置等工业级特性
+
+

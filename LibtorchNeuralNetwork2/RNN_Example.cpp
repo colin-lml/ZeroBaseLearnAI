@@ -1,7 +1,9 @@
 #include <torch/torch.h>
 #include <iostream>
+#include <vector>
+#include <cmath>
 
-
+#if 0
 void RnnMain() 
 {
 
@@ -51,26 +53,28 @@ void RnnMain()
 
    
 }
+#endif
 
-#include <torch/torch.h>
-#include <iostream>
-#include <vector>
-#include <cmath>
+
+
 
 // 1. 生成正弦波序列数据（输入序列+目标值）
 // input_seq_len: 输入序列长度（如3个连续时间步）
 // total_samples: 总样本数
 // 返回: (inputs, targets) -> inputs: [N, input_seq_len, 1], targets: [N, 1]
-std::pair<torch::Tensor, torch::Tensor> generate_sine_data(int input_seq_len = 3, int total_samples = 1000) {
+std::pair<torch::Tensor, torch::Tensor> generate_sine_data(int input_seq_len = 3, int total_samples = 1000) 
+{
     std::vector<float> x_data, y_data;
     // 生成0到10π的正弦波数据
-    for (int i = 0; i < total_samples + input_seq_len; ++i) {
+    for (int i = 0; i < total_samples + input_seq_len; ++i) 
+    {
         float x = 0.1f * i;  // 步长0.1，覆盖0~100π（足够长的序列）
         x_data.push_back(std::sin(x));
     }
     // 构造输入序列和目标值（目标=输入序列的下一个时间步）
     std::vector<torch::Tensor> inputs, targets;
-    for (int i = 0; i < total_samples; ++i) {
+    for (int i = 0; i < total_samples; ++i) 
+    {
         // 输入序列：[i, i+1, i+2] -> 形状[input_seq_len, 1]
         auto input_seq = torch::tensor(std::vector<float>(
             x_data.begin() + i, x_data.begin() + i + input_seq_len
@@ -81,7 +85,8 @@ std::pair<torch::Tensor, torch::Tensor> generate_sine_data(int input_seq_len = 3
         targets.push_back(target);
     }
     // 拼接为批量张量：inputs[N, input_seq_len, 1]，targets[N, 1]
-    return {
+    return 
+    {
         torch::stack(inputs),
         torch::stack(targets)
     };
@@ -120,7 +125,26 @@ private:
     int hidden_size_;
 };
 
-int main() {
+class CustomRnnDataset : public torch::data::datasets::Dataset<CustomRnnDataset>
+{
+    std::vector<float>  data;
+
+    using Example = torch::data::Example<>;
+    Example get(size_t index)
+    {
+
+    }
+
+    torch::optional<size_t> size() const 
+    {
+        return data.size();
+    }
+};
+
+
+
+void RnnMain() 
+{
     // ---------------------- 配置参数 ----------------------
     const int input_seq_len = 3;    // 输入序列长度（用前3个点预测下1个）
     const int input_size = 1;       // 每个时间步输入维度（正弦波是单变量）
@@ -140,7 +164,7 @@ int main() {
     auto dataset = torch::data::TensorDataset(train_inputs, train_targets);
     auto data_loader = torch::data::make_data_loader(
         dataset,
-        torch::data::DataLoaderOptions().batch_size(batch_size).shuffle(true)  // 打乱数据
+        torch::data::DataLoaderOptions().batch_size(batch_size)  // 打乱数据
     );
 
     // ---------------------- 初始化模型、优化器、损失函数 ----------------------
@@ -173,7 +197,7 @@ int main() {
             optimizer.step();       // 更新参数
 
             // 累计损失
-            total_loss += loss.item<float>();
+            total_loss += loss;
             batch_count++;
         }
 
@@ -208,6 +232,5 @@ int main() {
     std::cout << "预测值：" << test_y_pred.item<float>() << std::endl;
     std::cout << "真实值：" << true_y << std::endl;
     std::cout << "误差：" << std::abs(test_y_pred.item<float>() - true_y) << std::endl;
-
-    return 0;
+  
 }
