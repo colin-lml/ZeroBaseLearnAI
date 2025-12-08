@@ -31,7 +31,8 @@ class CustomDataset : public torch::data::datasets::Dataset<CustomDataset> {
  public:
   CustomDataset(const Data& data) : data(data) {}
 
-  Example get(size_t index) {
+  Example get(size_t index)
+  {
     std::string path = options.datasetPath + data[index].first;
     auto mat = cv::imread(path);
     assert(!mat.empty());
@@ -166,7 +167,8 @@ void train(
 }
 
 template <typename DataLoader>
-void test(Network& network, DataLoader& loader, size_t data_size) {
+void test(Network& network, DataLoader& loader, size_t data_size)
+{
   size_t index = 0;
   network->eval();
   torch::NoGradGuard no_grad;
@@ -190,7 +192,8 @@ void test(Network& network, DataLoader& loader, size_t data_size) {
               << "\tAcc: " << Acc / data_size << std::endl;
 }
 
-int main() {
+int main() 
+{
   torch::manual_seed(1);
 
   if (torch::cuda::is_available())
@@ -220,7 +223,8 @@ int main() {
   torch::optim::SGD optimizer(
       network->parameters(), torch::optim::SGDOptions(0.001).momentum(0.5));
 
-  for (size_t i = 0; i < options.iterations; ++i) {
+  for (size_t i = 0; i < options.iterations; ++i) 
+  {
     train(network, *train_loader, optimizer, i + 1, train_size);
     std::cout << std::endl;
     test(network, *test_loader, test_size);

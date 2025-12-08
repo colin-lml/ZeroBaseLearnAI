@@ -352,3 +352,316 @@ Dataset 的模板参数（如 Dataset<MyDataset>）需与 Example 的类型匹�
 torch::data::make_data_loader 是 LibTorch 中创建数据加载器（DataLoader）的核心函数，负责将 Dataset 封装为可迭代的批量数据生成器，实现「单样本→批量数据」的转换，同时支持多线程加载、数据打乱、批量大小配置等工业级特性
 
 
+
+
+#include <torch/torch.h>
+#include <iostream>
+#include <vector>
+
+// ===================== 1. 定义Embedding+RNN模型 =====================
+class EmbeddingRNNClassifier : public torch::nn::Module {
+public:
+    // 构造函数：初始化嵌入层、RNN层、分类头
+    // vocab_size: 词汇表大小（离散单词ID总数）
+    // embed_dim: 词向量维度
+    // hidden_size: RNN隐藏层维度
+    // num_classes: 分类类别数
+    EmbeddingRNNClassifier(
+        int64_t vocab_size, 
+        int64_t embed_dim, 
+        int64_t hidden_size, 
+        int64_t num_classes
+    ) : 
+        embedding_(torch::nn::EmbeddingOptions(vocab_size, embed_dim).padding_idx(0)), // 0为填充位
+        rnn_(torch::nn::RNNOptions(embed_dim, hidden_size)
+             .num_layers(1)          // 单层RNN
+             .batch_first(true)      // 输入格式：(batch_size, seq_len, embed_dim)（更直观）
+             .bidirectional(false)), // 单向RNN
+        fc_(hidden_size, num_classes) { // 分类全连接层
+        
+        // 注册子模块（必须！否则参数无法被优化器捕获）
+        register_module("embedding", embedding_);
+        register_module("rnn", rnn_);
+        register_module("fc", fc_);
+    }
+
+    // 前向传播
+    torch::Tensor forward(torch::Tensor x) {
+        // x: (batch_size, seq_len) → 输入为单词ID序列
+        
+        // Step 1: Embedding层 → 词向量序列
+        // output: (batch_size, seq_len, embed_dim)
+        torch::Tensor embed = embedding_->forward(x);
+        
+        // Step 2: RNN层提取时序特征
+        // 初始化隐藏状态h0: (num_layers * num_directions, batch_size, hidden_size)
+        auto h0 = torch::zeros({1, x.size(0), rnn_->options.hidden_size()}, 
+                               torch::device(embed.device()).dtype(embed.dtype()));
+        // RNN输出：(output, hn)
+        // output: (batch_size, seq_len, hidden_size) → 所有时间步输出
+        // hn: (1, batch_size, hidden_size) → 最后时刻隐藏状态
+        auto rnn_out = rnn_->forward(embed, h0);
+        torch::Tensor hn = std::get<1>(rnn_out); // 提取最后时刻隐藏状态
+        
+        // Step 3: 分类头（去掉num_layers维度）
+        // hn.squeeze(0): (batch_size, hidden_size)
+        torch::Tensor logits = fc_(hn.squeeze(0)); // 输出：(batch_size, num_classes)
+        
+        return logits;
+    }
+
+private:
+    torch::nn::Embedding embedding_; // 嵌入层
+    torch::nn::RNN rnn_;             // RNN层
+    torch::nn::Linear fc_;           // 分类全连接层
+};
+
+// ===================== 2. 生成模拟文本序列数据 =====================
+// 生成：(batch_size, seq_len)的单词ID序列 + (batch_size,)的标签
+std::pair<torch::Tensor, torch::Tensor> generate_text_data(
+    int64_t batch_size, 
+    int64_t seq_len, 
+    int64_t vocab_size, 
+    int64_t num_classes
+) {
+    // 单词ID序列：值范围0~vocab_size-1（0为填充位）
+    torch::Tensor input_ids = torch::randint(0, vocab_size, {batch_size, seq_len}, torch::kLong);
+    // 分类标签：0/1（二分类）
+    torch::Tensor labels = torch::randint(0, num_classes, {batch_size}, torch::kLong);
+    return {input_ids, labels};
+}
+
+// ===================== 3. 主函数（训练+预测） =====================
+void RnnMain() {
+    // -------------------- 超参数设置 --------------------
+    const int64_t vocab_size = 1000;    // 词汇表大小（单词ID：0~999）
+    const int64_t embed_dim = 64;       // 词向量维度
+    const int64_t hidden_size = 128;    // RNN隐藏层维度
+    const int64_t num_classes = 2;      // 二分类
+    const int64_t seq_len = 15;         // 序列长度（每个文本15个单词）
+    const int64_t batch_size = 16;      // 批次大小
+    const int64_t epochs = 30;          // 训练轮数
+    const float lr = 0.001f;            // 学习率
+
+    // -------------------- 初始化模型/优化器/损失函数 --------------------
+    EmbeddingRNNClassifier model(vocab_size, embed_dim, hidden_size, num_classes);
+    // 优化器：Adam（适配嵌入层+RNN的参数更新）
+    torch::optim::Adam optimizer(model.parameters(), torch::optim::AdamOptions(lr));
+    // 损失函数：交叉熵（适配分类任务）
+    torch::nn::CrossEntropyLoss criterion;
+
+    // -------------------- 训练循环 --------------------
+    model.train(); // 训练模式
+    for (int64_t epoch = 0; epoch < epochs; ++epoch) {
+        // 生成一批训练数据
+        auto [input_ids, labels] = generate_text_data(batch_size, seq_len, vocab_size, num_classes);
+        
+        // 前向传播
+        optimizer.zero_grad(); // 梯度清零
+        torch::Tensor logits = model.forward(input_ids);
+        
+        // 计算损失
+        torch::Tensor loss = criterion(logits, labels);
+        
+        // 反向传播 + 更新参数
+        loss.backward();
+        optimizer.step();
+
+        // 打印训练信息（每5轮）
+        if ((epoch + 1) % 5 == 0) {
+            // 计算准确率
+            auto preds = logits.argmax(1); // 预测类别：(batch_size,)
+            float acc = preds.eq(labels).sum().item<float>() / batch_size;
+            
+            std::cout << "Epoch: " << epoch + 1 
+                      << " | Loss: " << loss.item<float>() 
+                      << " | Acc: " << acc << std::endl;
+        }
+    }
+
+    // -------------------- 预测示例 --------------------
+    model.eval(); // 评估模式
+    torch::NoGradGuard no_grad; // 禁用梯度计算（提升推理效率）
+
+    // 生成单个测试样本（batch_size=1）
+    auto [test_ids, test_label] = generate_text_data(1, seq_len, vocab_size, num_classes);
+    torch::Tensor test_logits = model.forward(test_ids);
+    auto pred_label = test_logits.argmax(1).item<int64_t>();
+    auto true_label = test_label.item<int64_t>();
+
+    std::cout << "\n=== 预测结果 ===" << std::endl;
+    std::cout << "输入单词ID序列:\n" << test_ids.squeeze(0) << std::endl;
+    std::cout << "真实标签: " << true_label << std::endl;
+    std::cout << "预测标签: " << pred_label << std::endl;
+
+   
+}
+
+
+
+
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import matplotlib.pyplot as plt
+import numpy as np
+
+# 数据集：字符序列预测（Hello -> Elloh）
+char_set = list("hello")
+char_to_idx = {c: i for i, c in enumerate(char_set)}
+idx_to_char = {i: c for i, c in enumerate(char_set)}
+
+# 数据准备
+input_str = "hello"
+target_str = "elloh"
+input_data = [char_to_idx[c] for c in input_str]
+target_data = [char_to_idx[c] for c in target_str]
+
+# 转换为独热编码
+input_one_hot = np.eye(len(char_set))[input_data]
+
+# 转换为 PyTorch Tensor
+inputs = torch.tensor(input_one_hot, dtype=torch.float32)
+targets = torch.tensor(target_data, dtype=torch.long)
+
+# 模型超参数
+input_size = len(char_set)
+hidden_size = 8
+output_size = len(char_set)
+num_epochs = 200
+learning_rate = 0.1
+
+# 定义 RNN 模型
+class RNNModel(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(RNNModel, self).__init__()
+        self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x, hidden):
+        out, hidden = self.rnn(x, hidden)
+        out = self.fc(out)  # 应用全连接层
+        return out, hidden
+
+model = RNNModel(input_size, hidden_size, output_size)
+
+# 定义损失函数和优化器
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+# 训练 RNN
+losses = []
+hidden = None  # 初始隐藏状态为 None
+for epoch in range(num_epochs):
+    optimizer.zero_grad()
+
+    # 前向传播
+    outputs, hidden = model(inputs.unsqueeze(0), hidden)
+    hidden = hidden.detach()  # 防止梯度爆炸
+
+    # 计算损失
+    loss = criterion(outputs.view(-1, output_size), targets)
+    loss.backward()
+    optimizer.step()
+    losses.append(loss.item())
+
+    if (epoch + 1) % 20 == 0:
+        print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}")
+
+# 测试 RNN
+with torch.no_grad():
+    test_hidden = None
+    test_output, _ = model(inputs.unsqueeze(0), test_hidden)
+    predicted = torch.argmax(test_output, dim=2).squeeze().numpy()
+
+    print("Input sequence: ", ''.join([idx_to_char[i] for i in input_data]))
+    print("Predicted sequence: ", ''.join([idx_to_char[i] for i in predicted]))
+	
+	
+	
+	
+	
+	
+	
+	
+/*******************************************************************************************************/	
+	
+#include <torch/torch.h>
+#include <iostream>
+
+// 1. 定义极简RNN分类模型
+class SimpleRNN : public torch::nn::Module {
+public:
+    SimpleRNN(int64_t input_size, int64_t hidden_size, int64_t num_classes)
+        : rnn_(torch::nn::RNNOptions(input_size, hidden_size)
+               .num_layers(1)        // 单层RNN
+               .batch_first(true)),  // 输入格式：(batch, seq_len, input_size)
+          fc_(hidden_size, num_classes) {  // 分类头
+        register_module("rnn", rnn_);
+        register_module("fc", fc_);
+    }
+
+    // 前向传播：序列→RNN隐藏状态→分类
+    torch::Tensor forward(torch::Tensor x) {
+        // 初始化隐藏状态：(num_layers, batch_size, hidden_size)
+        auto h0 = torch::zeros({1, x.size(0), rnn_->options.hidden_size()}, x.device());
+        
+        // RNN前向：输出 (output, hn)，取最后时刻隐藏状态hn
+        auto rnn_out = rnn_->forward(x, h0);
+        torch::Tensor hn = std::get<1>(rnn_out);
+        
+        // 去掉层数维度 + 分类
+        return fc_(hn.squeeze(0));
+    }
+
+private:
+    torch::nn::RNN rnn_;       // RNN层
+    torch::nn::Linear fc_;     // 分类全连接层
+};
+
+int main() {
+    // 2. 超参数（极简配置）
+    const int64_t input_size = 10;    // 每个时间步特征维度
+    const int64_t hidden_size = 32;   // RNN隐藏层维度
+    const int64_t num_classes = 2;    // 二分类
+    const int64_t seq_len = 8;        // 序列长度
+    const int64_t batch_size = 16;    // 批次大小
+    const int64_t epochs = 20;        // 训练轮数
+    const float lr = 0.005f;          // 学习率
+
+    // 3. 初始化模型、优化器、损失函数
+    SimpleRNN model(input_size, hidden_size, num_classes);
+    torch::optim::Adam optimizer(model.parameters(), lr);
+    torch::nn::CrossEntropyLoss criterion;
+
+    // 4. 训练循环
+    model.train();
+    for (int64_t epoch = 0; epoch < epochs; ++epoch) {
+        // 生成模拟数据：(batch, seq_len, input_size) + 标签(batch,)
+        torch::Tensor x = torch::randn({batch_size, seq_len, input_size});
+        torch::Tensor y = torch::randint(0, num_classes, {batch_size}, torch::kLong);
+
+        // 前向+反向+更新
+        optimizer.zero_grad();
+        torch::Tensor logits = model.forward(x);
+        torch::Tensor loss = criterion(logits, y);
+        loss.backward();
+        optimizer.step();
+
+        // 打印训练信息
+        if ((epoch + 1) % 5 == 0) {
+            float acc = logits.argmax(1).eq(y).sum().item<float>() / batch_size;
+            std::cout << "Epoch: " << epoch+1 << " | Loss: " << loss.item<float>() << " | Acc: " << acc << std::endl;
+        }
+    }
+
+    // 5. 预测示例
+    model.eval();
+    torch::NoGradGuard no_grad;  // 禁用梯度
+    torch::Tensor test_x = torch::randn({1, seq_len, input_size});  // 单样本
+    torch::Tensor pred = model.forward(test_x).argmax(1);
+    std::cout << "\n预测结果（单样本）: " << pred.item<int64_t>() << std::endl;
+
+    return 0;
+}

@@ -56,7 +56,7 @@ void RnnMain()
 #endif
 
 
-
+#if 0
 
 // 1. 生成正弦波序列数据（输入序列+目标值）
 // input_seq_len: 输入序列长度（如3个连续时间步）
@@ -76,9 +76,7 @@ std::pair<torch::Tensor, torch::Tensor> generate_sine_data(int input_seq_len = 3
     for (int i = 0; i < total_samples; ++i) 
     {
         // 输入序列：[i, i+1, i+2] -> 形状[input_seq_len, 1]
-        auto input_seq = torch::tensor(std::vector<float>(
-            x_data.begin() + i, x_data.begin() + i + input_seq_len
-        )).reshape({ input_seq_len, 1 }).to(torch::kFloat32);
+        auto input_seq = torch::tensor(std::vector<float>(x_data.begin() + i, x_data.begin() + i + input_seq_len)).reshape({ input_seq_len, 1 }).to(torch::kFloat32);
         // 目标值：i+3时刻的正弦值 -> 形状[1]
         auto target = torch::tensor(x_data[i + input_seq_len]).reshape({ 1 }).to(torch::kFloat32);
         inputs.push_back(input_seq);
@@ -233,4 +231,146 @@ void RnnMain()
     std::cout << "真实值：" << true_y << std::endl;
     std::cout << "误差：" << std::abs(test_y_pred.item<float>() - true_y) << std::endl;
   
+}
+
+#endif
+
+
+// ===================== 1. 定义Embedding+RNN模型 =====================
+class EmbeddingRNNClassifier : public torch::nn::Module {
+public:
+    // 构造函数：初始化嵌入层、RNN层、分类头
+    // vocab_size: 词汇表大小（离散单词ID总数）
+    // embed_dim: 词向量维度
+    // hidden_size: RNN隐藏层维度
+    // num_classes: 分类类别数
+    EmbeddingRNNClassifier(
+        int64_t vocab_size,
+        int64_t embed_dim,
+        int64_t hidden_size,
+        int64_t num_classes
+    ) :
+        embedding_(torch::nn::EmbeddingOptions(vocab_size, embed_dim).padding_idx(0)), // 0为填充位
+        rnn_(torch::nn::RNNOptions(embed_dim, hidden_size)
+            .num_layers(1)          // 单层RNN
+            .batch_first(true)      // 输入格式：(batch_size, seq_len, embed_dim)（更直观）
+            .bidirectional(false)), // 单向RNN
+        fc_(hidden_size, num_classes) { // 分类全连接层
+
+        // 注册子模块（必须！否则参数无法被优化器捕获）
+        register_module("embedding", embedding_);
+        register_module("rnn", rnn_);
+        register_module("fc", fc_);
+    }
+
+    // 前向传播
+    torch::Tensor forward(torch::Tensor x) {
+        // x: (batch_size, seq_len) → 输入为单词ID序列
+
+        // Step 1: Embedding层 → 词向量序列
+        // output: (batch_size, seq_len, embed_dim)
+        torch::Tensor embed = embedding_->forward(x);
+
+        // Step 2: RNN层提取时序特征
+        // 初始化隐藏状态h0: (num_layers * num_directions, batch_size, hidden_size)
+        auto h0 = torch::zeros({ 1, x.size(0), rnn_->options.hidden_size() },
+            torch::device(embed.device()).dtype(embed.dtype()));
+        // RNN输出：(output, hn)
+        // output: (batch_size, seq_len, hidden_size) → 所有时间步输出
+        // hn: (1, batch_size, hidden_size) → 最后时刻隐藏状态
+        auto rnn_out = rnn_->forward(embed, h0);
+        torch::Tensor hn = std::get<1>(rnn_out); // 提取最后时刻隐藏状态
+
+        // Step 3: 分类头（去掉num_layers维度）
+        // hn.squeeze(0): (batch_size, hidden_size)
+        torch::Tensor logits = fc_(hn.squeeze(0)); // 输出：(batch_size, num_classes)
+
+        return logits;
+    }
+
+private:
+    torch::nn::Embedding embedding_; // 嵌入层
+    torch::nn::RNN rnn_;             // RNN层
+    torch::nn::Linear fc_;           // 分类全连接层
+};
+
+// ===================== 2. 生成模拟文本序列数据 =====================
+// 生成：(batch_size, seq_len)的单词ID序列 + (batch_size,)的标签
+std::pair<torch::Tensor, torch::Tensor> generate_text_data(
+    int64_t batch_size,
+    int64_t seq_len,
+    int64_t vocab_size,
+    int64_t num_classes
+) {
+    // 单词ID序列：值范围0~vocab_size-1（0为填充位）
+    torch::Tensor input_ids = torch::randint(0, vocab_size, { batch_size, seq_len }, torch::kLong);
+    // 分类标签：0/1（二分类）
+    torch::Tensor labels = torch::randint(0, num_classes, { batch_size }, torch::kLong);
+    return { input_ids, labels };
+}
+
+// ===================== 3. 主函数（训练+预测） =====================
+void RnnMain() {
+    // -------------------- 超参数设置 --------------------
+    const int64_t vocab_size = 1000;    // 词汇表大小（单词ID：0~999）
+    const int64_t embed_dim = 64;       // 词向量维度
+    const int64_t hidden_size = 128;    // RNN隐藏层维度
+    const int64_t num_classes = 2;      // 二分类
+    const int64_t seq_len = 15;         // 序列长度（每个文本15个单词）
+    const int64_t batch_size = 16;      // 批次大小
+    const int64_t epochs = 30;          // 训练轮数
+    const float lr = 0.001f;            // 学习率
+
+    // -------------------- 初始化模型/优化器/损失函数 --------------------
+    EmbeddingRNNClassifier model(vocab_size, embed_dim, hidden_size, num_classes);
+    // 优化器：Adam（适配嵌入层+RNN的参数更新）
+    torch::optim::Adam optimizer(model.parameters(), torch::optim::AdamOptions(lr));
+    // 损失函数：交叉熵（适配分类任务）
+    torch::nn::CrossEntropyLoss criterion;
+
+    // -------------------- 训练循环 --------------------
+    model.train(); // 训练模式
+    for (int64_t epoch = 0; epoch < epochs; ++epoch) {
+        // 生成一批训练数据
+        auto [input_ids, labels] = generate_text_data(batch_size, seq_len, vocab_size, num_classes);
+
+        // 前向传播
+        optimizer.zero_grad(); // 梯度清零
+        torch::Tensor logits = model.forward(input_ids);
+
+        // 计算损失
+        torch::Tensor loss = criterion(logits, labels);
+
+        // 反向传播 + 更新参数
+        loss.backward();
+        optimizer.step();
+
+        // 打印训练信息（每5轮）
+        if ((epoch + 1) % 5 == 0) {
+            // 计算准确率
+            auto preds = logits.argmax(1); // 预测类别：(batch_size,)
+            float acc = preds.eq(labels).sum().item<float>() / batch_size;
+
+            std::cout << "Epoch: " << epoch + 1
+                << " | Loss: " << loss.item<float>()
+                << " | Acc: " << acc << std::endl;
+        }
+    }
+
+    // -------------------- 预测示例 --------------------
+    model.eval(); // 评估模式
+    torch::NoGradGuard no_grad; // 禁用梯度计算（提升推理效率）
+
+    // 生成单个测试样本（batch_size=1）
+    auto [test_ids, test_label] = generate_text_data(1, seq_len, vocab_size, num_classes);
+    torch::Tensor test_logits = model.forward(test_ids);
+    auto pred_label = test_logits.argmax(1).item<int64_t>();
+    auto true_label = test_label.item<int64_t>();
+
+    std::cout << "\n=== 预测结果 ===" << std::endl;
+    std::cout << "输入单词ID序列:\n" << test_ids.squeeze(0) << std::endl;
+    std::cout << "真实标签: " << true_label << std::endl;
+    std::cout << "预测标签: " << pred_label << std::endl;
+
+
 }
