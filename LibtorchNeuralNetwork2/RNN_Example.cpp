@@ -8,20 +8,31 @@
 class SineDataset : public torch::data::Dataset<SineDataset> 
 {
 public:
-    SineDataset(int seqlen = 3, int total_samples=1000)
-        : seq_len(seqlen)
+    SineDataset(int seqlen = 3, int total_samples=1000, bool b_train = true)
     {
-  
-        for (int i = 0; i < total_samples + seq_len; ++i)
+        seq_len = seqlen;
+        bTrain = b_train;
+        if (bTrain)
         {
-            data.push_back(std::sin(0.3f * i)); 
+            for (int i = 0; i < total_samples + seq_len; ++i)
+            {
+                data.push_back(std::sin(0.1f * i));
+            }
         }
+        else
+        {
+            for (int i = total_samples; i < total_samples + seq_len + 1; ++i)
+            {
+                data.push_back(std::sin(0.1f * i));
+            }
+        }
+
     }
 
 
     torch::optional<size_t> size() const 
     {
-        return data.size() / seq_len;
+        return data.size() - seq_len;
     }
 
 
@@ -30,7 +41,7 @@ public:
         
         std::vector<float> input_data(data.begin() + index, data.begin() + index + seq_len);
         torch::Tensor input = torch::tensor(input_data)
-            .reshape({1, seq_len, 1 }).to(torch::kFloat32);
+            .reshape({seq_len, 1 }).to(torch::kFloat32);
 
        
         float target_val = data[index + seq_len];
@@ -41,7 +52,8 @@ public:
 
 private:
     std::vector<float> data;  
-    int seq_len;              
+    int seq_len = 3; 
+    bool bTrain = true;
 };
 
 
@@ -74,41 +86,45 @@ private:
     int hidden_size_; 
 };
 
-// ===================== 3. 训练 + 推理主逻辑 =====================
+
 void RnnMain()
 {
- 
-    
     const int seq_len = 3;       
-    const int batch_size = 32;    
+    const int batch_size = 40;    
     const float lr = 1e-3;        
     const int epochs = 30;      
-
-    // -------------------- 初始化数据集和数据加载器 --------------------
-    auto dataset = SineDataset(seq_len, 1000);
+    const int total_samples = 1000;
+  
+    // 创建数据
+    auto datasetTrain = SineDataset(seq_len, total_samples).map(torch::data::transforms::Stack<>());
+    auto datasetTest = SineDataset(seq_len, total_samples,false).map(torch::data::transforms::Stack<>());
     
-    auto data_loader = torch::data::make_data_loader(
-        std::move(dataset),torch::data::DataLoaderOptions().batch_size(batch_size));
+    // 加载数据
+    auto train_data_loader = torch::data::make_data_loader(
+        std::move(datasetTrain),torch::data::DataLoaderOptions().batch_size(batch_size));
+
+    auto test_data_loader = torch::data::make_data_loader(
+        std::move(datasetTest), torch::data::DataLoaderOptions().batch_size(1));
+
 
     SimpleRNN model;             
     torch::optim::Adam optimizer(model.parameters(), lr); // 
     torch::nn::MSELoss criterion; // 
 
-    // -------------------- 训练循环 --------------------
+ 
+    std::cout <<  "-------------------- 训练循环 --------------------"  << std::endl;
     model.train(); 
     for (int epoch = 0; epoch < epochs; ++epoch) 
     {
         float total_loss = 0.0f;
         int batch_count = 0;
 
-        for (auto& batch : *data_loader) 
+        for (auto& batch : *train_data_loader)
         {
-            auto x = batch.data()->data;
-            auto y = batch.data()->target;
-   
-            auto y_pred = model.forward(x);
+         
+            auto y_pred = model.forward(batch.data);
         
-            auto loss = criterion(y_pred, y);
+            auto loss = criterion(y_pred, batch.target);
 
             optimizer.zero_grad();
             loss.backward();
@@ -119,36 +135,31 @@ void RnnMain()
         }
 
     
-        if ((epoch + 1) % 5 == 0) 
+        if (epoch % 3 == 0) 
         {
-            std::cout << "Epoch " << epoch + 1 << "/" << epochs
+            std::cout << "Epoch " << epoch  << "/" << epochs
                       << " | Avg Loss: " << total_loss / batch_count << std::endl;
+        }
+
+        if (total_loss < 0.001)
+        {
+            std::cout << "total_loss < 0.001  break.Epoch " << epoch + 1 << "/" << epochs
+                << " | Avg Loss: " << total_loss / batch_count << std::endl;
+            break;
         }
     }
 
-    // -------------------- 推理测试 --------------------
+
+    std::cout << "-------------------- 推理测试 --------------------" << std::endl;
     model.eval(); 
-    std::cout << "\n=== 推理测试 ===" << std::endl;
-
-    
-    std::vector<float> test_seq = {
-        std::sin(0.3f * 1000),
-        std::sin(0.3f * 1001),
-        std::sin(0.3f * 1002)
-    };
-    torch::Tensor test_x = torch::tensor(test_seq)
-        .reshape({1, seq_len, 1}) 
-        .to(torch::kFloat32);
-
-  
     torch::NoGradGuard no_grad;
-    auto test_y_pred = model.forward(test_x);
-
-   
-    float true_y = std::sin(0.3f * 1003);
-    std::cout << "输入序列：[" << test_seq[0] << ", " << test_seq[1] << ", " << test_seq[2] << "]" << std::endl;
-    std::cout << "预测值：" << test_y_pred.item<float>() << std::endl;
-    std::cout << "真实值：" << true_y << std::endl;
-    std::cout << "误差：" << std::abs(test_y_pred.item<float>() - true_y) << std::endl;
-
+    for (auto& btest : *test_data_loader)
+    {
+        std::cout << std::endl << "输入序列："<<std::endl << btest.data << std::endl << std::endl;
+        auto test_y_pred = model.forward(btest.data).item<float>();
+        auto true_y = btest.target.item<float>();
+        std::cout << "预测值：" << test_y_pred << std::endl;
+        std::cout << "真实值：" << true_y << std::endl;
+        std::cout << "误差：" << std::abs(test_y_pred - true_y) << std::endl;
+    }
 }
