@@ -586,82 +586,154 @@ with torch.no_grad():
 	
 	
 /*******************************************************************************************************/	
-	
 #include <torch/torch.h>
 #include <iostream>
+#include <vector>
+#include <cmath>
 
-// 1. 定义极简RNN分类模型
-class SimpleRNN : public torch::nn::Module {
+// ===================== 1. 定义正弦波数据集（序列数据） =====================
+// 输入：前 seq_len 个正弦值，输出：下一个正弦值
+class SineDataset : public torch::data::Dataset<SineDataset> {
 public:
-    SimpleRNN(int64_t input_size, int64_t hidden_size, int64_t num_classes)
-        : rnn_(torch::nn::RNNOptions(input_size, hidden_size)
-               .num_layers(1)        // 单层RNN
-               .batch_first(true)),  // 输入格式：(batch, seq_len, input_size)
-          fc_(hidden_size, num_classes) {  // 分类头
-        register_module("rnn", rnn_);
-        register_module("fc", fc_);
-    }
-
-    // 前向传播：序列→RNN隐藏状态→分类
-    torch::Tensor forward(torch::Tensor x) {
-        // 初始化隐藏状态：(num_layers, batch_size, hidden_size)
-        auto h0 = torch::zeros({1, x.size(0), rnn_->options.hidden_size()}, x.device());
-        
-        // RNN前向：输出 (output, hn)，取最后时刻隐藏状态hn
-        auto rnn_out = rnn_->forward(x, h0);
-        torch::Tensor hn = std::get<1>(rnn_out);
-        
-        // 去掉层数维度 + 分类
-        return fc_(hn.squeeze(0));
-    }
-
-private:
-    torch::nn::RNN rnn_;       // RNN层
-    torch::nn::Linear fc_;     // 分类全连接层
-};
-
-int main() {
-    // 2. 超参数（极简配置）
-    const int64_t input_size = 10;    // 每个时间步特征维度
-    const int64_t hidden_size = 32;   // RNN隐藏层维度
-    const int64_t num_classes = 2;    // 二分类
-    const int64_t seq_len = 8;        // 序列长度
-    const int64_t batch_size = 16;    // 批次大小
-    const int64_t epochs = 20;        // 训练轮数
-    const float lr = 0.005f;          // 学习率
-
-    // 3. 初始化模型、优化器、损失函数
-    SimpleRNN model(input_size, hidden_size, num_classes);
-    torch::optim::Adam optimizer(model.parameters(), lr);
-    torch::nn::CrossEntropyLoss criterion;
-
-    // 4. 训练循环
-    model.train();
-    for (int64_t epoch = 0; epoch < epochs; ++epoch) {
-        // 生成模拟数据：(batch, seq_len, input_size) + 标签(batch,)
-        torch::Tensor x = torch::randn({batch_size, seq_len, input_size});
-        torch::Tensor y = torch::randint(0, num_classes, {batch_size}, torch::kLong);
-
-        // 前向+反向+更新
-        optimizer.zero_grad();
-        torch::Tensor logits = model.forward(x);
-        torch::Tensor loss = criterion(logits, y);
-        loss.backward();
-        optimizer.step();
-
-        // 打印训练信息
-        if ((epoch + 1) % 5 == 0) {
-            float acc = logits.argmax(1).eq(y).sum().item<float>() / batch_size;
-            std::cout << "Epoch: " << epoch+1 << " | Loss: " << loss.item<float>() << " | Acc: " << acc << std::endl;
+    SineDataset(int seq_len = 3, int total_samples = 1000) 
+        : seq_len_(seq_len) {
+        // 生成正弦波数据
+        for (int i = 0; i < total_samples + seq_len; ++i) {
+            data_.push_back(std::sin(0.1f * i)); // 0.1*i 控制正弦波周期
         }
     }
 
-    // 5. 预测示例
-    model.eval();
-    torch::NoGradGuard no_grad;  // 禁用梯度
-    torch::Tensor test_x = torch::randn({1, seq_len, input_size});  // 单样本
-    torch::Tensor pred = model.forward(test_x).argmax(1);
-    std::cout << "\n预测结果（单样本）: " << pred.item<int64_t>() << std::endl;
+    // 返回数据集总样本数
+    size_t size() const override {
+        return data_.size() - seq_len_;
+    }
 
-    return 0;
+    // 返回单个样本（输入序列 + 目标值）
+    torch::data::Example<torch::Tensor, torch::Tensor> get(size_t index) override {
+        // 构造输入序列：[seq_len, 1]（单特征序列）
+        std::vector<float> input_data(data_.begin() + index, data_.begin() + index + seq_len_);
+        torch::Tensor input = torch::tensor(input_data)
+            .reshape({seq_len_, 1})  // [seq_len, input_size=1]
+            .to(torch::kFloat32);
+
+        // 构造目标值：单个浮点值
+        float target_val = data_[index + seq_len_];
+        torch::Tensor target = torch::tensor({target_val}).to(torch::kFloat32);
+
+        return {input, target};
+    }
+
+private:
+    std::vector<float> data_;  // 原始正弦波数据
+    int seq_len_;              // 输入序列长度
+};
+
+// ===================== 2. 定义极简 RNN 模型 =====================
+class SimpleRNN : public torch::nn::Module {
+public:
+    SimpleRNN(int input_size = 1, int hidden_size = 16, int output_size = 1) 
+        : hidden_size_(hidden_size) {
+        // 配置 RNN 层参数
+        torch::nn::RNNOptions rnn_options(input_size, hidden_size);
+        rnn_options.batch_first(true);  // 输入格式：[batch_size, seq_len, input_size]
+
+        // 注册 RNN 层和全连接层
+        rnn_ = register_module("rnn", torch::nn::RNN(rnn_options));
+        fc_ = register_module("fc", torch::nn::Linear(hidden_size, output_size));
+    }
+
+    // 前向传播：输入 x → [batch_size, seq_len, input_size]
+    torch::Tensor forward(const torch::Tensor& x) {
+        // RNN 输出：
+        // outputs: [batch_size, seq_len, hidden_size]（所有时间步隐藏状态）
+        // hidden: [1, batch_size, hidden_size]（最后一个时间步隐藏状态）
+        auto [outputs, hidden] = rnn_->forward(x);
+
+        // 取最后一个时间步的隐藏状态，输入全连接层预测
+        torch::Tensor last_hidden = hidden.squeeze(0); // 去掉维度1 → [batch_size, hidden_size]
+        return fc_->forward(last_hidden);
+    }
+
+private:
+    torch::nn::RNN rnn_;          // RNN 层
+    torch::nn::Linear fc_;        // 全连接层（映射隐藏状态到预测值）
+    int hidden_size_;             // 隐藏层维度
+};
+
+// ===================== 3. 训练 + 推理主逻辑 =====================
+void RnnMain
+{
+    // 超参数配置（极简版）
+    const int seq_len = 3;        // 输入序列长度
+    const int batch_size = 32;    // 批量大小
+    const float lr = 1e-3;        // 学习率
+    const int epochs = 30;        // 训练轮数
+
+    // -------------------- 初始化数据集和数据加载器 --------------------
+    auto dataset = SineDataset(seq_len, 1000);
+    auto data_loader = torch::data::make_data_loader(
+        std::move(dataset),
+        torch::data::DataLoaderOptions().batch_size(batch_size).shuffle(true)
+    );
+
+    // -------------------- 初始化模型、优化器、损失函数 --------------------
+    SimpleRNN model;              // 初始化 RNN 模型
+    torch::optim::Adam optimizer(model->parameters(), lr); // Adam 优化器
+    torch::nn::MSELoss criterion; // 均方误差损失（回归任务）
+
+    // -------------------- 训练循环 --------------------
+    model->train(); // 训练模式
+    for (int epoch = 0; epoch < epochs; ++epoch) {
+        float total_loss = 0.0f;
+        int batch_count = 0;
+
+        for (auto& batch : *data_loader) {
+            auto [x, y] = batch;  // x: [32, 3, 1], y: [32, 1]
+
+            // 前向传播 + 计算损失
+            auto y_pred = model->forward(x);
+            auto loss = criterion(y_pred, y);
+
+            // 反向传播 + 优化
+            optimizer.zero_grad();
+            loss.backward();
+            optimizer.step();
+
+            total_loss += loss.item<float>();
+            batch_count++;
+        }
+
+        // 每5轮打印一次平均损失
+        if ((epoch + 1) % 5 == 0) {
+            std::cout << "Epoch " << epoch + 1 << "/" << epochs 
+                      << " | Avg Loss: " << total_loss / batch_count << std::endl;
+        }
+    }
+
+    // -------------------- 推理测试 --------------------
+    model->eval(); // 推理模式（禁用 Dropout 等训练特化逻辑）
+    std::cout << "\n=== 推理测试 ===" << std::endl;
+
+    // 构造测试序列（未参与训练的新数据）
+    std::vector<float> test_seq = {
+        std::sin(0.1f * 1000),
+        std::sin(0.1f * 1001),
+        std::sin(0.1f * 1002)
+    };
+    torch::Tensor test_x = torch::tensor(test_seq)
+        .reshape({1, seq_len, 1})  // [batch_size=1, seq_len=3, input_size=1]
+        .to(torch::kFloat32);
+
+    // 推理（禁用梯度计算，提升效率）
+    torch::NoGradGuard no_grad;
+    auto test_y_pred = model->forward(test_x);
+
+    // 打印结果
+    float true_y = std::sin(0.1f * 1003);
+    std::cout << "输入序列：[" << test_seq[0] << ", " << test_seq[1] << ", " << test_seq[2] << "]" << std::endl;
+    std::cout << "预测值：" << test_y_pred.item<float>() << std::endl;
+    std::cout << "真实值：" << true_y << std::endl;
+    std::cout << "误差：" << std::abs(test_y_pred.item<float>() - true_y) << std::endl;
+
+ 
 }
