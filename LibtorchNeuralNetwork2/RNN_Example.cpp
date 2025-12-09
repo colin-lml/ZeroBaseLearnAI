@@ -5,43 +5,43 @@
 
 
 
-class SineDataset : public torch::data::Dataset<SineDataset> {
+class SineDataset : public torch::data::Dataset<SineDataset> 
+{
 public:
-    SineDataset(int seq_len = 3, int total_samples=1000)
-        : seq_len_(seq_len) 
+    SineDataset(int seqlen = 3, int total_samples=1000)
+        : seq_len(seqlen)
     {
   
         for (int i = 0; i < total_samples + seq_len; ++i)
         {
-            data_.push_back(std::sin(0.3f * i)); 
+            data.push_back(std::sin(0.3f * i)); 
         }
     }
 
 
     torch::optional<size_t> size() const 
     {
-        return data_.size() / seq_len_;
+        return data.size() / seq_len;
     }
 
 
     torch::data::Example<torch::Tensor, torch::Tensor> get(size_t index) override 
     {
         
-        std::vector<float> input_data(data_.begin() + index, data_.begin() + index + seq_len_);
+        std::vector<float> input_data(data.begin() + index, data.begin() + index + seq_len);
         torch::Tensor input = torch::tensor(input_data)
-            .reshape({1, seq_len_, 1 })  // [n,seq_len, input_size=1]
-            .to(torch::kFloat32);
+            .reshape({1, seq_len, 1 }).to(torch::kFloat32);
 
        
-        float target_val = data_[index + seq_len_];
+        float target_val = data[index + seq_len];
         torch::Tensor target = torch::tensor({ target_val }).to(torch::kFloat32);
 
         return { input, target };
     }
 
 private:
-    std::vector<float> data_;  
-    int seq_len_;              
+    std::vector<float> data;  
+    int seq_len;              
 };
 
 
@@ -92,7 +92,7 @@ void RnnMain()
 
     SimpleRNN model;             
     torch::optim::Adam optimizer(model.parameters(), lr); // 
-    torch::nn::MSELoss criterion; // 均方误差损失（回归任务）
+    torch::nn::MSELoss criterion; // 
 
     // -------------------- 训练循环 --------------------
     model.train(); 
@@ -145,7 +145,7 @@ void RnnMain()
     auto test_y_pred = model.forward(test_x);
 
    
-    float true_y = test_seq[2];
+    float true_y = std::sin(0.3f * 1003);
     std::cout << "输入序列：[" << test_seq[0] << ", " << test_seq[1] << ", " << test_seq[2] << "]" << std::endl;
     std::cout << "预测值：" << test_y_pred.item<float>() << std::endl;
     std::cout << "真实值：" << true_y << std::endl;
