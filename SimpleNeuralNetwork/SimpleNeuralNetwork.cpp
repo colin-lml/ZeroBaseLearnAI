@@ -83,7 +83,7 @@ int main()
     double o2Loss = 0;
     double totalLoss = 0;
     int64_t ik = 0;
-    int64_t ikMax = 10000 * 30;
+    int64_t ikMax = 10000 * 300;
     DWORD dwTime = GetTickCount();
     double accuracy = 0.0000006;
     double rate = 0.5;
@@ -165,7 +165,7 @@ int main()
     }
 
      dwTime = GetTickCount() - dwTime;
-     cout <<"time: "<< dwTime << " ms, count: "<< ik <<", outy1:  "<< fixed << setprecision(8) << outy1<<", outy2:  "<< fixed << setprecision(8)<<outy2 << endl;
+     cout <<"time: "<< dwTime << " ms, count: "<< ik <<" ,totalLoss: "<< totalLoss << ", outy1:  " << fixed << setprecision(8) << outy1 << ", outy2:  " << fixed << setprecision(8) << outy2 << endl;
      cin >> dwTime;
 
      /// 没有调整 b1,b2,b3,b4   time: 31 ms, count: 228767, outy1:  0.01000052, outy2:  0.98999940 
