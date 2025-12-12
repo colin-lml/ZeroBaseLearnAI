@@ -5,7 +5,7 @@
 #include "torch/torch.h"
 #include <chrono>
 
-//#include "LibtorchSimpleNeuralNetwork.h"
+
 using namespace std;
 void CnnMain();
 void RnnMain();
@@ -57,8 +57,8 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
-	//CnnMain();
 	///autogradMain();
+	//CnnMain();
 	RnnMain();
 
 #if 0
