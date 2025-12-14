@@ -353,6 +353,142 @@ RNN 举个自然语言的例子
 
 
 
+RNN是一种专门用于处理序列数据的神经网络模型。其核心特点是通过网络中的循环连接，能够捕获序列中的时间依赖关系。RNN广泛应用于自然语言处理、语音识别、时间序列预测等领域。
+它的重要变体
+LSTM：通过引入遗忘门、输入门和输出门，解决了长序列中的梯度消失问题。
+GRU：结构更简单，计算效率更高，同时保持了对长序列依赖的建模能力。
+双向RNN：结合前向和后向信息流，增强了对序列全局信息的理解。
+
+RNN，通过循环来处理序列，但在处理长序列时可能存在梯度消失或爆炸的问题；而Transformer使用自注意力机制来处理序列，可以更高效地处理长序列，且不会出现梯度消失或爆炸的问题。
+因此在自然语言处理领域中已经成为主流的模型架构，学习建议将更多时间花在Transformer架构上。
+
+
+
+// 简化版Transformer Encoder实现（仅演示结构，未包含深度学习库依赖）
+// 仅供学习参考，实际工程需用深度学习框架如TensorRT、ONNX Runtime等
+ 
+#include <vector>
+#include <iostream>
+#include <cmath>
+#include <random>
+ 
+using namespace std;
+ 
+// 简单的线性层
+class Linear {
+public:
+    Linear(int in_features, int out_features) {
+        weights.resize(out_features, vector<float>(in_features));
+        bias.resize(out_features, 0.0f);
+        // 随机初始化权重
+        std::default_random_engine e;
+        std::normal_distribution<float> dist(0, 0.02f);
+        for (auto& row : weights)
+            for (auto& w : row)
+                w = dist(e);
+    }
+    vector<float> forward(const vector<float>& x) {
+        vector<float> y(weights.size(), 0.0f);
+        for (size_t i = 0; i < weights.size(); ++i)
+            for (size_t j = 0; j < x.size(); ++j)
+                y[i] += weights[i][j] * x[j];
+        for (size_t i = 0; i < y.size(); ++i)
+            y[i] += bias[i];
+        return y;
+    }
+private:
+    vector<vector<float>> weights;
+    vector<float> bias;
+};
+ 
+// 简单的多头自注意力
+class MultiHeadSelfAttention {
+public:
+    MultiHeadSelfAttention(int embed_dim, int num_heads)
+        : embed_dim(embed_dim), num_heads(num_heads),
+        q_linear(embed_dim, embed_dim),
+        k_linear(embed_dim, embed_dim),
+        v_linear(embed_dim, embed_dim),
+        out_linear(embed_dim, embed_dim) {
+    }
+ 
+    vector<float> forward(const vector<float>& x) {
+        // 这里只做单向演示，未实现完整多头和批量
+        auto Q = q_linear.forward(x);
+        auto K = k_linear.forward(x);
+        auto V = v_linear.forward(x);
+        float score = 0.0f;
+        for (size_t i = 0; i < Q.size(); ++i)
+            score += Q[i] * K[i];
+        score /= sqrt((float)Q.size());
+        float attn = exp(score);
+        vector<float> out(V.size());
+        for (size_t i = 0; i < V.size(); ++i)
+            out[i] = V[i] * attn;
+        return out_linear.forward(out);
+    }
+private:
+    int embed_dim, num_heads;
+    Linear q_linear, k_linear, v_linear, out_linear;
+};
+ 
+// 简单的前馈网络
+class FeedForward {
+public:
+    FeedForward(int embed_dim, int hidden_dim)
+        : linear1(embed_dim, hidden_dim), linear2(hidden_dim, embed_dim) {
+    }
+    vector<float> forward(const vector<float>& x) {
+        auto h = linear1.forward(x);
+        for (auto& v : h) v = std::max(0.0f, v); // ReLU
+        return linear2.forward(h);
+    }
+private:
+    Linear linear1, linear2;
+};
+ 
+// Transformer Encoder Block
+class TransformerEncoder {
+public:
+    TransformerEncoder(int embed_dim, int num_heads, int hidden_dim)
+        : attn(embed_dim, num_heads), ff(embed_dim, hidden_dim) {
+    }
+    vector<float> forward(const vector<float>& x) {
+        auto attn_out = attn.forward(x);
+        vector<float> x1(x.size());
+        for (size_t i = 0; i < x.size(); ++i)
+            x1[i] = x[i] + attn_out[i]; // 残差
+        auto ff_out = ff.forward(x1);
+        vector<float> x2(x1.size());
+        for (size_t i = 0; i < x1.size(); ++i)
+            x2[i] = x1[i] + ff_out[i]; // 残差
+        return x2;
+    }
+private:
+    MultiHeadSelfAttention attn;
+    FeedForward ff;
+};
+ 
+// 示例主函数
+int main() {
+    int embed_dim = 8, num_heads = 2, hidden_dim = 16;
+    TransformerEncoder encoder(embed_dim, num_heads, hidden_dim);
+    vector<float> input(embed_dim, 1.0f); // 假设输入全为1
+    auto output = encoder.forward(input);
+    cout << "Transformer输出: ";
+    for (auto v : output) cout << v << " ";
+    cout << endl;
+    return 0;
+}
+
+
+
+
+
+
+
+
+
 
 
 
