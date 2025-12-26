@@ -11,6 +11,8 @@ void CnnMain();
 void RnnMain();
 int autogradMain();
 
+void TransformerMain();
+
 struct NetModule : torch::nn::Module
 {
 	NetModule()
@@ -59,8 +61,8 @@ int main()
 {
 	///autogradMain();
 	//CnnMain();
-	RnnMain();
-
+	//RnnMain();
+	TransformerMain();
 #if 0
 	NetModule net;
 	double learning_rate = 0.5;
