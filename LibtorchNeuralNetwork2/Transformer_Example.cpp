@@ -164,6 +164,25 @@ void TransformerMain()
     std::cout << "形状: " << t2d_trans.sizes() << "\n" << t2d_trans << std::endl;
 
 
+     
+    torch::nn::TransformerOptions opt;
+    opt.dim_feedforward();  // dim_feedforward 前馈网络层  2048
+    opt.activation(); // 编/解码器中间层的激活功能    torch::kReLU
+    
+    torch::nn::Transformer transformer(opt);  // 创建 Transformer
+    auto  src_emb = torch::Tensor();
+    auto  tgt_emb = torch::Tensor();
+    auto  tgt_mask = torch::Tensor();
+    auto transout = transformer->forward(
+        src_emb,          // 编码器输入
+        tgt_emb,          // 解码器输入
+        tgt_mask,         // 解码器自注意力掩码
+        torch::Tensor(),  // 编码器自注意力掩码（无掩码）
+        torch::Tensor(),  // 编码器-解码器注意力掩码（无掩码）
+        torch::Tensor(),  // 源序列padding掩码（无padding）
+        torch::Tensor(),  // 目标序列padding掩码（无padding）
+        torch::Tensor()   // 编码器-解码器padding掩码（无padding）
+    );
 
 
 
