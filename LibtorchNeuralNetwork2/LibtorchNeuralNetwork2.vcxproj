@@ -179,6 +179,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   <ItemGroup>
     <ClCompile Include="autograd.cpp" />
     <ClCompile Include="CNNExample.cpp" />
+    <ClCompile Include="Embedding.cpp" />
     <ClCompile Include="example-app.cpp" />
     <ClCompile Include="RNN_Example.cpp" />
     <ClCompile Include="Transformer_Example.cpp" />

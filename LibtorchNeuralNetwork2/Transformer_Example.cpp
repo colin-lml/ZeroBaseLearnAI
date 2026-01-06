@@ -163,6 +163,62 @@ void TransformerMain()
     std::cout << "\ntranspose(0, 1) 后（等价于 t()）:" << std::endl;
     std::cout << "形状: " << t2d_trans.sizes() << "\n" << t2d_trans << std::endl;
 
+    std::unordered_map<std::string, int64_t> vocab = {
+       {"<pad>", 0},    // 填充标记
+       {"hello", 1},    // 目标单词 hello
+       {"world", 2},
+       {"pytorch", 3},
+       {"libtorch", 4}
+    };
+
+    // 2. 配置 Embedding 关键参数
+    int64_t vocab_size = vocab.size();    // 词汇表大小：5
+    int64_t embed_dim = 16;               // 嵌入维度：16
+    int64_t padding_idx = 0;              // 填充索引：0
+
+    // 3. 实例化 Embedding 层
+    torch::nn::EmbeddingOptions embed_opts(vocab_size, embed_dim);
+    embed_opts.padding_idx(padding_idx);
+    torch::nn::Embedding embedding_layer(embed_opts);
+
+    // 4. 查找 "hello" 的索引，并构造输入（必须为 kLong 类型）
+    int64_t hello_idx = vocab["hello"];
+    // 构造输入：batch_size=1, seq_len=1（单个单词）
+    torch::Tensor hello_token_id = torch::tensor({ {hello_idx} }, torch::kLong);
+    std::cout << "单词 'hello' 的索引：" << hello_idx << std::endl;
+    std::cout << "Embedding 输入形状：" << hello_token_id.sizes() << std::endl;
+
+    // 5. 前向传播获取 "hello" 的嵌入向量
+    torch::Tensor hello_embedding = embedding_layer->forward(hello_token_id);
+    std::cout << "单词 'hello' 的嵌入向量形状：" << hello_embedding.sizes() << std::endl;
+    std::cout << "单词 'hello' 的嵌入向量（前10维）：" << hello_embedding.squeeze().slice(0, 0, 10) << std::endl;
+
+
+
+
+
+    // 定义嵌入层：词汇表大小=10，嵌入维度=5
+    torch::nn::Embedding embed(torch::nn::EmbeddingOptions(10, 5));
+
+    // 初始化嵌入权重（推荐用xavier_uniform，和Transformer保持一致）
+    torch::nn::init::xavier_uniform_(embed->weight);
+
+    // 输入：形状为 [batch_size, seq_len] 的整数索引（比如2个样本，每个样本3个单词ID）
+    torch::Tensor input = torch::tensor({
+        {1, 3, 5},
+        {2, 4, 6}
+        }, torch::kLong);
+
+    // 前向传播：输出形状 [batch_size, seq_len, embedding_dim] = [2,3,5]
+    torch::Tensor output = embed(input);
+    ///embed->forward(input);
+
+    std::cout << "=== 基础嵌入层示例 ===" << std::endl;
+    std::cout << "输入形状: " << input.sizes() << std::endl;
+    std::cout << "输出形状: " << output.sizes() << std::endl;
+    std::cout << "第一个样本的嵌入向量:\n" << output[0] << "\n" << std::endl;
+
+
 
      
     torch::nn::TransformerOptions opt;
@@ -173,6 +229,12 @@ void TransformerMain()
     auto  src_emb = torch::Tensor();
     auto  tgt_emb = torch::Tensor();
     auto  tgt_mask = torch::Tensor();
+    /*
+    * src_emb  词嵌入 、 位置编码
+    * tgt_emb   词嵌入 、位置编码
+    */
+        
+
     auto transout = transformer->forward(
         src_emb,          // 编码器输入
         tgt_emb,          // 解码器输入
@@ -184,7 +246,9 @@ void TransformerMain()
         torch::Tensor()   // 编码器-解码器padding掩码（无padding）
     );
 
-
+    ///计算损失
+    /// 反向传播 + 参数更新
+    /// 
 
 
     // 配置参数
@@ -213,7 +277,7 @@ void TransformerMain()
     torch::NoGradGuard no_grad;
     std::cout << "\n输入形状: " << x.sizes() << std::endl;
     std::cout << "\n掩码形状: " << mask.sizes() << std::endl;
-    auto output = mha.forward(x, x, x, mask);
+    output = mha.forward(x, x, x, mask);
 
     // 5. 打印结果信息
     std::cout << "\n输入形状: " << x.sizes() << std::endl;

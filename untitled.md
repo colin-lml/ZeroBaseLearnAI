@@ -427,3 +427,157 @@ n-gram词序列随语料库增长呈指数型膨胀，更加快。
 
 Word2Vec
 谷歌2013年提出的Word2Vec是目前最常用的词嵌入模型之一。Word2Vec实际是一种浅层的神经网络模型，它有两种网络结构，分别是CBOW（Continues Bag of Words）连续词袋和Skip-gram。Word2Vec和上面的NNLM很类似，但比NNLM简
+
+
+
+
+通俗点来说，PyTorch中的Embedding技术，就像是一本巨大的字典，其中每个单词都对应一个数字列表（向量）。这种技术帮助计算机理解单词之间的关系，就像我们通过单词的使用上下文来理解它们的意义一样。在处理文本或语言数据时，Embedding可以将简单的单词转换成计算机能够处理的数值形式，让计算机能够更好地学习和理解自然语言。
+
+
+// -------------------------- 1. 基础嵌入层 --------------------------
+    // 定义嵌入层：词汇表大小=10，嵌入维度=5
+    torch::nn::Embedding embed(torch::nn::EmbeddingOptions(10, 5));
+    
+    // 初始化嵌入权重（推荐用xavier_uniform，和Transformer保持一致）
+    torch::nn::init::xavier_uniform_(embed->weight);
+    
+    // 输入：形状为 [batch_size, seq_len] 的整数索引（比如2个样本，每个样本3个单词ID）
+    torch::Tensor input = torch::tensor({
+        {1, 3, 5},
+        {2, 4, 6}
+    }, torch::kLong);
+    
+    // 前向传播：输出形状 [batch_size, seq_len, embedding_dim] = [2,3,5]
+    torch::Tensor output = embed(input);
+    
+    std::cout << "=== 基础嵌入层示例 ===" << std::endl;
+    std::cout << "输入形状: " << input.sizes() << std::endl;
+    std::cout << "输出形状: " << output.sizes() << std::endl;
+    std::cout << "第一个样本的嵌入向量:\n" << output[0] << "\n" << std::endl;
+
+    // -------------------------- 2. 带padding_idx的嵌入层 --------------------------
+    // 定义嵌入层：指定padding_idx=0（ID=0的向量始终为0）
+    torch::nn::Embedding embed_pad(torch::nn::EmbeddingOptions(10, 5).padding_idx(0));
+    torch::nn::init::xavier_uniform_(embed_pad->weight);
+    
+    // 输入包含padding（ID=0）
+    torch::Tensor input_pad = torch::tensor({
+        {0, 1, 0},
+        {3, 0, 5}
+    }, torch::kLong);
+    torch::Tensor output_pad = embed_pad(input_pad);
+    
+    std::cout << "=== 带padding的嵌入层 ===" << std::endl;
+    std::cout << "padding位置的向量（全0）:\n" << output_pad[0][0] << "\n" << std::endl;
+
+    // -------------------------- 3. Transformer风格的维度调整 --------------------------
+    // Transformer要求输入维度为 [seq_len, batch_size]（序列长度在前）
+    torch::Tensor input_trans = input.transpose(0, 1);  // [3, 2]
+    torch::Tensor output_trans = embed(input_trans);    // [3, 2, 5]
+    
+    std::cout << "=== Transformer风格维度 ===" << std::endl;
+    std::cout << "Transformer输入形状: " << input_trans.sizes() << std::endl;
+    std::cout << "Transformer嵌入输出形状: " << output_trans.sizes() << std::endl;
+
+
+
+
+
+#include <torch/torch.h>
+#include <iostream>
+#include <iomanip>  // 用于格式化输出
+
+// 1. 定义包含可训练 Embedding 层的模型（复用基础结构）
+struct EmbeddingModel : torch::nn::Module {
+    torch::nn::Embedding embedding{nullptr};
+
+    // 构造函数：初始化 Embedding 层（保留可训练特性）
+    EmbeddingModel(int64_t num_embeddings, int64_t embedding_dim) {
+        embedding = register_module(
+            "embedding",
+            torch::nn::Embedding(torch::nn::EmbeddingOptions(num_embeddings, embedding_dim)
+                .padding_idx(-1)  // 禁用padding，所有索引参与训练
+                .max_norm(1.0)     // 限制向量范数，防止训练发散
+            )
+        );
+    }
+
+    // 前向传播：输出嵌入向量
+    torch::Tensor forward(torch::Tensor x) {
+        return embedding->forward(x);
+    }
+};
+
+int main() {
+    // 2. 训练超参数配置
+    const int64_t num_embeddings = 10;     // 小词典大小（便于观察参数变化）
+    const int64_t embedding_dim = 4;       // 小嵌入维度（简化计算）
+    const int64_t batch_size = 2;          // 批次大小
+    const int64_t seq_len = 3;             // 序列长度
+    const int64_t epochs = 50;             // 训练轮数
+    const float lr = 0.1;                  // 学习率
+
+    // 3. 初始化模型、损失函数、优化器
+    EmbeddingModel model(num_embeddings, embedding_dim);
+    // 损失函数：MSELoss（适合回归类任务，衡量嵌入输出与目标的差距）
+    torch::nn::MSELoss loss_fn;
+    // 优化器：SGD（绑定模型参数，设置学习率）
+    torch::optim::SGD optimizer(model.parameters(), torch::optim::SGDOptions(lr));
+
+    // 4. 生成固定的训练数据（输入索引 + 目标嵌入向量）
+    // 输入索引：[batch_size, seq_len]，类型必须为kLong
+    torch::Tensor input_indices = torch::tensor({
+        {1, 3, 5},  // 样本1的索引
+        {2, 4, 6}   // 样本2的索引
+    }, torch::kLong);
+    // 目标嵌入向量：[batch_size, seq_len, embedding_dim]（模型要拟合的目标）
+    torch::Tensor target_embeddings = torch::tensor({
+        {{0.1, 0.2, 0.3, 0.4}, {0.3, 0.4, 0.5, 0.6}, {0.5, 0.6, 0.7, 0.8}},  // 样本1目标
+        {{0.2, 0.3, 0.4, 0.5}, {0.4, 0.5, 0.6, 0.7}, {0.6, 0.7, 0.8, 0.9}}   // 样本2目标
+    }, torch::kFloat);
+
+    // 打印初始嵌入矩阵（训练前的参数）
+    std::cout << "=== 训练前嵌入矩阵 ===" << std::endl;
+    auto init_embedding = model.embedding->weight.data();
+    std::cout << init_embedding << std::endl;
+
+    // 5. 核心训练循环
+    std::cout << "\n=== 开始训练 ===" << std::endl;
+    model.train();  // 设置模型为训练模式（Embedding层无dropout/bn，仅规范操作）
+    for (int64_t epoch = 0; epoch < epochs; ++epoch) {
+        // 步骤1：清空梯度（必须！否则梯度会累积）
+        optimizer.zero_grad();
+
+        // 步骤2：前向传播
+        torch::Tensor output = model.forward(input_indices);
+
+        // 步骤3：计算损失（输出与目标的MSE）
+        torch::Tensor loss = loss_fn(output, target_embeddings);
+
+        // 步骤4：反向传播（计算梯度，包括Embedding层的weight梯度）
+        loss.backward();
+
+        // 步骤5：优化器更新参数（更新Embedding层的嵌入矩阵）
+        optimizer.step();
+
+        // 打印训练进度（每5轮打印一次）
+        if ((epoch + 1) % 5 == 0) {
+            std::cout << "Epoch: " << std::setw(3) << (epoch + 1) 
+                      << " | Loss: " << std::fixed << std::setprecision(6) << loss.item<float>() << std::endl;
+        }
+    }
+
+    // 6. 打印训练后嵌入矩阵（对比训练前的变化）
+    std::cout << "\n=== 训练后嵌入矩阵 ===" << std::endl;
+    auto final_embedding = model.embedding->weight.data();
+    std::cout << final_embedding << std::endl;
+
+    // 7. 验证训练效果：用训练后的模型推理
+    std::cout << "\n=== 训练后推理示例 ===" << std::endl;
+    torch::Tensor test_input = torch::tensor({1, 3}, torch::kLong);  // 测试索引1和3
+    torch::Tensor test_output = model.forward(test_input);
+    std::cout << "测试输入索引: [1, 3]" << std::endl;
+    std::cout << "训练后嵌入输出:\n" << test_output << std::endl;
+
+    return 0;
+}

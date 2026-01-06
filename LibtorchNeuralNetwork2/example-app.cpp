@@ -10,7 +10,7 @@ using namespace std;
 void CnnMain();
 void RnnMain();
 int autogradMain();
-
+void EmbeddingMain();
 void TransformerMain();
 
 struct NetModule : torch::nn::Module
@@ -62,7 +62,10 @@ int main()
 	///autogradMain();
 	//CnnMain();
 	//RnnMain();
-	TransformerMain();
+
+	EmbeddingMain();
+
+	//TransformerMain();
 #if 0
 	NetModule net;
 	double learning_rate = 0.5;
