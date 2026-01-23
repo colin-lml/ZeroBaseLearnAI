@@ -13,6 +13,8 @@ int autogradMain();
 void EmbeddingMain();
 void TransformerMain();
 
+void ResNetMain();
+
 struct NetModule : torch::nn::Module
 {
 	NetModule()
@@ -90,6 +92,7 @@ int main()
 	//EmbeddingMain();
 
 	//TransformerMain();
+	 ResNetMain();
 #if 0
 	NetModule net;
 	double learning_rate = 0.5;
