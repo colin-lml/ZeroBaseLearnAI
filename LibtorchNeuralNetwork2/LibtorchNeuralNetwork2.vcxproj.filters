@@ -19,6 +19,9 @@
     <ClCompile Include="Embedding.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ResNet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">

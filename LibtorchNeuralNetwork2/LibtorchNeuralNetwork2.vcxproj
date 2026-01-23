@@ -181,6 +181,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="CNNExample.cpp" />
     <ClCompile Include="Embedding.cpp" />
     <ClCompile Include="example-app.cpp" />
+    <ClCompile Include="ResNet.cpp" />
     <ClCompile Include="RNN_Example.cpp" />
     <ClCompile Include="Transformer_Example.cpp" />
   </ItemGroup>

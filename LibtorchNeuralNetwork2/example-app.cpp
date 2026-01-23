@@ -59,11 +59,35 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
-	///autogradMain();
+	{
+		auto x = torch::tensor(1.0f).requires_grad_();
+		auto w = 0.1;
+		auto h1 = torch::relu(w * x);
+		auto h2 = torch::relu(w * h1);
+		auto h3 = torch::relu(w * h2);
+		auto h4 = torch::relu(w * h3);
+		auto y = torch::relu(w *  h4);
+		y.backward();
+		std::cout << x.grad() << std::endl;
+	}
+	{
+		auto x = torch::tensor(1.0f).requires_grad_();
+		auto w = 10;
+		auto h1 = torch::relu(w * x);
+		auto h2 = torch::relu(w * h1);
+		auto h3 = torch::relu(w * h2);
+		auto h4 = torch::relu(w * h3);
+		auto y =  torch::relu(w * h4);
+		y.backward();
+		std::cout << x.grad() << std::endl;
+	}
+
+
+	//autogradMain();
 	//CnnMain();
 	//RnnMain();
 
-	EmbeddingMain();
+	//EmbeddingMain();
 
 	//TransformerMain();
 #if 0
