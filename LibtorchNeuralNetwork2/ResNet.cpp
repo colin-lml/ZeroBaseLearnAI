@@ -35,6 +35,7 @@ struct BasicBlockImpl : torch::nn::Module {
                 conv1x1(in_c, out_c, stride),
                 torch::nn::BatchNorm2d(out_c)
             ));
+            
         }
     }
 
@@ -44,7 +45,7 @@ struct BasicBlockImpl : torch::nn::Module {
         auto residual = torch::relu(bn1(conv1(x)));
         residual = bn2(conv2(residual));
         // 2. 残差 + 捷径连接（维度匹配直接加，否则加调整后的x）
-        residual += shortcut.empty() ? x : shortcut->forward(x);
+        residual += shortcut->is_empty() ? x : shortcut->forward(x);
         
         // 3. 最终激活
         return torch::relu(residual);
