@@ -251,7 +251,7 @@ void BpMain()
 	int64_t epochs = 1000;         /// 训练最大次数
 	int64_t i = 0;
 	double accuracy = 0.0000006;  // 与目标值比较精度
-	ResNetModule minloss(2.05);//初始化权重值
+	ResNetModule minloss(0.04);//初始化权重值
 	torch::nn::MSELoss funloss;
 	torch::optim::Adam optimizer(minloss.parameters(), torch::optim::AdamOptions(learning_rate));
 	auto input = torch::tensor({ 1.0 }, torch::kDouble);
