@@ -180,10 +180,7 @@ void TransformerMain()
             optimizer.zero_grad();
 
             auto loss = loss_fn(output, tgt_indices1);
-            if (i % 10 == 0)
-            {
-                std::cout << "i: " << i + 1 << " , loss: " << loss.item<double>() << std::endl;
-            }
+
 
             torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
             loss.backward();
@@ -222,7 +219,10 @@ void TransformerMain()
             loss.backward();
             optimizer.step();
 
-
+            if (i % 10 == 0 || (i+1 == max_train))
+            {
+                std::cout << "i: " << i + 1 << " , loss: " << loss.item<double>() << std::endl;
+            }
 
            // if (loss.item<double>() <= accuracy)
             {
