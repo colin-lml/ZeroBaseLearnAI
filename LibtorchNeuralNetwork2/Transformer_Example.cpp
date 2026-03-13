@@ -156,8 +156,8 @@ void TransformerMain()
     torch::Tensor src_indices4 = torch::tensor({ 6 }, torch::kLong);
     torch::Tensor tgt_indices4 = torch::tensor({ 10 }, torch::kLong);
 
-   // torch::Tensor src_indices = torch::tensor({ 3, 4, 5, 6}, torch::kLong);
-   // torch::Tensor tgt_indices = torch::tensor({ 7, 8, 9, 10}, torch::kLong);
+    torch::Tensor src_indices5 = torch::tensor({ 3, 4, 5, 6}, torch::kLong);
+    torch::Tensor tgt_indices5 = torch::tensor({ 7, 8, 9, 10}, torch::kLong);
     std::string model_path = "translator_model.pt";
 
     Translator model;
@@ -181,40 +181,51 @@ void TransformerMain()
 
             auto loss = loss_fn(output, tgt_indices1);
 
-
             torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
             loss.backward();
             optimizer.step();
 
-            optimizer.zero_grad();
+        
             tgtOut = model->forward(src_indices1, tgt_indices1);
             output = tgtOut.reshape({ -1, max_vocab_len });
+            optimizer.zero_grad();
             loss = loss_fn(output, tgt_indices1);
             torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
             loss.backward();
             optimizer.step();
 
 
-            optimizer.zero_grad();
+          
             tgtOut = model->forward(src_indices2, tgt_indices2);
             output = tgtOut.reshape({ -1, max_vocab_len });
+            optimizer.zero_grad();
             loss = loss_fn(output, tgt_indices2);
             torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
             loss.backward();
             optimizer.step();
 
-            optimizer.zero_grad();
+           
             tgtOut = model->forward(src_indices3, tgt_indices3);
             output = tgtOut.reshape({ -1, max_vocab_len });
+            optimizer.zero_grad();
             loss = loss_fn(output, tgt_indices3);
             torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
             loss.backward();
             optimizer.step();
 
-            optimizer.zero_grad();
+            
             tgtOut = model->forward(src_indices4, tgt_indices4);
             output = tgtOut.reshape({ -1, max_vocab_len });
+            optimizer.zero_grad();
             loss = loss_fn(output, tgt_indices4);
+            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+            loss.backward();
+            optimizer.step();
+
+            tgtOut = model->forward(src_indices5, tgt_indices5);
+            output = tgtOut.reshape({ -1, max_vocab_len });
+            optimizer.zero_grad();
+            loss = loss_fn(output, tgt_indices5);
             torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
             loss.backward();
             optimizer.step();

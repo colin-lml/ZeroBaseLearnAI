@@ -63,20 +63,16 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
-	//auto input = torch::tensor({ { 0.1,0.2 } }, torch::kDouble);
-	//auto x = input.permute({ 1,0 });
-	//std::cout << x.cpu() <<std::endl;
-	TransformerMain();
-
 
 	//autogradMain();
 	//CnnMain();
 	//RnnMain();
 
 	//EmbeddingMain();
+	/// ResNetMain();
 
-	//TransformerMain();
-	// ResNetMain();
+	TransformerMain();
+	
 #if 0
 	NetModule net;
 	double learning_rate = 0.5;
