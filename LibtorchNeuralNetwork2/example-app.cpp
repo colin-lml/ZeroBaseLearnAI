@@ -1,6 +1,7 @@
 // LibtorchSimpleNeuralNetwork.cpp: 定义应用程序的入口点。
 //
 
+
 #include <stdlib.h> 
 #include "torch/torch.h"
 #include <chrono>
@@ -62,6 +63,11 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
+	//auto input = torch::tensor({ { 0.1,0.2 } }, torch::kDouble);
+	//auto x = input.permute({ 1,0 });
+	//std::cout << x.cpu() <<std::endl;
+	TransformerMain();
+
 
 	//autogradMain();
 	//CnnMain();
@@ -126,7 +132,7 @@ int main()
 	
 #endif
 
-	cin.get();
+	std::cin.get();
 	return 0;
 }
 
@@ -144,3 +150,5 @@ Epoch [300/300000], Loss: 2.949105029e-10
 
 end-time 2943
 */
+
+

@@ -1,288 +1,262 @@
 #include <torch/torch.h>
 #include <iostream>
+#include <torch/serialize.h>
 
-// 手动实现 Scaled Dot-Product Attention（QKV 核心）
-class ScaledDotProductAttentionImpl : public torch::nn::Module {
-public:
-    ScaledDotProductAttentionImpl() = default;
+//#include <iostream>
+#include <fstream>
 
-    // 前向计算：核心 QKV 逻辑
-    // q: [seq_len_q, batch_size, d_k]
-    // k: [seq_len_k, batch_size, d_k]
-    // v: [seq_len_v, batch_size, d_v] (seq_len_k == seq_len_v)
-    // mask: [seq_len_q, seq_len_k] 或 nullptr（可选）
-    torch::Tensor forward(
-        const torch::Tensor& q,
-        const torch::Tensor& k,
-        const torch::Tensor& v,
-        const torch::optional<torch::Tensor>& mask = torch::nullopt
-    ) 
-    {
-        int64_t d_k = q.size(-1);
+#define  dim_model   32
+#define  max_vocab_len  11
+#define  max_train       100
 
-        // 1. 计算 Q * K^T (转置最后两个维度)
-        // [seq_len_q, batch_size, d_k] * [batch_size, d_k, seq_len_k] = [seq_len_q, batch_size, seq_len_k]
-       
-        auto scores = torch::matmul(q, k.transpose(0, 2));
-
-        // 2. 缩放（除以 sqrt(d_k)）
-        scores = scores / std::sqrt(d_k);
-
-        // 3. 掩码处理（将需要屏蔽的位置设为极小值，Softmax后接近0）
-        if (mask.has_value()) 
-        {
-            scores = scores.masked_fill(mask.value() == 0, -1e9);
-        }
-
-        // 4. Softmax 计算注意力权重
-        auto attn_weights = torch::softmax(scores, /*dim=*/-1);
-
-        // 5. 加权求和 V
-        // [seq_len_q, batch_size, seq_len_k] * [seq_len_k, batch_size, d_v] = [seq_len_q, batch_size, d_v]
-        auto output = torch::matmul(attn_weights, v);
-
-        return output;
-    }
+const std::unordered_map<int64_t, std::string> maxVocabId =
+{
+    {0, "0"}, {1, "1"}, {2, "2"},
+    {3, "one"}, 
+    {4, "two"}, 
+    {5, "three"},
+    {6, "four"},
+    {7, "一"}, 
+    {8, "二"}, 
+    {9, "三"}, 
+    {10, "四"}
 };
 
-TORCH_MODULE(ScaledDotProductAttention);
 
-// 实现多头注意力（Multi-Head Attention）
-class MultiHeadAttention : public torch::nn::Module {
+
+
+class PositionalEncodingImpl :public torch::nn::Module
+{
 public:
-    MultiHeadAttention(
-        int64_t d_model,    // 模型总维度
-        int64_t nhead,      // 注意力头数
-        double dropout = 0.1
-    ) : d_model(d_model), nhead(nhead), d_k(d_model / nhead) 
+    PositionalEncodingImpl(int64_t d_model, int64_t max_len)
     {
-        // 验证维度合法性
-        TORCH_CHECK(d_model % nhead == 0, "d_model 必须能被 nhead 整除");
+        _d_model = d_model;
+        _max_len = max_len;
+        _posEncode = torch::zeros({ _max_len, _d_model }, torch::kFloat32);
 
-        // 定义 QKV 投影层
-        w_q = register_module("w_q", torch::nn::Linear(d_model, d_model));
-        w_k = register_module("w_k", torch::nn::Linear(d_model, d_model));
-        w_v = register_module("w_v", torch::nn::Linear(d_model, d_model));
-        w_o = register_module("w_o", torch::nn::Linear(d_model, d_model));
+        Encoding();
 
-        // 注意力层
-        attention = register_module("attention", ScaledDotProductAttention());
-
-        // Dropout 层
-        dropout_layer = register_module("dropout", torch::nn::Dropout(dropout));
-
-        // 初始化权重
-        torch::nn::init::xavier_uniform_(w_q->weight);
-        torch::nn::init::xavier_uniform_(w_k->weight);
-        torch::nn::init::xavier_uniform_(w_v->weight);
-        torch::nn::init::xavier_uniform_(w_o->weight);
-        torch::nn::init::zeros_(w_q->bias);
-        torch::nn::init::zeros_(w_k->bias);
-        torch::nn::init::zeros_(w_v->bias);
-        torch::nn::init::zeros_(w_o->bias);
+        register_buffer("posEncode", _posEncode);
     }
 
-    // 将 QKV 拆分为多个头
-    // x: [seq_len, batch_size, d_model] -> [seq_len, batch_size * nhead, d_k]
-    torch::Tensor split_heads(const torch::Tensor& x)
+         
+    torch::Tensor forward(torch::Tensor x)
     {
-        auto new_shape = torch::IntArrayRef({ x.size(0), x.size(1) * nhead, d_k });
-        return x.view({ x.size(0), x.size(1), nhead, d_k })
-            .permute({ 0, 2, 1, 3 })
-            .reshape(new_shape);
-    }
+        if ((x.dim() == 2))
+        {
+            x = x.unsqueeze_(-2);
+        }
 
-    // 将多个头的结果合并
-    // x: [seq_len, batch_size * nhead, d_k] -> [seq_len, batch_size, d_model]
-    torch::Tensor combine_heads(const torch::Tensor& x) {
-        auto new_shape = torch::IntArrayRef({ x.size(0), -1, nhead * d_k });
-        return x.view({ x.size(0), nhead, -1, d_k })
-            .permute({ 0, 2, 1, 3 })
-            .reshape(new_shape);
-    }
-
-    // 前向计算
-    torch::Tensor forward(
-        const torch::Tensor& query,  // [seq_len_q, batch_size, d_model]
-        const torch::Tensor& key,    // [seq_len_k, batch_size, d_model]
-        const torch::Tensor& value,  // [seq_len_v, batch_size, d_model]
-        const torch::optional<torch::Tensor>& mask = torch::nullopt
-    ) 
-    {
-        int64_t batch_size = query.size(1);
-
-        // 1. QKV 线性投影
-        auto q = w_q(query);  // [seq_len_q, batch_size, d_model]
-        auto k = w_k(key);    // [seq_len_k, batch_size, d_model]
-        auto v = w_v(value);  // [seq_len_v, batch_size, d_model]
-
-        // 2. 拆分为多个头
-        q = split_heads(q);   // [seq_len_q, batch_size*nhead, d_k]
-        k = split_heads(k);   // [seq_len_k, batch_size*nhead, d_k]
-        v = split_heads(v);   // [seq_len_v, batch_size*nhead, d_v]
-
-        // 3. 计算自注意力
-        auto attn_output = attention->forward(q, k, v, mask);  // [seq_len_q, batch_size*nhead, d_v]
-    
-        // 4. 合并多头结果
-        attn_output = combine_heads(attn_output);  // [seq_len_q, batch_size, d_model]
-
-        // 5. 输出投影 + Dropout
-        auto output = dropout_layer(w_o(attn_output));
-
-        return output;
+        auto dim = x.size(0);
+        _posEncode.slice(0, 0, dim);
+        //std::cout << _posEncode.slice(0, 0, dim) << std::endl;
+        ///std::cout << x << std::endl;
+        x = x + _posEncode.slice(0, 0, dim);
+        return  x;
     }
 
 private:
-    int64_t d_model;          // 模型总维度
-    int64_t nhead;            // 注意力头数
-    int64_t d_k;              // 每个头的维度
+    void Encoding()
+    {
+        auto pos = torch::arange(0, _max_len, torch::kFloat32).reshape({ _max_len, 1 });
+        auto den_indices = torch::arange(0, _d_model, 2, torch::kFloat32);
+        auto den = torch::exp(-den_indices * std::log(10000.0f) / _d_model);
+        _posEncode.index_put_({ torch::indexing::Slice(), torch::indexing::Slice(0, _d_model, 2) },torch::sin(pos * den) );
+        _posEncode.index_put_({ torch::indexing::Slice(), torch::indexing::Slice(1, _d_model, 2) }, torch::cos(pos * den)); 
+        _posEncode.unsqueeze_(-2);
+        
+    }
 
-    torch::nn::Linear w_q{ nullptr };  // Query 投影层
-    torch::nn::Linear w_k{ nullptr };  // Key 投影层
-    torch::nn::Linear w_v{ nullptr };  // Value 投影层
-    torch::nn::Linear w_o{ nullptr };  // 输出投影层
-
-    torch::nn::Dropout dropout_layer{ nullptr };
-    ScaledDotProductAttention attention{ nullptr };
+public:
+    torch::Tensor _posEncode;
+    int64_t _d_model = dim_model;
+    int64_t _max_len = max_vocab_len;
 };
+TORCH_MODULE(PositionalEncoding);
 
-// 测试代码
+
+class TranslatorImpl : public torch::nn::Module
+{
+public:
+    TranslatorImpl()
+    {
+        src_emb = register_module("src_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(max_vocab_len, dim_model)));
+        tgt_emb_ = register_module("tgt_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(max_vocab_len, dim_model)));
+        pos_encoder = register_module("pos_encoder", PositionalEncoding(dim_model, max_vocab_len));
+        torch::nn::TransformerOptions opts;
+        opts.nhead(1);
+        opts.dim_feedforward(32);
+        opts.num_decoder_layers(1);
+        opts.num_encoder_layers(1);
+        opts.dropout(0.0);
+        opts.d_model(dim_model);
+        transformer = register_module("transformer", torch::nn::Transformer(opts));
+        fc = register_module("fc", torch::nn::Linear(dim_model, max_vocab_len));
+    
+    }
+
+    torch::Tensor forward(torch::Tensor src, torch::Tensor tgt)
+    {
+  
+        src = src_emb->forward(src) * std::sqrt(dim_model);
+        src = pos_encoder->forward(src);
+
+        tgt = tgt_emb_->forward(tgt) * std::sqrt(dim_model);
+        tgt = pos_encoder->forward(tgt);
+        
+        auto outs= transformer->forward(src, tgt);
+   
+        outs = fc->forward(outs);
+
+        return outs;
+
+    }
+    torch::Tensor predict(torch::Tensor src)
+    {
+        src = src_emb->forward(src) * std::sqrt(dim_model);
+        src = pos_encoder->forward(src);
+        auto memory = transformer->encoder.forward(src);
+       
+        torch::Tensor tgt = torch::tensor({0}, torch::kLong);
+     
+        auto tgt_emb = tgt_emb_->forward(tgt) * std::sqrt(dim_model);
+        tgt_emb = pos_encoder->forward(tgt_emb);
+
+        auto out = transformer->decoder.forward(tgt_emb, memory);
+        out = fc->forward(out).squeeze(-2);
+ 
+        auto next_token = out.argmax(-1);
+        return next_token;
+
+    }
+
+    torch::nn::Embedding src_emb{ nullptr };
+    torch::nn::Embedding tgt_emb_{ nullptr };
+    PositionalEncoding pos_encoder{ nullptr };
+    torch::nn::Transformer transformer{ nullptr };
+    torch::nn::Linear fc{ nullptr };
+};
+TORCH_MODULE(Translator);
+
 void TransformerMain() 
 {
+    torch::manual_seed(4);
 
-    torch::Tensor t2d = torch::tensor({
-     {1, 2, 3},
-     {4, 5, 6}
-        });
-    std::cout << "=== 2维张量原始数据 ===" << std::endl;
-    std::cout << "形状: " << t2d.sizes() << "\n" << t2d << std::endl;
+    double accuracy = 0.05;
 
-    // transpose(0, 1)：交换行（维度0）和列（维度1），等价于 t2d.t()
-    torch::Tensor t2d_trans = t2d.transpose(0, 1);
-    std::cout << "\ntranspose(0, 1) 后（等价于 t()）:" << std::endl;
-    std::cout << "形状: " << t2d_trans.sizes() << "\n" << t2d_trans << std::endl;
+    torch::Tensor src_indices1 = torch::tensor({ 3 }, torch::kLong);
+    torch::Tensor tgt_indices1 = torch::tensor({ 7 }, torch::kLong);
 
-    std::unordered_map<std::string, int64_t> vocab = {
-       {"<pad>", 0},    // 填充标记
-       {"hello", 1},    // 目标单词 hello
-       {"world", 2},
-       {"pytorch", 3},
-       {"libtorch", 4}
-    };
+    torch::Tensor src_indices2 = torch::tensor({ 4 }, torch::kLong);
+    torch::Tensor tgt_indices2 = torch::tensor({ 8 }, torch::kLong);
 
-    // 2. 配置 Embedding 关键参数
-    int64_t vocab_size = vocab.size();    // 词汇表大小：5
-    int64_t embed_dim = 16;               // 嵌入维度：16
-    int64_t padding_idx = 0;              // 填充索引：0
+    torch::Tensor src_indices3 = torch::tensor({ 5 }, torch::kLong);
+    torch::Tensor tgt_indices3 = torch::tensor({ 9 }, torch::kLong);
 
-    // 3. 实例化 Embedding 层
-    torch::nn::EmbeddingOptions embed_opts(vocab_size, embed_dim);
-    embed_opts.padding_idx(padding_idx);
-    torch::nn::Embedding embedding_layer(embed_opts);
+    torch::Tensor src_indices4 = torch::tensor({ 6 }, torch::kLong);
+    torch::Tensor tgt_indices4 = torch::tensor({ 10 }, torch::kLong);
 
-    // 4. 查找 "hello" 的索引，并构造输入（必须为 kLong 类型）
-    int64_t hello_idx = vocab["hello"];
-    // 构造输入：batch_size=1, seq_len=1（单个单词）
-    torch::Tensor hello_token_id = torch::tensor({ {hello_idx} }, torch::kLong);
-    std::cout << "单词 'hello' 的索引：" << hello_idx << std::endl;
-    std::cout << "Embedding 输入形状：" << hello_token_id.sizes() << std::endl;
+   // torch::Tensor src_indices = torch::tensor({ 3, 4, 5, 6}, torch::kLong);
+   // torch::Tensor tgt_indices = torch::tensor({ 7, 8, 9, 10}, torch::kLong);
+    std::string model_path = "translator_model.pt";
 
-    // 5. 前向传播获取 "hello" 的嵌入向量
-    torch::Tensor hello_embedding = embedding_layer->forward(hello_token_id);
-    std::cout << "单词 'hello' 的嵌入向量形状：" << hello_embedding.sizes() << std::endl;
-    std::cout << "单词 'hello' 的嵌入向量（前10维）：" << hello_embedding.squeeze().slice(0, 0, 10) << std::endl;
-
-
-
-
-
-    // 定义嵌入层：词汇表大小=10，嵌入维度=5
-    torch::nn::Embedding embed(torch::nn::EmbeddingOptions(10, 5));
-
-    // 初始化嵌入权重（推荐用xavier_uniform，和Transformer保持一致）
-    torch::nn::init::xavier_uniform_(embed->weight);
-
-    // 输入：形状为 [batch_size, seq_len] 的整数索引（比如2个样本，每个样本3个单词ID）
-    torch::Tensor input = torch::tensor({
-        {1, 3, 5},
-        {2, 4, 6}
-        }, torch::kLong);
-
-    // 前向传播：输出形状 [batch_size, seq_len, embedding_dim] = [2,3,5]
-    torch::Tensor output = embed(input);
-    ///embed->forward(input);
-
-    std::cout << "=== 基础嵌入层示例 ===" << std::endl;
-    std::cout << "输入形状: " << input.sizes() << std::endl;
-    std::cout << "输出形状: " << output.sizes() << std::endl;
-    std::cout << "第一个样本的嵌入向量:\n" << output[0] << "\n" << std::endl;
-
-
-
-     
-    torch::nn::TransformerOptions opt;
-    opt.dim_feedforward();  // dim_feedforward 前馈网络层  2048
-    opt.activation(); // 编/解码器中间层的激活功能    torch::kReLU
-    
-    torch::nn::Transformer transformer(opt);  // 创建 Transformer
-    auto  src_emb = torch::Tensor();
-    auto  tgt_emb = torch::Tensor();
-    auto  tgt_mask = torch::Tensor();
-    /*
-    * src_emb  词嵌入 、 位置编码
-    * tgt_emb   词嵌入 、位置编码
-    */
-        
-
-    auto transout = transformer->forward(
-        src_emb,          // 编码器输入
-        tgt_emb,          // 解码器输入
-        tgt_mask,         // 解码器自注意力掩码
-        torch::Tensor(),  // 编码器自注意力掩码（无掩码）
-        torch::Tensor(),  // 编码器-解码器注意力掩码（无掩码）
-        torch::Tensor(),  // 源序列padding掩码（无padding）
-        torch::Tensor(),  // 目标序列padding掩码（无padding）
-        torch::Tensor()   // 编码器-解码器padding掩码（无padding）
-    );
-
-    ///计算损失
-    /// 反向传播 + 参数更新
-    /// 
-
-
-    // 配置参数
-    const int64_t seq_len = 10;     // 序列长度
-    const int64_t batch_size = 2;   // 批次大小
-    const int64_t d_model = 128;    // 模型维度
-    const int64_t nhead = 8;        // 注意力头数
-
-    // 设置设备（优先GPU）
-    torch::Device device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
-    std::cout << "使用设备: " << (device.is_cuda() ? "CUDA" : "CPU") << std::endl;
-
-    // 1. 创建多头注意力层
-    MultiHeadAttention mha(d_model, nhead);
-    mha.to(device);
-
-    // 2. 生成测试数据 [seq_len, batch_size, d_model]
-    torch::Tensor x = torch::randn({ seq_len, batch_size, d_model }, torch::kFloat).to(device);
-
-    // 3. 生成掩码（示例：屏蔽最后3个位置）
-    torch::Tensor mask = torch::ones({ seq_len, seq_len }, torch::kBool).to(device);
-    mask.slice(1, seq_len - 3, seq_len) = 0;  // 最后3列设为0（屏蔽）
-
-    // 4. 前向计算（自注意力：Q=K=V=x）
-    mha.eval();
-    torch::NoGradGuard no_grad;
-    std::cout << "\n输入形状: " << x.sizes() << std::endl;
-    std::cout << "\n掩码形状: " << mask.sizes() << std::endl;
-    output = mha.forward(x, x, x, mask);
-
-    // 5. 打印结果信息
-    std::cout << "\n输入形状: " << x.sizes() << std::endl;
-    std::cout << "输出形状: " << output.sizes() << std::endl;
-    std::cout << "\n输出前5个值:\n" << output[0][0].slice(0, 0, 5) << std::endl;
-
+    Translator model;
    
+
+    std::ifstream filem(model_path);
+    bool bmodel = filem.is_open();
+    if (!bmodel)
+    {
+        torch::nn::CrossEntropyLoss loss_fn;
+        
+        torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
+        model->train();
+
+        for (int i = 0; i < max_train; i++)
+        {
+  
+            auto tgtOut = model->forward(src_indices1, tgt_indices1);
+            auto output = tgtOut.reshape({ -1, max_vocab_len });
+            optimizer.zero_grad();
+
+            auto loss = loss_fn(output, tgt_indices1);
+            if (i % 10 == 0)
+            {
+                std::cout << "i: " << i + 1 << " , loss: " << loss.item<double>() << std::endl;
+            }
+
+            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+            loss.backward();
+            optimizer.step();
+
+            optimizer.zero_grad();
+            tgtOut = model->forward(src_indices1, tgt_indices1);
+            output = tgtOut.reshape({ -1, max_vocab_len });
+            loss = loss_fn(output, tgt_indices1);
+            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+            loss.backward();
+            optimizer.step();
+
+
+            optimizer.zero_grad();
+            tgtOut = model->forward(src_indices2, tgt_indices2);
+            output = tgtOut.reshape({ -1, max_vocab_len });
+            loss = loss_fn(output, tgt_indices2);
+            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+            loss.backward();
+            optimizer.step();
+
+            optimizer.zero_grad();
+            tgtOut = model->forward(src_indices3, tgt_indices3);
+            output = tgtOut.reshape({ -1, max_vocab_len });
+            loss = loss_fn(output, tgt_indices3);
+            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+            loss.backward();
+            optimizer.step();
+
+            optimizer.zero_grad();
+            tgtOut = model->forward(src_indices4, tgt_indices4);
+            output = tgtOut.reshape({ -1, max_vocab_len });
+            loss = loss_fn(output, tgt_indices4);
+            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+            loss.backward();
+            optimizer.step();
+
+
+
+           // if (loss.item<double>() <= accuracy)
+            {
+               // std::cout << "break... " << ", loss: " << loss.item<double>() << " , i: " << i + 1 << std::endl;
+                //break;
+            }
+        }
+        torch::save(model, model_path);
+    }
+    else
+    {
+        torch::load(model, model_path);
+        std::cout<<"load model ...."<<std::endl;
+    }
+    filem.close();
+
+    model->eval();
+    std::cout << "predict:" << std::endl;
+
+    torch::Tensor src_test = torch::tensor({ 3 }, torch::kLong);
+    auto result = model->predict(src_test);
+
+    std::cout <<"3: " << result.item() << std::endl;
+
+    src_test.fill_({4});
+    result = model->predict(src_test);
+    std::cout << "4: " << result.item() << std::endl;
+
+    src_test.fill_({ 5 });
+    result = model->predict(src_test);
+    std::cout << "5: " << result.item() << std::endl;
+
+    src_test.fill_({ 6 });
+    result = model->predict(src_test);
+    std::cout << "6: " << result.item() << std::endl;
+
 }
