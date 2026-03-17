@@ -5,7 +5,7 @@
 //#include <iostream>
 #include <fstream>
 
-#define  dim_model   64
+#define  dim_model   32
 #define  max_vocab_len  11
 #define  max_train       100
 
@@ -99,7 +99,16 @@ public:
         wordCount.push_back(GetLoadDataWordId({ "three","三" }));
         wordCount.push_back(GetLoadDataWordId({ "four","四" }));
 
-        //wordCount.push_back(GetLoadDataWordId({ "one two three four","一 二 三 四" }));
+         
+        wordCount.push_back(GetLoadDataWordId({ "one two","一 二" }));
+        wordCount.push_back(GetLoadDataWordId({ "two one","二 一" }));
+
+        wordCount.push_back(GetLoadDataWordId({ "one two three ","一 二 三" }));
+        wordCount.push_back(GetLoadDataWordId({ "three two one"," 三 二 一" }));
+
+        wordCount.push_back(GetLoadDataWordId({ "one two three four","一 二 三 四" }));
+        wordCount.push_back(GetLoadDataWordId({ "four three two one","四 三 二 一" }));
+       
 
     }
 
@@ -192,8 +201,8 @@ public:
         tgt_emb_ = register_module("tgt_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(max_vocab_len, dim_model)));
         pos_encoder = register_module("pos_encoder", PositionalEncoding(dim_model, max_vocab_len));
         torch::nn::TransformerOptions opts;
-        opts.nhead(2);
-        opts.dim_feedforward(256);
+        opts.nhead(1);
+        opts.dim_feedforward(64);
         opts.num_decoder_layers(1);
         opts.num_encoder_layers(1);
         opts.dropout(0.0);
@@ -270,7 +279,7 @@ void TransformerMain()
 
     std::ifstream filem(model_path);
     bool bmodel = filem.is_open();
-    if (!bmodel)
+    if (!bmodel || true)
     {
         TrainData(model);
         torch::save(model, model_path);
@@ -289,7 +298,7 @@ void TransformerMain()
 
 void TrainData(Translator& model)
 {
-    double accuracy = 0.005;
+    double accuracy = 0.3;
 
     auto datasetTrain = translatDataset().map(torch::data::transforms::Stack<>());
     auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(1));
@@ -297,6 +306,7 @@ void TrainData(Translator& model)
 
     torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
     model->train();
+    std::cout <<"训练模型" << std::endl;
 
     for (int i = 0; i < max_train; i++)
     {
@@ -326,7 +336,7 @@ void TrainData(Translator& model)
 
         if (i % 10 == 0 || (i + 1 == max_train))
         {
-            std::cout << "i: " << i + 1 << " , loss: " << total_loss << std::endl;
+            std::cout << "i: " << i + 1 << " , loss: " << total_loss << std::endl ;
         }
 
         if (total_loss <= accuracy)
@@ -335,23 +345,34 @@ void TrainData(Translator& model)
             break;
         }
     }
+    std::cout << std::endl;
 }
 
 void TestData(Translator& model)
 {
     model->eval();
-    std::cout << "翻译:" << std::endl;
+    std::cout << "测试&翻译:" << std::endl;
     std::vector<std::string> tests;
     tests.push_back("one");
     tests.push_back("two");
     tests.push_back("three");
     tests.push_back("four");
-    //tests.push_back("one two three four");
+    /* 
+    tests.push_back("one two");
+    tests.push_back("two one");
+
+    tests.push_back("one two three");
+    tests.push_back("three two one");
+
+    tests.push_back("one two three four");
+    tests.push_back("four three two one");
+    */
    
     for (auto ch: tests)
     {
         auto item = GetWordId(ch);
         auto src = torch::tensor(item, torch::kLong);
+   
         auto result = model->predict(src);
         std::cout << ch <<" :  ";
         
