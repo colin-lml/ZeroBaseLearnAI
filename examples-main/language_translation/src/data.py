@@ -3,7 +3,8 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
-from torchtext.datasets import Multi30k, multi30k
+from torchtext.datasets import Multi30k
+from torchtext.data import Field, BucketIterator
 
 # Turns an iterable into a generator
 def _yield_tokens(iterable_data, tokenizer, src):
@@ -21,8 +22,25 @@ def get_data(opts):
     src_lang = opts.src
     tgt_lang = opts.tgt
 
-    multi30k.URL["train"] = "https://raw.githubusercontent.com/neychev/small_DL_repo/master/datasets/Multi30k/training.tar.gz"
-    multi30k.URL["valid"] = "https://raw.githubusercontent.com/neychev/small_DL_repo/master/datasets/Multi30k/validation.tar.gz"
+    SRC = Field(tokenize="spacy",tokenizer_language="de",lower=True, init_token="<bos>",eos_token="<eos>")
+
+    TRG = Field(
+        tokenize="spacy",
+        tokenizer_language="en",
+        lower=True,
+        init_token="<bos>",
+        eos_token="<eos>"
+    )
+
+
+    train_data, valid_data, test_data = Multi30k.splits(exts=(".de", ".en"),  fields=(SRC, TRG))
+
+
+
+    ##Multi30k(split='train', language_pair=(src_lang, tgt_lang))
+
+   # Multi30k.URL["train"] = "https://raw.githubusercontent.com/neychev/small_DL_repo/master/datasets/Multi30k/training.tar.gz"
+   # Multi30k.URL["valid"] = "https://raw.githubusercontent.com/neychev/small_DL_repo/master/datasets/Multi30k/validation.tar.gz"
 
     # Define a token "unkown", "padding", "beginning of sentence", and "end of sentence"
     special_symbols = {

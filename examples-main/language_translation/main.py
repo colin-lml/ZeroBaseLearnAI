@@ -297,6 +297,7 @@ if __name__ == "__main__":
     parser.add_argument("--dry_run", action="store_true")
 
     args = parser.parse_args()
+    ##logging.info(f"#####   ")
 
     DEVICE = torch.device("cuda" if args.backend == "gpu" and torch.cuda.is_available() else "cpu")
 
