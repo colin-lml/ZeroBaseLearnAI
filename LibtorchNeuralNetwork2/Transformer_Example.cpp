@@ -267,7 +267,7 @@ public:
         std::vector<int64_t> tgtpad = GetWordId(tgt_vocab, "S");
      
         int i = 0;
-        while (true)
+        while (i < tgt_vocab_size*2)
         {
             torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong);
             auto tgt_emb = tgt_emb_->forward(tgt) * std::sqrt(dim_model);
@@ -300,9 +300,6 @@ TORCH_MODULE(Translator);
 
 void TestData(Translator& model);
 void TrainData(Translator& model);
-
-
-
 
 
 void TransformerMain()
