@@ -362,7 +362,7 @@ void TransformerMain()
 
     std::ifstream filem(model_path);
     bool bmodel = filem.is_open();
-    if (!bmodel||true)
+    if (!bmodel)
     {
         TrainData(model);
         torch::save(model, model_path);
@@ -445,7 +445,11 @@ void TestData(Translator& model)
     tests.push_back("Welcome to Machine");
     tests.push_back("Welcome to PyTorch Tutorials");
     tests.push_back("Welcome to Machine Learning");
-    
+
+    tests.push_back("Learning");
+    tests.push_back("Tutorials");
+    tests.push_back("PyTorch Tutorials");
+    tests.push_back("Machine Learning");
 
     for (auto ch : tests)
     {
