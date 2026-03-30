@@ -119,7 +119,7 @@ public:
     {
         wordCount.push_back(GetLoadDataWordId({ "Welcome to PyTorch Tutorials Pad Pad Pad Pad Pad","欢 迎 来 到 派 托 奇 教 程" }));
         wordCount.push_back(GetLoadDataWordId({ "Welcome to Machine Learning  Pad Pad Pad Pad","欢 迎 来 到 机 器 学 习" }));
-      
+
     }
 
 
@@ -327,18 +327,19 @@ std::tuple<int64_t, int64_t, int64_t> count_model_parameters(Translator& model)
     int64_t trainable_params = 0;
     int64_t non_trainable_params = 0;
 
-    // 遍历模型所有参数
+    
     for (const auto& p : model->parameters())
     {
-        // 计算参数数量：numel() = 张量总元素数
+ 
         int64_t numel = p.numel();
         total_params += numel;
-
-        // 判断是否可训练
-        if (p.requires_grad()) {
+    
+        if (p.requires_grad()) 
+        {
             trainable_params += numel;
         }
-        else {
+        else 
+        {
             non_trainable_params += numel;
         }
     }
@@ -362,7 +363,7 @@ void TransformerMain()
 
     std::ifstream filem(model_path);
     bool bmodel = filem.is_open();
-    if (!bmodel)
+    if (!bmodel||true)
     {
         TrainData(model);
         torch::save(model, model_path);
