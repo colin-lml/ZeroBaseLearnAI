@@ -12,9 +12,10 @@ void CnnMain();
 void RnnMain();
 int autogradMain();
 void EmbeddingMain();
-void TransformerMain();
-
 void ResNetMain();
+void TransformerMain();
+void TransformerAttentionMain();
+
 
 struct NetModule : torch::nn::Module
 {
@@ -47,6 +48,7 @@ struct NetModule : torch::nn::Module
 
 	torch::Tensor forward(torch::Tensor x)
 	{
+		//cout << fc1->forward(x) << endl  << endl;
 		auto t = torch::sigmoid(fc1->forward(x));
 		auto l2 = torch::sigmoid(fc2->forward(t));
 
@@ -63,7 +65,7 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
-
+#if 1
 	//autogradMain();
 	//CnnMain();
 	//RnnMain();
@@ -71,9 +73,12 @@ int main()
 	//EmbeddingMain();
 	/// ResNetMain();
 
-	TransformerMain();
-	
-#if 0
+	//TransformerMain();
+
+	TransformerAttentionMain();
+
+#else
+
 	NetModule net;
 	double learning_rate = 0.5;
 	//torch::Device device(torch::kCPU);

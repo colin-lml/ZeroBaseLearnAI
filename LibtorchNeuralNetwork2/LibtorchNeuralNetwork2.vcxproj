@@ -183,6 +183,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="example-app.cpp" />
     <ClCompile Include="ResNet.cpp" />
     <ClCompile Include="RNN_Example.cpp" />
+    <ClCompile Include="Transformer_Attention.cpp" />
     <ClCompile Include="Transformer_Example.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
