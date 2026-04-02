@@ -310,7 +310,8 @@ void TransformerAttentionMain()
 	cout << "-------------MultiHeadAttention--------------------\n"  << endl;
 
 
-	MultiheadAttention
+	torch::nn::MultiheadAttention ff;
+	
 
 }
 
