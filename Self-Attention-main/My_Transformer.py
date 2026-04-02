@@ -18,13 +18,21 @@ src_vocab = {'P':0, '我':1, '是':2, '学':3, '生':4, '喜':5, '欢':6,'习':7
 src_idx2word = {src_vocab[key]: key for key in src_vocab}
 src_vocab_size = len(src_vocab)                 # 字典字的个数
 
+print(f"#### src_vocab_size: {src_vocab_size}")
+
 # 生成目标中 'S'是0填充的
 tgt_vocab = {'S':0, 'E':1, 'P':2, 'I':3, 'am':4, 'a':5, 'student':6, 'like':7, 'learning':8, 'boy':9}
 idx2word = {tgt_vocab[key]: key for key in tgt_vocab}                               # 把目标字典转换成 索引：字的形式
 tgt_vocab_size = len(tgt_vocab)                                                     # 目标字典尺寸
 
+print(f"#### tgt_vocab_size: {tgt_vocab_size}")
+
 src_len = len(sentences[0][0].split(" "))                                           # Encoder输入的最大长度 5
 tgt_len = len(sentences[0][1].split(" "))                                           # Decoder输入输出最大长度 5
+
+print(f"#### src_len: {src_len}")
+print(f"#### tgt_len: {tgt_len}")
+
 
 # 把sentences 转换成字典索引
 def make_data(sentences):

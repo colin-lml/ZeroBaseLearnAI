@@ -29,8 +29,7 @@ def get_data(opts):
         tokenizer_language="en",
         lower=True,
         init_token="<bos>",
-        eos_token="<eos>"
-    )
+        eos_token="<eos>")
 
 
     train_data, valid_data, test_data = Multi30k.splits(exts=(".de", ".en"),  fields=(SRC, TRG))

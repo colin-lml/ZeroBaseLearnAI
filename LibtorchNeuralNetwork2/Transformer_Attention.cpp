@@ -1,4 +1,4 @@
-#include <torch/torch.h>
+﻿#include <torch/torch.h>
 #include <iostream>
 #include <torch/serialize.h>
 #include <regex>
@@ -28,11 +28,9 @@ public:
 		K = register_module("k", torch::nn::Linear(linear));
 		V = register_module("v", torch::nn::Linear(linear));
 
-		norm_fact = 1.0 / sqrt(dim);
+		norm_fact = 1.0 / sqrt(dim); // 缩放
 
-		//std::vector<float> vWeight(dim * dim, 1.0);
-		//auto onesw = torch::tensor(vWeight, torch::kFloat).view({ dim ,dim });
-		auto onesw = torch::eye(dim);
+		auto onesw = torch::eye(dim); //单位矩阵
 
 		Q->weight.set_data(onesw);
 		K->weight.set_data(onesw);
@@ -62,7 +60,7 @@ public:
 			// x: [seq, dim]
 			InitQKV(x.size(1));
 		}
-
+		/// 1.输入x 与 q k v 运算  q k v是 单位矩阵所以 q k v = x
 		 q = Q->forward(x);
 		 k = K->forward(x);
 		 v = V->forward(x);
@@ -76,16 +74,16 @@ public:
 		}
 		else
 		{
-			kt = k.transpose(0, 1);
+			kt = k.transpose(0, 1);// kt 是 k 的置换矩阵  kt: [dim,seq]
 		}
 
 	
 		cout << "kt \n" << kt << endl;
 
-		auto attn_score = torch::matmul(q, kt);
+		auto attn_score = torch::matmul(q, kt); //2.  
 		cout << "q X kt \n" << attn_score << endl;
 
-		attn_score = attn_score * norm_fact;
+		attn_score = attn_score * norm_fact;     //3. 矩阵缩放
 		cout << "scale q.X.kt  \n" << attn_score << endl;
 
 		if (mask.defined())
@@ -94,10 +92,10 @@ public:
 		}
 
 
-		attn_score = torch::softmax(attn_score, -1);
+		attn_score = torch::softmax(attn_score, -1);//4. Softmax 归一化指数函数
 		cout << "torch::softmax q.X.kt  \n" << attn_score << endl;
 
-		out = torch::matmul(attn_score, v);
+		out = torch::matmul(attn_score, v); /// 
 
 		cout << "torch::matmul V  \n" << out << endl;
 	
@@ -122,14 +120,14 @@ public:
 		Q = register_module("q", torch::nn::Linear(linear));
 		K = register_module("k", torch::nn::Linear(linear));
 		V = register_module("v", torch::nn::Linear(linear));
-		Wo = register_module("Wo", torch::nn::Linear(linear)); // ���ͶӰ
+		Wo = register_module("Wo", torch::nn::Linear(linear)); // 输出投影
 
 		norm_fact = 1.0 / sqrt(dim);
 		Dk = dim / head;
 		H = head;
 		//std::vector<float> vWeight(dim * dim, 1.0);
 		//auto onesw = torch::tensor(vWeight, torch::kFloat).view({ dim ,dim });
-		auto onesw = torch::eye(dim);
+		auto onesw = torch::eye(dim);   
 		Q->weight.set_data(onesw);
 		K->weight.set_data(onesw);
 		V->weight.set_data(onesw);
@@ -272,15 +270,61 @@ void TransformerAttentionMain()
 
 	3. x: [6 ,4]  
 
+	Q * Kt =>
+	1  0  0  0             
+	2  0  0  0         1  2  3  4  0  0
+	3  0  0  0     *   0  0  0  0  0  0
+	4  0  0  0         0  0  0  0  0  0   
+	0  0  0  0         0  0  0  0  0  0
+	0  0  0  0
+
+
+
+					  Q * Kt:
+					  1   2   3   4   0   0
+					  2   4   6   8   0   0
+					  3   6   9  12   0   0
+					  4   8  12  16   0   0
+					  0   0   0   0   0   0
+					  0   0   0   0   0   0
+
+					  V:
+					  1  0  0  0
+					  2  0  0  0
+					  3  0  0  0
+					  4  0  0  0
+					  0  0  0  0
+					  0  0  0  0
+
+
+					  Welcome       Welcome  to Machine Learning Pad Pad
+						   to
+					  Machine
+					 Learning
+						  Pad
+						  Pad
+
+						  Welcome*Welcome   Welcome*to     Welcome*Machine      Welcome*Learning     Welcome*Pad    Welcome*Pad
+
+						  to*Welcome        to * to        to * Machine         to * Learning        to * Pad       to * Pad
+
+						  Machine*Welcome   Machine*to     Machine*Machine      Machine*Learning     Machine*Pad     Machine*Pad
+
+						  Learning*Welcome  Learning*to    Learning*Machine     Learning*Learning    Learning*Pad    Learning*Pad
+
+						  Pad *Welcome       Pad * to       Pad * Machine        Pad * Learning        Pad * Pad       Pad * Pad
+
+						  Pad *Welcome       Pad * to       Pad * Machine        Pad * Learning        Pad * Pad       Pad * Pad
+
 */
 
 	auto x = torch::tensor({
-				{{1.0, 0.0, 0.0, 0.0},
-				 {2.0, 0.0, 0.0, 0.0},
-				 {3.0, 0.0, 0.0, 0.0},
-				 {4.0, 0.0, 0.0, 0.0},
-				 {0.0, 0.0, 0.0, 0.0},
-				 {0.0, 0.0, 0.0, 0.0}
+				{{1.0, 0.0, 0.0, 0.0}, // Welcome
+				 {2.0, 0.0, 0.0, 0.0}, // to
+				 {3.0, 0.0, 0.0, 0.0}, // Machine
+				 {4.0, 0.0, 0.0, 0.0}, // Learning
+				 {0.0, 0.0, 0.0, 0.0}, // Pad
+				 {0.0, 0.0, 0.0, 0.0}  // Pad
 				} }, torch::kFloat);
 
 	

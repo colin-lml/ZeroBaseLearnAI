@@ -1,0 +1,18 @@
+"""Clawd Codex - Claude Code Python Implementation."""
+
+__version__ = "0.1.0"
+__author__ = "Clawd Codex Team"
+
+from .config import load_config, get_provider_config
+from .providers import BaseProvider, GLMProvider, AnthropicProvider, OpenAIProvider
+
+__all__ = [
+    "__version__",
+    "__author__",
+    "load_config",
+    "get_provider_config",
+    "BaseProvider",
+    "GLMProvider",
+    "AnthropicProvider",
+    "OpenAIProvider",
+]
