@@ -7,8 +7,24 @@
 using namespace std;
 
 
-
-
+class FeedForwardNet : public torch::nn::Module
+{
+public:
+	FeedForwardNet(int64_t dim, int64_t d_ff)
+	{
+	
+		ffn = register_module("ffn", torch::nn::Sequential(torch::nn::Linear(dim, d_ff),
+			torch::nn::ReLU(),
+			torch::nn::Linear(d_ff, dim)
+		));
+	}
+	auto forward(torch::Tensor x)
+	{
+		return ffn->forward(x);
+	}
+	torch::nn::Sequential ffn{};
+	//Q = register_module("q", torch::nn::Linear(linear));
+};
 
 
 
@@ -95,7 +111,7 @@ public:
 		attn_score = torch::softmax(attn_score, -1);//4. Softmax 归一化指数函数
 		cout << "torch::softmax q.X.kt  \n" << attn_score << endl;
 
-		out = torch::matmul(attn_score, v); /// 
+		out = torch::matmul(attn_score, v); /// 5. qKt * V
 
 		cout << "torch::matmul V  \n" << out << endl;
 	
@@ -123,10 +139,10 @@ public:
 		Wo = register_module("Wo", torch::nn::Linear(linear)); // 输出投影
 
 		norm_fact = 1.0 / sqrt(dim);
+		
 		Dk = dim / head;
 		H = head;
-		//std::vector<float> vWeight(dim * dim, 1.0);
-		//auto onesw = torch::tensor(vWeight, torch::kFloat).view({ dim ,dim });
+
 		auto onesw = torch::eye(dim);   
 		Q->weight.set_data(onesw);
 		K->weight.set_data(onesw);
@@ -181,7 +197,8 @@ public:
 		out = out.transpose(1, 0).contiguous().view({ seq, dim }); //  [H, S, Dk] --> [S, H, Dk] -> [seq, dim]
 
 		cout << "torch::matmul QK * V  \n" << out.squeeze() << endl;
-
+		
+		out = Wo->forward(out);
 
 		return out;
 	}
@@ -256,67 +273,6 @@ public:
 void TransformerAttentionMain()
 {
 
-/*
-
-	{"Pad",      0},
-	{"Welcome",  1},
-	{"to",       2},
-	{"Machine",  3},
-	{"Learning", 4}
-
-	1. Welcome to Machine Learning Pad Pad -- > [1,2,3,4,0,0]
-
-	2. Embedding + PositionalEncoding        ->  x
-
-	3. x: [6 ,4]  
-
-	Q * Kt =>
-	1  0  0  0             
-	2  0  0  0         1  2  3  4  0  0
-	3  0  0  0     *   0  0  0  0  0  0
-	4  0  0  0         0  0  0  0  0  0   
-	0  0  0  0         0  0  0  0  0  0
-	0  0  0  0
-
-
-
-					  Q * Kt:
-					  1   2   3   4   0   0
-					  2   4   6   8   0   0
-					  3   6   9  12   0   0
-					  4   8  12  16   0   0
-					  0   0   0   0   0   0
-					  0   0   0   0   0   0
-
-					  V:
-					  1  0  0  0
-					  2  0  0  0
-					  3  0  0  0
-					  4  0  0  0
-					  0  0  0  0
-					  0  0  0  0
-
-
-					  Welcome       Welcome  to Machine Learning Pad Pad
-						   to
-					  Machine
-					 Learning
-						  Pad
-						  Pad
-
-						  Welcome*Welcome   Welcome*to     Welcome*Machine      Welcome*Learning     Welcome*Pad    Welcome*Pad
-
-						  to*Welcome        to * to        to * Machine         to * Learning        to * Pad       to * Pad
-
-						  Machine*Welcome   Machine*to     Machine*Machine      Machine*Learning     Machine*Pad     Machine*Pad
-
-						  Learning*Welcome  Learning*to    Learning*Machine     Learning*Learning    Learning*Pad    Learning*Pad
-
-						  Pad *Welcome       Pad * to       Pad * Machine        Pad * Learning        Pad * Pad       Pad * Pad
-
-						  Pad *Welcome       Pad * to       Pad * Machine        Pad * Learning        Pad * Pad       Pad * Pad
-
-*/
 
 	auto x = torch::tensor({
 				{{1.0, 0.0, 0.0, 0.0}, // Welcome
@@ -327,7 +283,17 @@ void TransformerAttentionMain()
 				 {0.0, 0.0, 0.0, 0.0}  // Pad
 				} }, torch::kFloat);
 
+
+
 	
+	auto w = torch::tensor({
+			{
+				{0.0, 1.0, 0.0, 0.0},
+				{0.0, 2.0, 0.0, 0.0},
+				{0.0, 3.0, 0.0, 0.0},
+				{0.0, 4.0, 0.0, 0.0}
+			}
+		}, torch::kFloat);
 
 	cout << "input\n" << x << endl;
 	
@@ -338,11 +304,141 @@ void TransformerAttentionMain()
 	cout << "-------------SelfAttention--------------------\n"  << endl;
 	
 
-	//cout << "\n\n-------------MultiHeadAttention--------------------\n"  << endl;
-	//auto multiAtten = MultiHeadAttention();
-	//multiAtten.forward(x,2);
-	//cout << "-------------MultiHeadAttention--------------------\n"  << endl;
+	cout << "\n\n-------------MultiHeadAttention--------------------\n"  << endl;
+	auto multiAtten = MultiHeadAttention();
+	multiAtten.forward2(x,1);
+	cout << "-------------MultiHeadAttention--------------------\n"  << endl;
+
+
+	MultiheadAttention
 
 }
 
 
+/*
+input
+(1,.,.) =
+  1  0  0  0
+  2  0  0  0
+  3  0  0  0
+  4  0  0  0
+  0  0  0  0
+  0  0  0  0
+[ CPUFloatType{1,6,4} ]
+-------------SelfAttention--------------------
+
+q k v
+ 1  0  0  0
+ 2  0  0  0
+ 3  0  0  0
+ 4  0  0  0
+ 0  0  0  0
+ 0  0  0  0
+[ CPUFloatType{6,4} ]
+kt
+ 1  2  3  4  0  0
+ 0  0  0  0  0  0
+ 0  0  0  0  0  0
+ 0  0  0  0  0  0
+[ CPUFloatType{4,6} ]
+q X kt
+  1   2   3   4   0   0
+  2   4   6   8   0   0
+  3   6   9  12   0   0
+  4   8  12  16   0   0
+  0   0   0   0   0   0
+  0   0   0   0   0   0
+[ CPUFloatType{6,6} ]
+scale q.X.kt
+ 0.5000  1.0000  1.5000  2.0000  0.0000  0.0000
+ 1.0000  2.0000  3.0000  4.0000  0.0000  0.0000
+ 1.5000  3.0000  4.5000  6.0000  0.0000  0.0000
+ 2.0000  4.0000  6.0000  8.0000  0.0000  0.0000
+ 0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+ 0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+[ CPUFloatType{6,6} ]
+torch::softmax q.X.kt
+ 0.0904  0.1490  0.2457  0.4052  0.0548  0.0548
+ 0.0313  0.0851  0.2314  0.6291  0.0115  0.0115
+ 0.0086  0.0386  0.1731  0.7758  0.0019  0.0019
+ 0.0021  0.0158  0.1170  0.8645  0.0003  0.0003
+ 0.1667  0.1667  0.1667  0.1667  0.1667  0.1667
+ 0.1667  0.1667  0.1667  0.1667  0.1667  0.1667
+[ CPUFloatType{6,6} ]
+torch::matmul V
+ 2.7463  0.0000  0.0000  0.0000
+ 3.4122  0.0000  0.0000  0.0000
+ 3.7084  0.0000  0.0000  0.0000
+ 3.8426  0.0000  0.0000  0.0000
+ 1.6667  0.0000  0.0000  0.0000
+ 1.6667  0.0000  0.0000  0.0000
+[ CPUFloatType{6,4} ]
+-------------SelfAttention--------------------
+
+
+
+nput
+(1,.,.) =
+  1  0  0  0
+  2  0  0  0
+  3  0  0  0
+  4  0  0  0
+  0  0  0  0
+  0  0  0  0
+[ CPUFloatType{1,6,4} ]
+
+
+-------------MultiHeadAttention--------------------
+
+q k v
+(1,.,.) =
+  1  0  0  0
+  2  0  0  0
+  3  0  0  0
+  4  0  0  0
+  0  0  0  0
+  0  0  0  0
+[ CPUFloatType{1,6,4} ]
+kt
+(1,.,.) =
+  1  2  3  4  0  0
+  0  0  0  0  0  0
+  0  0  0  0  0  0
+  0  0  0  0  0  0
+[ CPUFloatType{1,4,6} ]
+q X kt
+(1,.,.) =
+   1   2   3   4   0   0
+   2   4   6   8   0   0
+   3   6   9  12   0   0
+   4   8  12  16   0   0
+   0   0   0   0   0   0
+   0   0   0   0   0   0
+[ CPUFloatType{1,6,6} ]
+scale q.X.kt
+(1,.,.) =
+  0.5000  1.0000  1.5000  2.0000  0.0000  0.0000
+  1.0000  2.0000  3.0000  4.0000  0.0000  0.0000
+  1.5000  3.0000  4.5000  6.0000  0.0000  0.0000
+  2.0000  4.0000  6.0000  8.0000  0.0000  0.0000
+  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000
+[ CPUFloatType{1,6,6} ]
+torch::softmax q.X.kt
+ 0.0904  0.1490  0.2457  0.4052  0.0548  0.0548
+ 0.0313  0.0851  0.2314  0.6291  0.0115  0.0115
+ 0.0086  0.0386  0.1731  0.7758  0.0019  0.0019
+ 0.0021  0.0158  0.1170  0.8645  0.0003  0.0003
+ 0.1667  0.1667  0.1667  0.1667  0.1667  0.1667
+ 0.1667  0.1667  0.1667  0.1667  0.1667  0.1667
+[ CPUFloatType{6,6} ]
+torch::matmul QK * V
+ 2.7463  0.0000  0.0000  0.0000
+ 3.4122  0.0000  0.0000  0.0000
+ 3.7084  0.0000  0.0000  0.0000
+ 3.8426  0.0000  0.0000  0.0000
+ 1.6667  0.0000  0.0000  0.0000
+ 1.6667  0.0000  0.0000  0.0000
+[ CPUFloatType{6,4} ]
+-------------MultiHeadAttention--------------------
+*/
