@@ -165,10 +165,10 @@ public:
 
 TORCH_MODULE(EncoderLayer);
 
-class Encoders : public torch::nn::Module
+class EncodersImpl : public torch::nn::Module
 {
 public:
-	Encoders(int64_t dim, int64_t head, int64_t ffn, int64_t layers)
+	EncodersImpl(int64_t dim, int64_t head, int64_t ffn, int64_t layers)
 	{
 		moduleLayers = register_module("moduleLayers", torch::nn::ModuleList());
 
@@ -188,11 +188,41 @@ public:
 		return x;
 	}
 	torch::nn::ModuleList moduleLayers{ nullptr };
-	//torch::nn::ModuleList<EncoderLayer> layers{ nullptr };
+	
 };
 
+TORCH_MODULE(Encoders);
 
 
+
+
+class DecoderLayerImpl : public torch::nn::Module
+{
+public:
+	DecoderLayerImpl(int64_t dim, int64_t head, int64_t dff)
+	{
+		torch::nn::LayerNormOptions normOpt({ dim });
+		norm1 = register_module("norm1", torch::nn::LayerNorm(normOpt));
+		norm2 = register_module("norm2", torch::nn::LayerNorm(normOpt));
+		ffn = register_module("ffn", FeedForwardNet(dim, dff));
+		attention = register_module("attention", MultiHeadAttention(dim, head));
+	}
+
+	auto forward(torch::Tensor x)
+	{
+		auto y = attention->forward(x);
+
+		y = norm1->forward(x + y);
+
+		auto y2 = ffn->forward(y);
+
+		return norm2->forward(y + y2);
+	}
+
+	FeedForwardNet ffn{ nullptr };
+	torch::nn::LayerNorm norm1{ nullptr }, norm2{ nullptr }, norm3{ nullptr };
+	MultiHeadAttention attention{ nullptr };
+};
 
 
 void HandwrittenTransformerMain()
@@ -208,8 +238,5 @@ void HandwrittenTransformerMain()
 			 {0.0, 0.0, 0.0, 0.0}  // Pad
 			} }, torch::kFloat);
 
-	Encoders ff(4,1, dim_feed,1);
-
-	x = x.permute({ 1,0,2 });
-	ff.forward(x);
+	
 }
