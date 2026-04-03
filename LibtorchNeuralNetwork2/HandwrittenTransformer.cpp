@@ -53,8 +53,8 @@ public:
 	{
 		assert(x.dim() == 3);
 
-		cout << "out\n" << x << endl;
-		cout << "Q\n" << Q << endl;
+		//cout << "out\n" << x << endl;
+		//cout << "Q\n" << Q << endl;
 
 		auto q = Q->forward(x);
 		auto k = K->forward(x);
@@ -81,12 +81,11 @@ private:
 		Dk = dim / head;
 		H = head;
 		
-		auto onesw = torch::eye(dim);
-		Q->weight.set_data(onesw);
-		K->weight.set_data(onesw);
-		V->weight.set_data(onesw);
-		Wo->weight.set_data(onesw);
-		
+		//auto onesw = torch::eye(dim);
+		//Q->weight.set_data(onesw);
+		//K->weight.set_data(onesw);
+		//V->weight.set_data(onesw);
+		//Wo->weight.set_data(onesw);	
 	}
 
 	/// q: [seq, batch, dim]
@@ -119,7 +118,7 @@ private:
 
 		auto out = torch::matmul(attn_score, v); // [B, H, S, S] * [B, H, S, Dk]  ->  out: [B, H, S, Dk]
 		out = out.transpose(1, 2).contiguous().view({ seq,batch, dim }); //  [B, H, S, Dk] --> [B, S, H, Dk] -> [seq,batch, dim]
-		cout <<"out\n" << out << endl;
+		cout <<"out\n" << out.squeeze() << endl;
 		out = Wo->forward(out);
 		return out;
 	}
@@ -198,6 +197,7 @@ public:
 
 void HandwrittenTransformerMain()
 {
+	torch::manual_seed(6);
 
 	auto x = torch::tensor({
 			{{1.0, 0.0, 0.0, 0.0}, // Welcome
@@ -208,7 +208,7 @@ void HandwrittenTransformerMain()
 			 {0.0, 0.0, 0.0, 0.0}  // Pad
 			} }, torch::kFloat);
 
-	Encoders ff(dim_model,1, dim_feed,1);
+	Encoders ff(4,1, dim_feed,1);
 
 	x = x.permute({ 1,0,2 });
 	ff.forward(x);
