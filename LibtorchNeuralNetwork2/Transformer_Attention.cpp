@@ -7,26 +7,6 @@
 using namespace std;
 
 
-class FeedForwardNet : public torch::nn::Module
-{
-public:
-	FeedForwardNet(int64_t dim, int64_t d_ff)
-	{
-	
-		ffn = register_module("ffn", torch::nn::Sequential(torch::nn::Linear(dim, d_ff),
-			torch::nn::ReLU(),
-			torch::nn::Linear(d_ff, dim)
-		));
-	}
-	auto forward(torch::Tensor x)
-	{
-		return ffn->forward(x);
-	}
-	torch::nn::Sequential ffn{};
-	//Q = register_module("q", torch::nn::Linear(linear));
-};
-
-
 
 class SelfAttention : public torch::nn::Module
 {
@@ -273,7 +253,6 @@ public:
 void TransformerAttentionMain()
 {
 
-
 	auto x = torch::tensor({
 				{{1.0, 0.0, 0.0, 0.0}, // Welcome
 				 {2.0, 0.0, 0.0, 0.0}, // to
@@ -283,17 +262,6 @@ void TransformerAttentionMain()
 				 {0.0, 0.0, 0.0, 0.0}  // Pad
 				} }, torch::kFloat);
 
-
-
-	
-	auto w = torch::tensor({
-			{
-				{0.0, 1.0, 0.0, 0.0},
-				{0.0, 2.0, 0.0, 0.0},
-				{0.0, 3.0, 0.0, 0.0},
-				{0.0, 4.0, 0.0, 0.0}
-			}
-		}, torch::kFloat);
 
 	cout << "input\n" << x << endl;
 	
@@ -308,11 +276,6 @@ void TransformerAttentionMain()
 	auto multiAtten = MultiHeadAttention();
 	multiAtten.forward2(x,1);
 	cout << "-------------MultiHeadAttention--------------------\n"  << endl;
-
-
-	torch::nn::MultiheadAttention ff;
-	
-
 }
 
 

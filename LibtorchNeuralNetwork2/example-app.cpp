@@ -15,7 +15,7 @@ void EmbeddingMain();
 void ResNetMain();
 void TransformerMain();
 void TransformerAttentionMain();
-
+void HandwrittenTransformerMain();
 
 struct NetModule : torch::nn::Module
 {
@@ -75,8 +75,8 @@ int main()
 
 	//TransformerMain();
 
-	TransformerAttentionMain();
-
+	//TransformerAttentionMain();
+	HandwrittenTransformerMain();
 #else
 
 	NetModule net;

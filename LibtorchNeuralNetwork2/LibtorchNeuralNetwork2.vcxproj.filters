@@ -25,6 +25,9 @@
     <ClCompile Include="Transformer_Attention.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="HandwrittenTransformer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
