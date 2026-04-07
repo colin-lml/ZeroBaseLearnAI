@@ -28,10 +28,14 @@
     <ClCompile Include="HandwrittenTransformer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TransformerTestData.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
       <UniqueIdentifier>{F23262D7-7A28-3657-BA8F-128552BB4444}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TransformerTestData.h" />
   </ItemGroup>
 </Project>

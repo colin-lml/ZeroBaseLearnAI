@@ -4,15 +4,11 @@
 #include <regex>
 //#include <iostream>
 #include <fstream>
+
+#include "TransformerTestData.h"
+
 using namespace std;
 
-
-#define  dim_model   128
-#define  dim_feed    256
-#define  max_vocab_len  500
-#define  max_train       100
-
-#define PadId 0
 
 class FeedForwardNetImpl : public torch::nn::Module
 {
@@ -48,22 +44,39 @@ public:
 		InitQKV(dim, head);
 	}
 
-	//[seq, batch, dim]
-	auto forward(torch::Tensor x, torch::Tensor mask = {})
+	torch::Tensor forwardQ(torch::Tensor& x)
 	{
-		assert(x.dim() == 3);
-
-		//cout << "out\n" << x << endl;
-		//cout << "Q\n" << Q << endl;
-
-		auto q = Q->forward(x);
-		auto k = K->forward(x);
-		auto v = V->forward(x);
-
-		auto out = ScaledDotProductAttention(q, k, v, mask);
-
-		return out;
+		return Q->forward(x);
 	}
+
+	torch::Tensor forwardK(torch::Tensor& x)
+	{
+		return K->forward(x);
+	}
+
+	torch::Tensor forwardV(torch::Tensor& x)
+	{
+		return V->forward(x);
+	}
+
+
+	//inputx: [seq, batch, dim]
+	torch::Tensor forward(torch::Tensor inputx, torch::Tensor mask = {})
+	{
+		assert(inputx.dim() == 3);
+
+		auto q = forwardQ(inputx);
+		auto k = forwardK(inputx);
+		auto v = forwardV(inputx);
+
+		return forward(q,k,v,mask);
+	}
+	//q k v : [seq, batch, dim]
+	torch::Tensor forward(torch::Tensor& q, torch::Tensor& k, torch::Tensor& v,torch::Tensor mask = {})
+	{
+		return ScaledDotProductAttention(q, k, v, mask);
+	}
+
 
 private:
 	void InitQKV(int64_t dim, int64_t head)
@@ -79,13 +92,7 @@ private:
 		norm_fact = 1.0 / sqrt(dim);
 
 		Dk = dim / head;
-		H = head;
-		
-		//auto onesw = torch::eye(dim);
-		//Q->weight.set_data(onesw);
-		//K->weight.set_data(onesw);
-		//V->weight.set_data(onesw);
-		//Wo->weight.set_data(onesw);	
+		H = head;	
 	}
 
 	/// q: [seq, batch, dim]
@@ -204,39 +211,263 @@ public:
 		torch::nn::LayerNormOptions normOpt({ dim });
 		norm1 = register_module("norm1", torch::nn::LayerNorm(normOpt));
 		norm2 = register_module("norm2", torch::nn::LayerNorm(normOpt));
+		norm3 = register_module("norm3", torch::nn::LayerNorm(normOpt));
 		ffn = register_module("ffn", FeedForwardNet(dim, dff));
 		attention = register_module("attention", MultiHeadAttention(dim, head));
+		attention2 = register_module("attention2", MultiHeadAttention(dim, head));
 	}
 
-	auto forward(torch::Tensor x)
+	auto forward(torch::Tensor& tgt, torch::Tensor& memory,torch::Tensor tgtmask={}, torch::Tensor crossmask={})
 	{
-		auto y = attention->forward(x);
+		auto q = attention2->forwardQ(tgt);
+		auto y = MaskAttention(tgt, tgtmask);
 
-		y = norm1->forward(x + y);
+		auto y2 = attention2->forward(q, memory, memory, crossmask);
 
-		auto y2 = ffn->forward(y);
+		auto y3 = norm2->forward(y2 + y);
 
-		return norm2->forward(y + y2);
+		auto y4 = ffn->forward(y3);
+
+		return norm2->forward(y4 + y3);
 	}
 
+private:
+
+	torch::Tensor MaskAttention(torch::Tensor x, torch::Tensor mask)
+	{
+		auto y = attention->forward(x, mask);
+		y = norm1->forward(x + y);
+		return y;
+	}
+
+public:
 	FeedForwardNet ffn{ nullptr };
 	torch::nn::LayerNorm norm1{ nullptr }, norm2{ nullptr }, norm3{ nullptr };
 	MultiHeadAttention attention{ nullptr };
+	MultiHeadAttention attention2{ nullptr };
 };
+
+TORCH_MODULE(DecoderLayer);
+
+
+class DecodersImpl : public torch::nn::Module
+{
+public:
+	DecodersImpl(int64_t dim, int64_t head, int64_t ffn, int64_t layers)
+	{
+		moduleLayers = register_module("moduleLayers2", torch::nn::ModuleList());
+
+		for (int i = 0; i < layers; i++)
+		{
+			moduleLayers->push_back(DecoderLayer(dim, head, ffn));
+		}
+	}
+
+	auto forward(torch::Tensor& tgt, torch::Tensor& memory, torch::Tensor tgtmask = {}, torch::Tensor crossmask = {})
+	{
+
+		for each(auto& item in * moduleLayers)
+		{
+			tgt = item->as<DecoderLayer>()->forward(tgt, memory, tgtmask, crossmask);
+		}
+
+		return tgt;
+	}
+
+	torch::nn::ModuleList moduleLayers{ nullptr };
+
+};
+
+TORCH_MODULE(Decoders);
+
+
+class MyTransformerImpl : public torch::nn::Module
+{
+public:
+	MyTransformerImpl(int64_t dim, int64_t head, int64_t ffn, int64_t layerEncoder, int64_t layerDecoder)
+	{
+		src_emb = register_module("src_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(src_vocab_size, dim)));
+		tgt_emb_ = register_module("tgt_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(tgt_vocab_size, dim)));
+		pos_encoder = register_module("pos_encoder", PositionalEncoding(dim, max_vocab_len));
+		encoders = register_module("Encoders", Encoders(dim, head, ffn, layerEncoder));
+		decoders = register_module("Decoders", Decoders(dim, head, ffn, layerDecoder));
+		fc = register_module("fc", torch::nn::Linear(dim, tgt_vocab_size));
+	}
+
+	torch::Tensor forward(torch::Tensor src, torch::Tensor tgt)
+	{
+		auto none_mask = torch::Tensor();
+		auto srclen = src.size(1);
+		auto src_mask = torch::zeros({ srclen,srclen }, torch::kBool);
+		auto tgt_mask = generate_square_subsequent_mask(tgt.size(1));
+		auto src_key_padding_mask = (src == PadId).to(torch::kBool);  // [batch,seq]
+		auto tgt_key_padding_mask = (tgt == PadId).to(torch::kBool);  // [batch,seq]
+		auto memory_key_padding_mask = src_key_padding_mask;
+
+
+		//[batch, seq]  --> [seq, batch]
+		src = src.permute({ 1,0 });
+		tgt = tgt.permute({ 1,0 });
+
+		//std::cout << "input " << src << std::endl;
+		src = src_emb->forward(src) * std::sqrt(dim_model);
+		src = pos_encoder->forward(src);
+
+		tgt = tgt_emb_->forward(tgt) * std::sqrt(dim_model);
+		tgt = pos_encoder->forward(tgt);
+	
+
+		return TransformerForward(src, tgt);
+	}
+
+private:
+	torch::Tensor TransformerForward(torch::Tensor& src,torch::Tensor& tgt,torch::Tensor tgtmask = {}, torch::Tensor crossmask = {})
+	{
+		 auto outputEncoder = encoders->forward(src);
+		 auto  outputDecoder = decoders->forward(tgt, outputEncoder, tgtmask, crossmask);
+
+		 return fc->forward(outputDecoder);
+	}
+
+	torch::Tensor generate_square_subsequent_mask(int64_t sz)
+	{
+		auto mask = torch::triu(torch::ones({ sz, sz }, torch::kFloat32), 1);
+		// °Ñ 1 ¡ú -inf£¬0 ¡ú 0
+		mask = mask.masked_fill(mask == 1, -std::numeric_limits<float>::infinity());
+		return mask;
+	}
+
+
+
+	Encoders encoders{nullptr};
+	Decoders decoders{nullptr};
+
+	torch::nn::Embedding src_emb{ nullptr };
+	torch::nn::Embedding tgt_emb_{ nullptr };
+	PositionalEncoding pos_encoder{ nullptr };
+
+	torch::nn::Linear fc{ nullptr };
+};
+
+TORCH_MODULE(MyTransformer);
+
+void TestData2(MyTransformer& model)
+{
+	/* 
+	model->eval();
+	std::cout << "²âÊÔ&·­Òë:" << std::endl;
+	std::vector<std::string> tests;
+	tests.push_back("Welcome");
+	tests.push_back("Welcome to");
+	tests.push_back("Welcome to PyTorch");
+	tests.push_back("Welcome to Machine");
+	tests.push_back("Welcome to PyTorch Tutorials");
+	tests.push_back("Welcome to Machine Learning");
+
+	tests.push_back("Learning");
+	tests.push_back("Tutorials");
+	tests.push_back("PyTorch Tutorials");
+	tests.push_back("Machine Learning");
+
+	for (auto ch : tests)
+	{
+		auto item = GetWordId(src_vocab, ch);
+		auto src = torch::tensor(item, torch::kLong);
+
+		auto result = model->predict(src);
+
+		// std::cout << std::regex_replace(ch, std::regex("Pad"), "") << " :  ";
+		std::cout << ch << " :  ";
+
+
+		for (int k = 0; k < result.numel(); k++)
+		{
+			std::cout << GetWordById(tgt_vocab, result[k].item<int64_t>()) << " ";
+		}
+
+		std::cout << std::endl;
+	}
+	*/
+}
+
+
+
+
+void TrainData2(MyTransformer& model)
+{
+	double accuracy = 0.03;
+
+	auto datasetTrain = translatDataset().map(torch::data::transforms::Stack<>());
+	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(1));
+	auto options = torch::nn::CrossEntropyLossOptions().ignore_index(PadId);
+	torch::nn::CrossEntropyLoss loss_fn(options);
+
+	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
+	model->train();
+	std::cout << "ÑµÁ·Ä£ÐÍ" << std::endl;
+
+	for (int i = 0; i < max_train; i++)
+	{
+		float total_loss = 0;
+		for (auto& item : *train_data_loader)
+		{
+			/// item.data, item.target : [batch, seq]
+
+			auto [tgtInput, tgtOutput] = CreateDecoderInputOutput(item.target);
+
+			auto tgtOut = model->forward(item.data, tgtInput);
+
+			auto output = tgtOut.reshape({ -1, tgt_vocab_size });
+			optimizer.zero_grad();
+			auto tgt = tgtOutput.squeeze(0);
+
+			auto loss = loss_fn(output, tgt);
+			total_loss += loss.item<float>();
+			torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+			loss.backward();
+
+			optimizer.step();
+
+		}
+
+
+		if (i % 10 == 0 || (i + 1 == max_train))
+		{
+			std::cout << "i: " << i + 1 << " , loss: " << total_loss << std::endl;
+		}
+
+		if (total_loss <= accuracy)
+		{
+			std::cout << "i: " << i + 1 << " , loss: " << total_loss << std::endl << std::endl;
+			break;
+		}
+	}
+	std::cout << std::endl;
+}
+
+
 
 
 void HandwrittenTransformerMain()
 {
 	torch::manual_seed(6);
+	std::string model_path = "MyTransformer_model2.pt";
+	MyTransformer model(dim_model,2, dim_feed,1,1);
 
-	auto x = torch::tensor({
-			{{1.0, 0.0, 0.0, 0.0}, // Welcome
-			 {2.0, 0.0, 0.0, 0.0}, // to
-			 {3.0, 0.0, 0.0, 0.0}, // Machine
-			 {4.0, 0.0, 0.0, 0.0}, // Learning
-			 {0.0, 0.0, 0.0, 0.0}, // Pad
-			 {0.0, 0.0, 0.0, 0.0}  // Pad
-			} }, torch::kFloat);
+	std::ifstream filem(model_path);
+	bool bmodel = filem.is_open();
+	if (!bmodel || true)
+	{
+		TrainData2(model);
+		torch::save(model, model_path);
+	}
+	else
+	{
+		torch::load(model, model_path);
+		std::cout << "load model ...." << std::endl;
+	}
 
-	
+	filem.close();
+
+	TestData2(model);
 }

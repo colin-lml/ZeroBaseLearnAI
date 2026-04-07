@@ -175,6 +175,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="TransformerTestData.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="autograd.cpp" />
@@ -184,6 +185,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="HandwrittenTransformer.cpp" />
     <ClCompile Include="ResNet.cpp" />
     <ClCompile Include="RNN_Example.cpp" />
+    <ClCompile Include="TransformerTestData.cpp" />
     <ClCompile Include="Transformer_Attention.cpp" />
     <ClCompile Include="Transformer_Example.cpp" />
   </ItemGroup>
