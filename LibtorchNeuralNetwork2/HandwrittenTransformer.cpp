@@ -44,37 +44,14 @@ public:
 		InitQKV(dim, head);
 	}
 
-	torch::Tensor forwardQ(torch::Tensor& x)
-	{
-		return Q->forward(x);
-	}
-
-	torch::Tensor forwardK(torch::Tensor& x)
-	{
-		return K->forward(x);
-	}
-
-	torch::Tensor forwardV(torch::Tensor& x)
-	{
-		return V->forward(x);
-	}
-
-
-	//inputx: [seq, batch, dim]
-	torch::Tensor forward(torch::Tensor inputx, torch::Tensor mask = {})
-	{
-		assert(inputx.dim() == 3);
-
-		auto q = forwardQ(inputx);
-		auto k = forwardK(inputx);
-		auto v = forwardV(inputx);
-
-		return forward(q,k,v,mask);
-	}
 	//q k v : [seq, batch, dim]
 	torch::Tensor forward(torch::Tensor& q, torch::Tensor& k, torch::Tensor& v,torch::Tensor mask = {})
 	{
-		return ScaledDotProductAttention(q, k, v, mask);
+		auto q1 = Q->forward(q);
+		auto k1 = Q->forward(k);
+		auto v1 = Q->forward(v);
+
+		return ScaledDotProductAttention(q1, k1, v1, mask);
 	}
 
 
@@ -96,21 +73,29 @@ private:
 	}
 
 	/// q: [seq, batch, dim]
-	torch::Tensor ScaledDotProductAttention(torch::Tensor& q, torch::Tensor& k, torch::Tensor& v, torch::Tensor& mask)
+	torch::Tensor ScaledDotProductAttention(torch::Tensor q, torch::Tensor k, torch::Tensor v, torch::Tensor& mask)
 	{
 		auto seq = q.size(0);
 		auto batch = q.size(1);
 		auto dim = q.size(2);
 
+		auto seq2 = k.size(0);
+		auto batch2 = k.size(1);
+		auto dim2 = k.size(2);
+
 		q = q.view({ seq,batch,H,Dk }); //q: [seq, batch, dim] ->   [S, B, H, Dk] 
-		k = k.view({ seq,batch,H,Dk });
-		v = v.view({ seq,batch,H,Dk });
+		k = k.view({ seq2,batch2,H,Dk });
+		v = v.view({ seq2,batch2,H,Dk });
 
 		q = q.permute({ 1,2,0,3 }); //[S, B, H, Dk] --->[B, H, S, Dk]
 		k = k.permute({ 1,2,0,3 });
 		v = v.permute({ 1,2,0,3 });
 
 		auto kt = k.permute({ 0,1,3,2 }); //kt:  [B, H, S, Dk] --> [B, H, Dk, S]
+
+		//cout << "q\n" << q.sizes() << endl;
+		//cout << "kt\n" << kt.sizes() << endl;
+
 
 		auto attn_score = torch::matmul(q, kt);
 
@@ -125,7 +110,7 @@ private:
 
 		auto out = torch::matmul(attn_score, v); // [B, H, S, S] * [B, H, S, Dk]  ->  out: [B, H, S, Dk]
 		out = out.transpose(1, 2).contiguous().view({ seq,batch, dim }); //  [B, H, S, Dk] --> [B, S, H, Dk] -> [seq,batch, dim]
-		cout <<"out\n" << out.squeeze() << endl;
+		//cout <<"out\n" << out.squeeze() << endl;
 		out = Wo->forward(out);
 		return out;
 	}
@@ -156,7 +141,7 @@ public:
 
 	auto forward(torch::Tensor x)
 	{
-		auto y = attention->forward(x);
+		auto y = attention->forward(x,x,x);
 
 		y = norm1->forward(x + y);
 
@@ -217,25 +202,28 @@ public:
 		attention2 = register_module("attention2", MultiHeadAttention(dim, head));
 	}
 
-	auto forward(torch::Tensor& tgt, torch::Tensor& memory,torch::Tensor tgtmask={}, torch::Tensor crossmask={})
+	auto forward(torch::Tensor& tgt, torch::Tensor& memory,torch::Tensor tgtmask={})
 	{
-		auto q = attention2->forwardQ(tgt);
+		
 		auto y = MaskAttention(tgt, tgtmask);
 
-		auto y2 = attention2->forward(q, memory, memory, crossmask);
+		//cout << "y\n" << y.sizes() << endl;
+		//cout << "memory\n" << memory.sizes() << endl;
 
-		auto y3 = norm2->forward(y2 + y);
+		auto y2 = attention2->forward(y, memory, memory);
+
+		auto y3 = norm2->forward(y+y2);
 
 		auto y4 = ffn->forward(y3);
 
-		return norm2->forward(y4 + y3);
+		return norm3->forward(y3 + y4);
 	}
 
 private:
 
 	torch::Tensor MaskAttention(torch::Tensor x, torch::Tensor mask)
 	{
-		auto y = attention->forward(x, mask);
+		auto y = attention->forward(x,x,x, mask);
 		y = norm1->forward(x + y);
 		return y;
 	}
@@ -263,12 +251,12 @@ public:
 		}
 	}
 
-	auto forward(torch::Tensor& tgt, torch::Tensor& memory, torch::Tensor tgtmask = {}, torch::Tensor crossmask = {})
+	auto forward(torch::Tensor& tgt, torch::Tensor& memory, torch::Tensor tgtmask = {})
 	{
 
 		for each(auto& item in * moduleLayers)
 		{
-			tgt = item->as<DecoderLayer>()->forward(tgt, memory, tgtmask, crossmask);
+			tgt = item->as<DecoderLayer>()->forward(tgt, memory, tgtmask);
 		}
 
 		return tgt;
@@ -297,13 +285,9 @@ public:
 	torch::Tensor forward(torch::Tensor src, torch::Tensor tgt)
 	{
 		auto none_mask = torch::Tensor();
-		auto srclen = src.size(1);
-		auto src_mask = torch::zeros({ srclen,srclen }, torch::kBool);
-		auto tgt_mask = generate_square_subsequent_mask(tgt.size(1));
-		auto src_key_padding_mask = (src == PadId).to(torch::kBool);  // [batch,seq]
-		auto tgt_key_padding_mask = (tgt == PadId).to(torch::kBool);  // [batch,seq]
-		auto memory_key_padding_mask = src_key_padding_mask;
 
+		auto tgt_mask = generate_square_subsequent_mask(tgt.size(1));
+	
 
 		//[batch, seq]  --> [seq, batch]
 		src = src.permute({ 1,0 });
@@ -317,22 +301,55 @@ public:
 		tgt = pos_encoder->forward(tgt);
 	
 
-		return TransformerForward(src, tgt);
+		return TransformerForward(src, tgt, tgt_mask);
+	}
+
+	torch::Tensor predict(torch::Tensor src)
+	{
+		//std::cout << src << std::endl;
+
+		auto srcemb = src_emb->forward(src) * std::sqrt(dim_model);
+		srcemb = pos_encoder->forward(srcemb);
+		auto memory = encoders->forward(srcemb);
+
+		std::vector<int64_t> tgtpad = GetWordId(tgt_vocab, "S");
+
+		int i = 0;
+		while (i < tgt_vocab_size * 2)
+		{
+			torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong);
+			auto tgt_mask = generate_square_subsequent_mask(tgt.size(0));
+			///std::cout << "tgt_mask " << tgt_mask << std::endl;
+			auto tgt_emb = tgt_emb_->forward(tgt) * std::sqrt(dim_model);
+			tgt_emb = pos_encoder->forward(tgt_emb);
+			auto out = decoders->forward(tgt_emb, memory, tgt_mask);
+			out = fc->forward(out).squeeze(-2);
+			auto next_token = out.argmax(-1);
+			int64_t key = next_token[i].item<int64_t>();
+			tgtpad.push_back(key);
+			//tgtpad.insert(tgtpad.begin(), );
+			if ("E" == GetWordById(tgt_vocab, key))
+			{
+				break;
+			}
+			i++;
+		}
+
+		return torch::tensor(tgtpad, torch::kLong);
 	}
 
 private:
-	torch::Tensor TransformerForward(torch::Tensor& src,torch::Tensor& tgt,torch::Tensor tgtmask = {}, torch::Tensor crossmask = {})
+	torch::Tensor TransformerForward(torch::Tensor& src,torch::Tensor& tgt,torch::Tensor tgtmask)
 	{
 		 auto outputEncoder = encoders->forward(src);
-		 auto  outputDecoder = decoders->forward(tgt, outputEncoder, tgtmask, crossmask);
-
+		 auto  outputDecoder = decoders->forward(tgt, outputEncoder, tgtmask);
 		 return fc->forward(outputDecoder);
 	}
 
 	torch::Tensor generate_square_subsequent_mask(int64_t sz)
 	{
 		auto mask = torch::triu(torch::ones({ sz, sz }, torch::kFloat32), 1);
-		// °Ñ 1 ¡ú -inf£¬0 ¡ú 0
+		
 		mask = mask.masked_fill(mask == 1, -std::numeric_limits<float>::infinity());
 		return mask;
 	}
@@ -353,7 +370,7 @@ TORCH_MODULE(MyTransformer);
 
 void TestData2(MyTransformer& model)
 {
-	/* 
+	 
 	model->eval();
 	std::cout << "²âÊÔ&·­Òë:" << std::endl;
 	std::vector<std::string> tests;
@@ -387,7 +404,7 @@ void TestData2(MyTransformer& model)
 
 		std::cout << std::endl;
 	}
-	*/
+	
 }
 
 
