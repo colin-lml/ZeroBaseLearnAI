@@ -75,6 +75,7 @@ private:
 	/// q: [seq, batch, dim]
 	torch::Tensor ScaledDotProductAttention(torch::Tensor q, torch::Tensor k, torch::Tensor v, torch::Tensor& mask)
 	{
+		/// k==v q可以不等于 k v
 		auto seq = q.size(0);
 		auto batch = q.size(1);
 		auto dim = q.size(2);
@@ -143,11 +144,11 @@ public:
 	{
 		auto y = attention->forward(x,x,x);
 
-		y = norm1->forward(x + y);
+		y = norm1->forward(x + y); ///  残差连接
 
 		auto y2 = ffn->forward(y);
 
-		return norm2->forward(y + y2);
+		return norm2->forward(y + y2); ///  残差连接
 	}
 
 	FeedForwardNet ffn{ nullptr };
@@ -212,11 +213,11 @@ public:
 
 		auto y2 = attention2->forward(y, memory, memory);
 
-		auto y3 = norm2->forward(y+y2);
+		auto y3 = norm2->forward(y+y2); //  残差连接
 
 		auto y4 = ffn->forward(y3);
 
-		return norm3->forward(y3 + y4);
+		return norm3->forward(y3 + y4); //  残差连接
 	}
 
 private:
@@ -224,7 +225,7 @@ private:
 	torch::Tensor MaskAttention(torch::Tensor x, torch::Tensor mask)
 	{
 		auto y = attention->forward(x,x,x, mask);
-		y = norm1->forward(x + y);
+		y = norm1->forward(x + y); //  残差连接
 		return y;
 	}
 
