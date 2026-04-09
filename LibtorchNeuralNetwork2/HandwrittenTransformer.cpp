@@ -203,7 +203,7 @@ public:
 		attention2 = register_module("attention2", MultiHeadAttention(dim, head));
 	}
 
-	auto forward(torch::Tensor& tgt, torch::Tensor& memory,torch::Tensor tgtmask={})
+	auto forward(torch::Tensor& tgt, torch::Tensor& memory,torch::Tensor tgtmask)
 	{
 		
 		auto y = MaskAttention(tgt, tgtmask);
@@ -252,7 +252,7 @@ public:
 		}
 	}
 
-	auto forward(torch::Tensor& tgt, torch::Tensor& memory, torch::Tensor tgtmask = {})
+	auto forward(torch::Tensor& tgt, torch::Tensor& memory, torch::Tensor tgtmask)
 	{
 
 		for each(auto& item in * moduleLayers)
@@ -354,7 +354,6 @@ private:
 		mask = mask.masked_fill(mask == 1, -std::numeric_limits<float>::infinity());
 		return mask;
 	}
-
 
 
 	Encoders encoders{nullptr};
