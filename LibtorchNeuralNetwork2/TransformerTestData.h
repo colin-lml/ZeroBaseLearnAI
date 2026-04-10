@@ -14,7 +14,7 @@
 
 #define PadId 0
 
-typedef const std::unordered_map< std::string, int64_t> TableVocab;
+typedef std::unordered_map<std::string, int64_t> TableVocab;
 typedef std::vector<std::pair<int64_t, int64_t>>  WordList;
 
 
@@ -24,6 +24,7 @@ typedef std::vector<std::pair<int64_t, int64_t>>  WordList;
 /// </З­вы>
 extern TableVocab src_vocab;
 extern TableVocab tgt_vocab;
+
 
 extern  int64_t src_vocab_size;
 extern  int64_t tgt_vocab_size;
@@ -148,7 +149,7 @@ public:
 	{
 
 		ffn = register_module("SeqFFN", torch::nn::Sequential(torch::nn::Linear(dim, dff),
-			torch::nn::ReLU(),
+			torch::nn::GELU(),
 			torch::nn::Linear(dff, dim)
 		));
 	}
@@ -257,3 +258,6 @@ private:
 	int64_t H;
 };
 TORCH_MODULE(MultiHeadAttention);
+
+
+torch::Tensor generate_square_subsequent_mask(int64_t sz);

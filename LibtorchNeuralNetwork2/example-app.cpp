@@ -16,6 +16,7 @@ void ResNetMain();
 void TransformerMain();
 void TransformerAttentionMain();
 void HandwrittenTransformerMain();
+void DecoderOnlyMain();
 
 struct NetModule : torch::nn::Module
 {
@@ -76,7 +77,8 @@ int main()
 	//TransformerMain();
 
 	//TransformerAttentionMain();
-	HandwrittenTransformerMain();
+	//HandwrittenTransformerMain();
+	  DecoderOnlyMain();
 #else
 
 	NetModule net;

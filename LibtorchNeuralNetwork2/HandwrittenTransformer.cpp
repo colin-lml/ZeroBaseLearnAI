@@ -230,15 +230,6 @@ private:
 		 return fc->forward(outputDecoder);
 	}
 
-	torch::Tensor generate_square_subsequent_mask(int64_t sz)
-	{
-		auto mask = torch::triu(torch::ones({ sz, sz }, torch::kFloat32), 1);
-		
-		mask = mask.masked_fill(mask == 1, -std::numeric_limits<float>::infinity());
-		return mask;
-	}
-
-
 	Encoders encoders{nullptr};
 	Decoders decoders{nullptr};
 
