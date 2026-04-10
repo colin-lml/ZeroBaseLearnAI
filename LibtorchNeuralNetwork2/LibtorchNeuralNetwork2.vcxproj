@@ -180,6 +180,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   <ItemGroup>
     <ClCompile Include="autograd.cpp" />
     <ClCompile Include="CNNExample.cpp" />
+    <ClCompile Include="Decoder-Only.cpp" />
     <ClCompile Include="Embedding.cpp" />
     <ClCompile Include="example-app.cpp" />
     <ClCompile Include="HandwrittenTransformer.cpp" />
