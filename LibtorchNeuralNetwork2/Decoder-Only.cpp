@@ -44,8 +44,8 @@ public:
 
 	translatDatasetOnly()
 	{
-		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to PyTorch Tutorials Pad 欢 迎 来 到 派 托 奇 教 程"));
-		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to Machine Learning  Pad 欢 迎 来 到 机 器 学 习"));
+		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to PyTorch Tutorials  欢 迎 来 到 派 托 奇 教 程"));
+		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to Machine Learning  欢 迎 来 到 机 器 学 习"));
 		//wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to PyTorch Tutorials"));
 		//wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to Machine Learning"));
 		total_vocab_size = total_vocab.size();
@@ -87,10 +87,11 @@ public:
 		attention = register_module("attention", MultiHeadAttention(dim, head));	
 	}
 
-	auto forward(torch::Tensor& tgt, torch::Tensor tgtmask)
+	auto forward(torch::Tensor& tgt, torch::Tensor mask)
 	{
 
-		auto y = MaskAttention(tgt, tgtmask);
+		auto y = attention->forward(tgt, tgt, tgt, mask);
+		y = norm1->forward(tgt + y); //  残差连接
 
 		auto y4 = ffn->forward(y);
 
@@ -141,7 +142,7 @@ public:
 		
 		auto tgt_mask = generate_square_subsequent_mask(tgt.size(1));
 
-
+		//std::cout << "tgt_mask\n" << tgt_mask.sizes() << std::endl;
 		//[batch, seq]  --> [seq, batch]
 		
 		tgt = tgt.permute({ 1,0 });
@@ -291,7 +292,7 @@ void TestData3(DecodersOnly& model)
 void DecoderOnlyMain()
 {
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(128, 2, 256, 1);
+	DecodersOnly model(512, 8, 1024, 6);
 
 	TrainData3(model, datasetTrain);
 

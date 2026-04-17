@@ -7,6 +7,7 @@
 #include <fstream>
 
 
+
 #define  dim_model   128
 #define  dim_feed    256
 #define  max_vocab_len  500
@@ -236,6 +237,8 @@ private:
 
 		if (mask.defined())
 		{
+			///std::cout << "attn_score\n" << attn_score.sizes() << std::endl;
+			//std::cout << "mask\n" << mask.sizes() << std::endl;
 			attn_score += mask;
 		}
 
