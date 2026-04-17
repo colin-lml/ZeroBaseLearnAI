@@ -9,6 +9,9 @@
 
 using namespace std;
 
+#include "json.hpp"
+using json = nlohmann::json;
+
 
 typedef std::vector<int64_t>  WordListOnly;
 
@@ -44,8 +47,10 @@ public:
 
 	translatDatasetOnly()
 	{
+		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome 欢 迎 Pad Pad Pad Pad Pad Pad"));
 		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to PyTorch Tutorials  欢 迎 来 到 派 托 奇 教 程"));
-		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to Machine Learning  欢 迎 来 到 机 器 学 习"));
+		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to PyTorch Tutorials  欢 迎 来 到 派 托 奇 教 程"));
+		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to Machine Learning  欢 迎 来 到 机 器 学 习 Pad"));
 		//wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to PyTorch Tutorials"));
 		//wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to Machine Learning"));
 		total_vocab_size = total_vocab.size();
@@ -133,7 +138,12 @@ public:
 
 		for (int i = 0; i < layers; i++)
 		{
-			moduleLayers->push_back(DecoderLayerOnly(dim, head, ffn));
+			torch::nn::TransformerEncoderLayerOptions opt(dim, head);
+			opt.dim_feedforward(ffn);
+			opt.dropout(0);
+			auto options = torch::nn::TransformerEncoderLayer(opt); 
+			
+			moduleLayers->push_back(options);
 		}
 	}
 
@@ -154,7 +164,7 @@ public:
 
 		for each(auto& item in * moduleLayers)
 		{
-			tgt = item->as<DecoderLayerOnly>()->forward(tgt, tgt_mask);
+			tgt = item->as<torch::nn::TransformerEncoderLayer>()->forward(tgt, tgt_mask);
 		}
 
 		return fc->forward(tgt);
@@ -217,7 +227,7 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 	model->train();
 	std::cout << "训练模型" << std::endl;
 
-	for (int i = 0; i < max_train; i++)
+	for (int i = 0; i < max_train/2; i++)
 	{
 		float total_loss = 0;
 		for (auto& item : *train_data_loader)
@@ -292,7 +302,7 @@ void TestData3(DecodersOnly& model)
 void DecoderOnlyMain()
 {
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(512, 8, 1024, 6);
+	DecodersOnly model(256, 8, 1024, 3);
 
 	TrainData3(model, datasetTrain);
 
