@@ -4,11 +4,13 @@
 
 void Tokenizer::LoadDataSrc()
 {
+    if (!loadMap())
+    {
+        LoadDataTxtFile();
 
-    LoadDataTxtFile();
-
-    InitTokenizer(m_vdata);
-
+        InitTokenizer(m_vdata);
+        saveMap(m_stringToID);
+    }
 }
 
 void Tokenizer::LoadDataTxtFile()
@@ -129,7 +131,7 @@ void Tokenizer::InitTokenizer(std::vector<Tangshi>& vDataList)
 
 void Tokenizer::AddVocabTable(std::vector<std::string>& stringList, CorpusVocabStoID& stringID, CorpusVocabIDtoS& IDString)
 {
-    for each(auto& item in stringList)
+    for(auto& item : stringList)
     {
         if (stringID.find(item) == stringID.end())
         {
@@ -138,4 +140,56 @@ void Tokenizer::AddVocabTable(std::vector<std::string>& stringList, CorpusVocabS
             IDString.emplace(index, item);
         }
     }
+}
+
+void Tokenizer::saveMap(CorpusVocabStoID& map1)
+{
+    std::ofstream ofs(m_strBinFile, std::ios::binary);
+    size_t count = map1.size();
+    ofs.write((const char*)&count, sizeof(count));
+    for (auto& pair : map1)
+    {
+        size_t len = pair.first.size();
+        ofs.write((const char*)&len, sizeof(len));
+        ofs.write(pair.first.c_str(), len);
+
+        ofs.write((const char*)&pair.second, sizeof(int64_t));
+    }
+    ofs.close();
+}
+
+bool Tokenizer::loadMap()
+{
+    bool b = false;
+
+    std::ifstream ifs(m_strBinFile, std::ios::binary);
+    if (!ifs)
+    {
+        return b;
+    }
+    m_stringToID.clear();
+    m_IDToString.clear();
+
+    size_t count = 0;
+    ifs.read((char*)&count, sizeof(count));
+
+    for (size_t i = 0; i < count; ++i) 
+    {
+        size_t len = 0;
+        ifs.read((char*)&len, sizeof(len));
+
+        std::string strKey;
+        strKey.resize(len);
+        ifs.read(&strKey[0], len);
+
+        int64_t id = 0;
+        ifs.read((char*)&id, sizeof(int64_t));
+        m_stringToID.emplace(strKey, id);
+        m_IDToString.emplace(id, strKey);
+       
+    }
+
+    ifs.close();
+    b = true;
+    return b;
 }

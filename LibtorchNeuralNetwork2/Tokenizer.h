@@ -34,6 +34,8 @@ private:
 
 	void AddVocabTable(std::vector<std::string>& stringList,CorpusVocabStoID&stringID, CorpusVocabIDtoS& IDString);
 
+	void saveMap(CorpusVocabStoID& map1);
+	bool loadMap();
 
 	std::vector<Tangshi> m_vdata;
 
@@ -44,5 +46,6 @@ private:
 	CorpusVocabStoID m_stringToID;
 	CorpusVocabIDtoS m_IDToString;
 	
+	const std::string  m_strBinFile = "TokenizerData.bin";
 };
 
