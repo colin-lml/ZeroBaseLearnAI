@@ -5,7 +5,7 @@
 #include <stdlib.h> 
 #include "torch/torch.h"
 #include <chrono>
-
+#include "Tokenizer.h"
 
 using namespace std;
 void CnnMain();
@@ -78,7 +78,9 @@ int main()
 
 	//TransformerAttentionMain();
 	//HandwrittenTransformerMain();
-	  DecoderOnlyMain();
+	//  DecoderOnlyMain();
+	  Tokenizer kk;
+	  kk.LoadDataSrc();
 #else
 
 	NetModule net;

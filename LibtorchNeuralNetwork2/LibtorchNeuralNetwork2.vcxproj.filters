@@ -32,6 +32,7 @@
     <ClCompile Include="Decoder-Only.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Tokenizer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
@@ -40,5 +41,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TransformerTestData.h" />
+    <ClInclude Include="Tokenizer.h" />
   </ItemGroup>
 </Project>
