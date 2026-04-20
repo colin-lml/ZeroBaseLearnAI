@@ -4,7 +4,8 @@
 
 void Tokenizer::LoadDataSrc()
 {
-    if (!loadMap())
+    bool b = loadMap();
+    if (!b)
     {
         LoadDataTxtFile();
 
@@ -147,6 +148,10 @@ void Tokenizer::saveMap(CorpusVocabStoID& map1)
     std::ofstream ofs(m_strBinFile, std::ios::binary);
     size_t count = map1.size();
     ofs.write((const char*)&count, sizeof(count));
+    ofs.write((const char*)&count, sizeof(count));
+    ofs.write((const char*)&count, sizeof(count));
+    ofs.write((const char*)&count, sizeof(count));
+
     for (auto& pair : map1)
     {
         size_t len = pair.first.size();
