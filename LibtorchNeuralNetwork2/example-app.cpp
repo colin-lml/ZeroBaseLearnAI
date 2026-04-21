@@ -77,10 +77,9 @@ int main()
 	//TransformerMain();
 
 	//TransformerAttentionMain();
-	//HandwrittenTransformerMain();
-	//  DecoderOnlyMain();
-	  Tokenizer kk;
-	  kk.LoadDataSrc();
+	///HandwrittenTransformerMain();
+	  DecoderOnlyMain();
+	
 #else
 
 	NetModule net;

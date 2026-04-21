@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <sstream>
 
-void Tokenizer::LoadDataSrc()
+void Tokenizer::InitLoadDataSrc()
 {
     bool b = loadMap();
     if (!b)
@@ -10,8 +10,17 @@ void Tokenizer::LoadDataSrc()
         LoadDataTxtFile();
 
         InitTokenizer(m_vdata);
-        saveMap(m_stringToID);
+        InitEncodeTangshi(m_vdata);
+
+        saveMap(m_stringToID, m_vEncodeDataList);
     }
+    /* 
+    for (auto& i : m_vEncodeDataList)
+    {
+        auto str = GetTangshiString(i);
+        std::cout<< str << std::endl;
+    }
+    */
 }
 
 void Tokenizer::LoadDataTxtFile()
@@ -40,13 +49,16 @@ void Tokenizer::LoadDataTxtFile()
         std::stringstream data(line);
         data >> n >> item.title;
    
-
         m_nMaxTitle = std::max(m_nMaxTitle, ChineseCount(item.title));
 
         if (getline(ss, line))
         {
             item.author = line;
             m_nMaxAuthor = std::max(m_nMaxAuthor, ChineseCount(item.author));
+            if (m_nMaxAuthor == 4)
+            {
+
+            }
         }
 
         while (getline(ss, line))
@@ -128,6 +140,9 @@ void Tokenizer::InitTokenizer(std::vector<Tangshi>& vDataList)
         AddVocabTable(va, m_stringToID, m_IDToString);
         AddVocabTable(vc, m_stringToID, m_IDToString);
     }
+
+
+
 }
 
 void Tokenizer::AddVocabTable(std::vector<std::string>& stringList, CorpusVocabStoID& stringID, CorpusVocabIDtoS& IDString)
@@ -143,13 +158,15 @@ void Tokenizer::AddVocabTable(std::vector<std::string>& stringList, CorpusVocabS
     }
 }
 
-void Tokenizer::saveMap(CorpusVocabStoID& map1)
+void Tokenizer::saveMap(CorpusVocabStoID& map1, std::vector<std::vector<int64_t>>& vData)
 {
     std::ofstream ofs(m_strBinFile, std::ios::binary);
     size_t count = map1.size();
-    ofs.write((const char*)&count, sizeof(count));
-    ofs.write((const char*)&count, sizeof(count));
-    ofs.write((const char*)&count, sizeof(count));
+
+    ofs.write((const char*)&m_nMaxTitle, sizeof(m_nMaxTitle));
+    ofs.write((const char*)&m_nMaxAuthor, sizeof(m_nMaxAuthor));
+    ofs.write((const char*)&m_nMaxContent, sizeof(m_nMaxContent));
+
     ofs.write((const char*)&count, sizeof(count));
 
     for (auto& pair : map1)
@@ -160,6 +177,17 @@ void Tokenizer::saveMap(CorpusVocabStoID& map1)
 
         ofs.write((const char*)&pair.second, sizeof(int64_t));
     }
+
+    count = vData.size();
+    ofs.write((const char*)&count, sizeof(count));
+
+    for (auto& vCode : vData)
+    {
+        size_t len = vCode.size();
+        ofs.write((const char*)&len, sizeof(len));
+        ofs.write((const char*)vCode.data(), len * sizeof(int64_t));
+    }
+
     ofs.close();
 }
 
@@ -172,10 +200,15 @@ bool Tokenizer::loadMap()
     {
         return b;
     }
+
     m_stringToID.clear();
     m_IDToString.clear();
 
     size_t count = 0;
+    ifs.read((char*)&m_nMaxTitle, sizeof(m_nMaxTitle));
+    ifs.read((char*)&m_nMaxAuthor, sizeof(m_nMaxAuthor));
+    ifs.read((char*)&m_nMaxContent, sizeof(m_nMaxContent));
+
     ifs.read((char*)&count, sizeof(count));
 
     for (size_t i = 0; i < count; ++i) 
@@ -194,7 +227,97 @@ bool Tokenizer::loadMap()
        
     }
 
+    m_vEncodeDataList.clear();
+    count = 0;
+    ifs.read((char*)&count, sizeof(count));
+    for (size_t i = 0; i < count; ++i)
+    {
+        std::vector<int64_t> vec;
+        size_t n = 0;
+        ifs.read((char*)&n, sizeof(n));
+        vec.resize(n);
+        ifs.read((char*)vec.data(), n * sizeof(int64_t));
+        m_vEncodeDataList.push_back(vec);
+    }
+
     ifs.close();
     b = true;
+
     return b;
+}
+
+std::vector<int64_t> Tokenizer::GetTangshiCode(std::string& line)
+{
+    std::vector<int64_t> vData;
+    auto vString = SplitString(line);
+    for (auto& ch : vString)
+    {
+        if (m_stringToID.find(ch) != m_stringToID.end())
+        {
+            vData.push_back(m_stringToID.at(ch));
+        }
+    }
+    return vData;
+}
+
+std::string Tokenizer::GetTangshiString(std::vector<int64_t>& vList)
+{
+    std::string line = "";
+
+    for (auto& i : vList)
+    {
+        if (m_IDToString.find(i) != m_IDToString.end())
+        {
+            line += m_IDToString.at(i);
+        }
+    }
+
+    return line;
+}
+
+void  Tokenizer::InitEncodeTangshi(std::vector<Tangshi>& vDataList)
+{
+    m_vEncodeDataList.clear();
+
+    std::string str = "\n";
+    auto  n = GetTangshiCode(str).at(0);
+
+    for (auto& item : vDataList)
+    {
+        std::vector<int64_t> encode;
+        encode.push_back(1); // add S
+
+        auto t = GetTangshiCode(item.title);
+        auto a = GetTangshiCode(item.author);
+        auto c = GetTangshiCode(item.content);
+
+        int len = m_nMaxTitle - t.size();
+        for (int  i = 0; i < len; i++)
+        {
+            t.push_back(0);
+        }
+        t.push_back(n);
+
+        len = m_nMaxAuthor - a.size();
+        for (int i = 0; i < len; i++)
+        {
+            a.push_back(0);
+        }
+
+        a.push_back(n);
+
+        len = m_nMaxContent - c.size();
+        for (int i = 0; i < len; i++)
+        {
+            c.push_back(0);
+        }
+
+        c.push_back(2); /// add E
+
+        encode.insert(encode.end(), t.begin(), t.end());
+        encode.insert(encode.end(), a.begin(), a.end());
+        encode.insert(encode.end(), c.begin(), c.end());
+
+        m_vEncodeDataList.push_back(encode);
+    }
 }

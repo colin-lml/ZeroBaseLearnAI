@@ -4,42 +4,13 @@
 #include <regex>
 //#include <iostream>
 #include <fstream>
-
 #include "TransformerTestData.h"
+#include "Tokenizer.h"
 
 using namespace std;
+#define  maxtrain    1000*100
 
-#include "json.hpp"
-using json = nlohmann::json;
-
-
-typedef std::vector<int64_t>  WordListOnly;
-
-TableVocab total_vocab = {
-	{"Pad",PadId},
-	{"S",1},
-	{"E",2}
-};
-
-int64_t total_vocab_size = total_vocab.size();
-
-WordListOnly GetWordIdOnly(TableVocab& vocabId, std::string data)
-{
-	std::vector<int64_t> input;
-	for (const auto ch : Split(data))
-	{
-		if (vocabId.find(ch) == vocabId.end())
-		{
-			int64_t index = vocabId.size();
-			vocabId.emplace(ch, index);
-
-		}
-		input.push_back(vocabId.at(ch));
-	}
-	return input;
-}
-
-
+static	int64_t	gCorpusVocabCount = 0;
 
 class translatDatasetOnly : public torch::data::Dataset<translatDatasetOnly>
 {
@@ -47,79 +18,42 @@ public:
 
 	translatDatasetOnly()
 	{
-		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome 欢 迎 Pad Pad Pad Pad Pad Pad"));
-		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to PyTorch Tutorials  欢 迎 来 到 派 托 奇 教 程"));
-		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to PyTorch Tutorials  欢 迎 来 到 派 托 奇 教 程"));
-		wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to Machine Learning  欢 迎 来 到 机 器 学 习 Pad"));
-		//wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to PyTorch Tutorials"));
-		//wordCount.push_back(GetWordIdOnly(total_vocab, "Welcome to Machine Learning"));
-		total_vocab_size = total_vocab.size();
+		m_dataToken.InitLoadDataSrc();
+		m_vdata = m_dataToken.GetEncodeData();
+		gCorpusVocabCount = m_dataToken.GetCorpusVocabCount();
 	}
 
 	torch::optional<size_t> size() const
 	{
-		return wordCount.size();
+		return m_vdata.size();
 	}
 
-	torch::data::Example<torch::Tensor, torch::Tensor>  get(size_t index) override
+	torch::data::Example<>  get(size_t index) override
 	{
-		auto item = wordCount[index];
-
-		auto input = torch::tensor(item, torch::kLong);
-		auto target = torch::tensor(item, torch::kLong);
-
-
-		return { input, target };
-	}
-
-public:
-	std::vector<WordListOnly> wordCount;
-
-};
-
-
-
-class DecoderLayerOnlyImpl : public torch::nn::Module
-{
-public:
-	DecoderLayerOnlyImpl(int64_t dim, int64_t head, int64_t dff)
-	{
-		torch::nn::LayerNormOptions normOpt({ dim });
-		norm1 = register_module("norm1", torch::nn::LayerNorm(normOpt));
 		
-		norm3 = register_module("norm3", torch::nn::LayerNorm(normOpt));
-		ffn = register_module("ffn", FeedForwardNet(dim, dff));
-		attention = register_module("attention", MultiHeadAttention(dim, head));	
-	}
+		auto item = m_vdata.at(index);
+		item.pop_back();
+		auto inpput = torch::tensor(item, torch::kLong);
 
-	auto forward(torch::Tensor& tgt, torch::Tensor mask)
+		item = m_vdata.at(index);
+		item.erase(item.begin());
+		auto lable = torch::tensor(item, torch::kLong);
+
+		return {inpput, lable};
+	}
+	std::vector<int64_t> GetTangshiCode(std::string& line)
 	{
-
-		auto y = attention->forward(tgt, tgt, tgt, mask);
-		y = norm1->forward(tgt + y); //  残差连接
-
-		auto y4 = ffn->forward(y);
-
-		return norm3->forward(y + y4); //  残差连接
+		return m_dataToken.GetTangshiCode(line);
 	}
-
-private:
-
-	torch::Tensor MaskAttention(torch::Tensor x, torch::Tensor mask)
+	std::string GetTangshiString(std::vector<int64_t>& vList)
 	{
-		auto y = attention->forward(x, x, x, mask);
-		y = norm1->forward(x + y); //  残差连接
-		return y;
+		return m_dataToken.GetTangshiString(vList);
 	}
-
 public:
-	FeedForwardNet ffn{ nullptr };
-	torch::nn::LayerNorm norm1{ nullptr }, norm3{ nullptr };
-	MultiHeadAttention attention{ nullptr };
-
+	
+	std::vector<std::vector<int64_t>> m_vdata;
+	Tokenizer m_dataToken;
 };
-
-TORCH_MODULE(DecoderLayerOnly);
 
 
 class DecodersOnlyImpl : public torch::nn::Module
@@ -127,12 +61,12 @@ class DecodersOnlyImpl : public torch::nn::Module
 public:
 	DecodersOnlyImpl(int64_t dim, int64_t head, int64_t ffn, int64_t layers)
 	{
-		total_vocab_size = total_vocab.size();
+		
 		m_dim = dim;
 
-		tgt_emb_ = register_module("tgt_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(total_vocab_size, dim)));
-		pos_encoder = register_module("pos_encoder", PositionalEncoding(dim, total_vocab_size*10));
-		fc = register_module("fc", torch::nn::Linear(dim, total_vocab_size));
+		tgt_emb_ = register_module("tgt_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(gCorpusVocabCount, dim)));
+		pos_encoder = register_module("pos_encoder", PositionalEncoding(dim, gCorpusVocabCount *10));
+		fc = register_module("fc", torch::nn::Linear(dim, gCorpusVocabCount));
 
 		moduleLayers = register_module("moduleLayers2", torch::nn::ModuleList());
 
@@ -151,7 +85,7 @@ public:
 	{
 		
 		auto tgt_mask = generate_square_subsequent_mask(tgt.size(1));
-
+		auto tgt_key_padding_mask = (tgt == PadId).to(torch::kBool);  // [batch,seq]
 		//std::cout << "tgt_mask\n" << tgt_mask.sizes() << std::endl;
 		//[batch, seq]  --> [seq, batch]
 		
@@ -164,38 +98,38 @@ public:
 
 		for each(auto& item in * moduleLayers)
 		{
-			tgt = item->as<torch::nn::TransformerEncoderLayer>()->forward(tgt, tgt_mask);
+			tgt = item->as<torch::nn::TransformerEncoderLayer>()->forward(tgt, tgt_mask, tgt_key_padding_mask);
 		}
 
 		return fc->forward(tgt);
 		
 	}
-	torch::Tensor predict(string ch)
+	
+	string predict(string ch, translatDatasetOnly& dataTest)
 	{
-		ch = "S " + ch;
-		auto tgtpad = GetWordIdOnly(total_vocab, ch);
+		ch = "S" + ch;
+		
+		auto tgtpad = dataTest.GetTangshiCode(ch);
 		
 
 		int i = 0;
-		while (i < total_vocab_size*2)
+		while (i < 100)
 		{
-			torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong);
-			
+			torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong);		
 			auto out = forward(tgt.unsqueeze(0));
-			
+
 			out = out.squeeze(-2);
 			auto next_token = out.argmax(-1);
 			int64_t key = next_token[i].item<int64_t>();
 			tgtpad.push_back(key);
-			//tgtpad.insert(tgtpad.begin(), );
-			if ("E" == GetWordById(total_vocab, key))
+			if (key == 2)
 			{
 				break;
 			}
 			i++;
 		}
 
-		return torch::tensor(tgtpad, torch::kLong);
+		return dataTest.GetTangshiString(tgtpad);
 	}
 
 
@@ -217,32 +151,35 @@ TORCH_MODULE(DecodersOnly);
 
 void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 {
-	double accuracy = 0.03;
+	double accuracy = 0.5;
 	auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
-	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(1));
+	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(10));
 	auto options = torch::nn::CrossEntropyLossOptions().ignore_index(PadId);
 	torch::nn::CrossEntropyLoss loss_fn(options);
+	
 
-	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
+	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(0.04));
 	model->train();
 	std::cout << "训练模型" << std::endl;
 
-	for (int i = 0; i < max_train/2; i++)
+	for (int i = 0; i < maxtrain; i++)
 	{
 		float total_loss = 0;
 		for (auto& item : *train_data_loader)
 		{
 			/// item.data, item.target : [batch, seq]
-
-			auto [tgtInput, tgtOutput] = CreateDecoderInputOutput(item.target);
+			auto tgtInput = item.data;
+			auto tgtOutput = item.target;
+			
 			//cout << "tgtInput\n" << tgtInput.sizes() << endl;
 			//cout << "tgtOutput\n" << tgtOutput.sizes() << endl;
 			
 			auto tgtOut = model->forward(tgtInput);
 
-			auto output = tgtOut.reshape({ -1, total_vocab_size });
+			auto output = tgtOut.reshape({ -1, gCorpusVocabCount });
 			optimizer.zero_grad();
-			auto tgt = tgtOutput.squeeze(0);
+			auto tgt = tgtOutput.reshape({ -1 });
+
 			
 			auto loss = loss_fn(output, tgt);
 			total_loss += loss.item<float>();
@@ -254,7 +191,7 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 		}
 
 
-		if (i % 10 == 0 || (i + 1 == max_train))
+		if (i % 5 == 0 || (i + 1 == maxtrain))
 		{
 			std::cout << "i: " << i + 1 << " , loss: " << total_loss << std::endl;
 		}
@@ -268,30 +205,28 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 	std::cout << std::endl;
 }
 
-void TestData3(DecodersOnly& model)
+void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
 {
 
 	model->eval();
-	std::cout << "测试&翻译:" << std::endl;
+	std::cout << "测试:" << std::endl;
 	std::vector<std::string> tests;
 
-	tests.push_back("Welcome to PyTorch Tutorials");
-	tests.push_back("Welcome to Machine Learning");
+	tests.push_back("床前明月光");
+	tests.push_back("白日依山尽");
+	tests.push_back("众鸟高飞尽");
+	tests.push_back("松下问童子");
 
 
 	for (auto ch : tests)
 	{
-		auto result = model->predict(ch);
+		auto result = model->predict(ch, dataTest);
 
 		// std::cout << std::regex_replace(ch, std::regex("Pad"), "") << " :  ";
-		std::cout << ch << " :  ";
 
-
-		for (int k = 0; k < result.numel(); k++)
-		{
-			std::cout << GetWordById(total_vocab, result[k].item<int64_t>()) << " ";
-		}
-
+		std::cout << ch << " :"<<std::endl;
+		std::cout << result << std::endl;;
+		
 		std::cout << std::endl;
 	}
 
@@ -302,10 +237,24 @@ void TestData3(DecodersOnly& model)
 void DecoderOnlyMain()
 {
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(256, 8, 1024, 3);
+	DecodersOnly model(128, 4, 512, 3);
 
-	TrainData3(model, datasetTrain);
+	std::string model_path = "Decoder_Only_model3.pt";
+	std::ifstream filem(model_path);
+	bool bmodel = filem.is_open();
+	if (!bmodel||true)
+	{
+		TrainData3(model, datasetTrain);
+		torch::save(model, model_path);
+	}
+	else
+	{
+		torch::load(model, model_path);
+		std::cout << "load model ...." << std::endl;
+	}
 
-	TestData3(model);
+	filem.close();
+
+	TestData3(model, datasetTrain);
 }
 

@@ -23,7 +23,19 @@ typedef std::unordered_map<int64_t, std::string> CorpusVocabIDtoS;
 class Tokenizer
 {
 public:
-	void LoadDataSrc();
+	void InitLoadDataSrc();
+	std::vector<int64_t> GetTangshiCode(std::string& line);
+	std::string GetTangshiString(std::vector<int64_t>& vList);
+
+	std::vector<std::vector<int64_t>>& GetEncodeData()
+	{
+		return m_vEncodeDataList;
+	}
+
+	int64_t GetCorpusVocabCount()
+	{
+		return m_stringToID.size();
+	}
 
 private:
 	void LoadDataTxtFile();
@@ -34,10 +46,12 @@ private:
 
 	void AddVocabTable(std::vector<std::string>& stringList,CorpusVocabStoID&stringID, CorpusVocabIDtoS& IDString);
 
-	void saveMap(CorpusVocabStoID& map1);
+	void saveMap(CorpusVocabStoID& map1, std::vector<std::vector<int64_t>>& vData);
 	bool loadMap();
+	void InitEncodeTangshi(std::vector<Tangshi>& vDataList);
 
 	std::vector<Tangshi> m_vdata;
+	std::vector<std::vector<int64_t>> m_vEncodeDataList;
 
 	int m_nMaxTitle = 0;
 	int m_nMaxAuthor = 0;
