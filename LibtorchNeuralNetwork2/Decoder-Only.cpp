@@ -32,7 +32,7 @@ public:
 	{
 		
 		auto item = m_vdata.at(index);
-		item.pop_back();
+		//item.pop_back();
 		auto inpput = torch::tensor(item, torch::kLong);
 
 		item = m_vdata.at(index);
@@ -153,14 +153,16 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 {
 	double accuracy = 0.5;
 	auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
-	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(10));
+	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(20));
 	auto options = torch::nn::CrossEntropyLossOptions().ignore_index(PadId);
 	torch::nn::CrossEntropyLoss loss_fn(options);
 	
 
-	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(0.04));
+	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(0.001));
 	model->train();
 	std::cout << "ÑµÁ·Ä£ÐÍ" << std::endl;
+
+	auto start_time = chrono::high_resolution_clock::now();
 
 	for (int i = 0; i < maxtrain; i++)
 	{
@@ -176,11 +178,12 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 			
 			auto tgtOut = model->forward(tgtInput);
 
+			tgtOut = tgtOut.index({ torch::indexing::Slice(0,-1),torch::indexing::Slice(), torch::indexing::Slice() });
+			
 			auto output = tgtOut.reshape({ -1, gCorpusVocabCount });
 			optimizer.zero_grad();
 			auto tgt = tgtOutput.reshape({ -1 });
-
-			
+	
 			auto loss = loss_fn(output, tgt);
 			total_loss += loss.item<float>();
 			torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
@@ -193,16 +196,20 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 
 		if (i % 5 == 0 || (i + 1 == maxtrain))
 		{
-			std::cout << "i: " << i + 1 << " , loss: " << total_loss << std::endl;
+			std::cout << "i: " << i + 1 << " / " << maxtrain << " , loss: " << total_loss << std::endl;
 		}
 
 		if (total_loss <= accuracy)
 		{
-			std::cout << "i: " << i + 1 << " , loss: " << total_loss << std::endl << std::endl;
+			std::cout << "i: " << i + 1 <<" / " << maxtrain <<" , loss: " << total_loss << std::endl << std::endl;
 			break;
 		}
 	}
 	std::cout << std::endl;
+
+	auto end_time = chrono::high_resolution_clock::now();
+	auto duration_ms = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
+	std::cout << "end-time: " << duration_ms <<" seconds " << endl;
 }
 
 void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
@@ -236,8 +243,9 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
 
 void DecoderOnlyMain()
 {
+	
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(128, 4, 512, 3);
+	DecodersOnly model(128, 2, 256, 1);
 
 	std::string model_path = "Decoder_Only_model3.pt";
 	std::ifstream filem(model_path);

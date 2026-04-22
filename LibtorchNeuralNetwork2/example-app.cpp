@@ -66,6 +66,7 @@ struct NetModule : torch::nn::Module
 
 int main()
 {
+
 #if 1
 	//autogradMain();
 	//CnnMain();
@@ -79,7 +80,7 @@ int main()
 	//TransformerAttentionMain();
 	///HandwrittenTransformerMain();
 	  DecoderOnlyMain();
-	
+	  //std::cout << "DecoderOnlyMain ...." << std::endl;
 #else
 
 	NetModule net;

@@ -279,8 +279,6 @@ void  Tokenizer::InitEncodeTangshi(std::vector<Tangshi>& vDataList)
 {
     m_vEncodeDataList.clear();
 
-    std::string str = "\n";
-    auto  n = GetTangshiCode(str).at(0);
 
     for (auto& item : vDataList)
     {
@@ -291,22 +289,9 @@ void  Tokenizer::InitEncodeTangshi(std::vector<Tangshi>& vDataList)
         auto a = GetTangshiCode(item.author);
         auto c = GetTangshiCode(item.content);
 
-        int len = m_nMaxTitle - t.size();
-        for (int  i = 0; i < len; i++)
-        {
-            t.push_back(0);
-        }
-        t.push_back(n);
+        int len = 0;
 
-        len = m_nMaxAuthor - a.size();
-        for (int i = 0; i < len; i++)
-        {
-            a.push_back(0);
-        }
-
-        a.push_back(n);
-
-        len = m_nMaxContent - c.size();
+        len = m_nMaxContent - c.size() + m_nMaxAuthor - a.size() + m_nMaxTitle - t.size();
         for (int i = 0; i < len; i++)
         {
             c.push_back(0);
