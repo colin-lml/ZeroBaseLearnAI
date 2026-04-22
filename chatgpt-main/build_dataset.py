@@ -15,8 +15,8 @@ if __name__=='__main__':
         ds=load_dataset()
         print(f'{filename}已存在，训练集大小：{len(ds)}，样例数据如下：')
         ids,text=ds[5]
-        ##print(ids,text)
-        ##sys.exit(0)
+        print(ids,text)
+        sys.exit(0)
 
     ds=NalanDataset()
     with open(filename,'wb') as fp:

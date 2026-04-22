@@ -23,7 +23,6 @@ class NalanDataset(Dataset):
                 ids,_=tokenizer.encode(inputs)
                 if len(ids)>MAX_SEQ_LEN-2:  # 留出BOS和EOS的token
                     continue
-               
                 self.data.append((ids,inputs))
             except:
                 continue

@@ -45,11 +45,8 @@ class BPETokenizer:
         # 语料转byte
         tokens_list=[]
         for text in text_list:
-            print(f'xxx:\n{text}\n')  
             tokens=[bytes([b]) for b in text.encode('utf-8')]
             tokens_list.append(tokens)
-
-          
         
         # 进度条
         progress=tqdm(total=vocab_size,initial=256)

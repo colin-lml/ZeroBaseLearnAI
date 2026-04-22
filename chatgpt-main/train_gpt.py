@@ -20,11 +20,6 @@ def batch_proc(batch):
     bos_ids,_=tokenizer.encode(BOS)
     eos_ids,_=tokenizer.encode(EOS)
     pad_ids,_=tokenizer.encode(PAD)
-
-   # print(f"BOS:    {bos_ids}\n")
-   # print(f"EOS:    {eos_ids}\n")
-   # print(f"PAD:    {pad_ids}\n")
-
     
     batch_x=[]
     batch_chatml=[]
@@ -69,11 +64,6 @@ if __name__=='__main__':
         
         probs=logtis[:,:-1,:]   # (batch,seq-1,vocab)
         targets=batch_ids[:,1:] # (batch,seq-1)
-        
-        #print(f"input:\n{batch_ids}\n")
-        #print(f"targets:\n{targets}  \nshape: {targets.shape}\n")
-        #break
-
         loss=F.cross_entropy(probs.reshape(-1,probs.size(2)),targets.reshape(-1),ignore_index=pad_ids[0])
 
         optimizer.zero_grad()
@@ -83,7 +73,7 @@ if __name__=='__main__':
         pbar.update(1)
         pbar.set_postfix({'loss':loss.item()})
 
-        if i%10==0:
+        if i%1000==0:
             checkpoint={'iter':i,'model':model.state_dict(),'optimizer':optimizer.state_dict()}
             torch.save(checkpoint,'checkpoint.bin.tmp')
             os.replace('checkpoint.bin.tmp','checkpoint.bin')
