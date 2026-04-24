@@ -8,7 +8,7 @@
 #include "Tokenizer.h"
 
 using namespace std;
-#define  maxtrain    1000*100
+#define  maxtrain    1000*10
 
 static	int64_t	gCorpusVocabCount = 0;
 
@@ -32,7 +32,7 @@ public:
 	{
 		
 		auto item = m_vdata.at(index);
-		//item.pop_back();
+		item.pop_back();
 		auto inpput = torch::tensor(item, torch::kLong);
 
 		item = m_vdata.at(index);
@@ -65,7 +65,7 @@ public:
 		m_dim = dim;
 
 		tgt_emb_ = register_module("tgt_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(gCorpusVocabCount, dim)));
-		pos_encoder = register_module("pos_encoder", PositionalEncoding(dim, gCorpusVocabCount *10));
+		pos_encoder = register_module("pos_encoder", torch::nn::Embedding(torch::nn::EmbeddingOptions(gCorpusVocabCount, dim)));
 		fc = register_module("fc", torch::nn::Linear(dim, gCorpusVocabCount));
 
 		moduleLayers = register_module("moduleLayers2", torch::nn::ModuleList());
@@ -84,21 +84,29 @@ public:
 	auto forward(torch::Tensor& tgt)
 	{
 		
-		auto tgt_mask = generate_square_subsequent_mask(tgt.size(1));
+		int64_t seq = tgt.size(1);
+		int64_t batch = tgt.size(0);
+		auto tgt_mask = generate_square_subsequent_mask(seq);
 		auto tgt_key_padding_mask = (tgt == PadId).to(torch::kBool);  // [batch,seq]
-		//std::cout << "tgt_mask\n" << tgt_mask.sizes() << std::endl;
+		//std::cout << "tgt_mask\n" << tgt_mask << std::endl;
+		//std::cout << "tgt_key_padding_mask\n" << tgt_key_padding_mask << std::endl;
 		//[batch, seq]  --> [seq, batch]
 		
-		tgt = tgt.permute({ 1,0 });
-
+		torch::Tensor pos = torch::arange(0, seq);
+		pos = pos.unsqueeze(0).repeat({ batch, 1 });
 
 		tgt = tgt_emb_->forward(tgt) * std::sqrt(m_dim);
-		tgt = pos_encoder->forward(tgt);
+		torch::Tensor pos2  = pos_encoder->forward(pos);
 
+		tgt = tgt + pos2;
+
+		tgt = tgt.permute({ 1,0, 2});
 
 		for each(auto& item in * moduleLayers)
 		{
 			tgt = item->as<torch::nn::TransformerEncoderLayer>()->forward(tgt, tgt_mask, tgt_key_padding_mask);
+			//std::cout << "tgt\n" << tgt.sizes() << std::endl;
+			//tgt = item->as<torch::nn::TransformerEncoderLayer>()->forward(tgt);
 		}
 
 		return fc->forward(tgt);
@@ -139,7 +147,7 @@ public:
 	torch::nn::ModuleList moduleLayers{ nullptr };
 
 	torch::nn::Embedding tgt_emb_{ nullptr };
-	PositionalEncoding pos_encoder{ nullptr };
+	torch::nn::Embedding pos_encoder{ nullptr };
 
 	torch::nn::Linear fc{ nullptr };
 
@@ -151,14 +159,14 @@ TORCH_MODULE(DecodersOnly);
 
 void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 {
-	double accuracy = 0.5;
+	double accuracy = 0.05;
 	auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
-	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(20));
+	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(30));
 	auto options = torch::nn::CrossEntropyLossOptions().ignore_index(PadId);
 	torch::nn::CrossEntropyLoss loss_fn(options);
-	
+	//torch::nn::functional::cross_entropy loss_fn(options);
 
-	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(0.001));
+	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
 	model->train();
 	std::cout << "训练模型" << std::endl;
 
@@ -173,14 +181,14 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 			auto tgtInput = item.data;
 			auto tgtOutput = item.target;
 			
-			//cout << "tgtInput\n" << tgtInput.sizes() << endl;
-			//cout << "tgtOutput\n" << tgtOutput.sizes() << endl;
+			//cout << "tgtInput\n" << tgtInput << endl;
+			//cout << "tgtOutput\n" << tgtOutput<< endl;
 			
 			auto tgtOut = model->forward(tgtInput);
 
-			tgtOut = tgtOut.index({ torch::indexing::Slice(0,-1),torch::indexing::Slice(), torch::indexing::Slice() });
+			///cout << "tgtOut\n" << tgtOut.sizes() << endl;
 			
-			auto output = tgtOut.reshape({ -1, gCorpusVocabCount });
+			auto output = tgtOut.reshape({ -1, tgtOut.size(2)});
 			optimizer.zero_grad();
 			auto tgt = tgtOutput.reshape({ -1 });
 	
@@ -219,10 +227,13 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
 	std::cout << "测试:" << std::endl;
 	std::vector<std::string> tests;
 
+	tests.push_back("静夜思");
+	tests.push_back("相思");
+	
 	tests.push_back("床前明月光");
 	tests.push_back("白日依山尽");
-	tests.push_back("众鸟高飞尽");
-	tests.push_back("松下问童子");
+	//tests.push_back("众鸟高飞尽");
+	//tests.push_back("松下问童子");
 
 
 	for (auto ch : tests)
@@ -245,7 +256,7 @@ void DecoderOnlyMain()
 {
 	
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(128, 2, 256, 1);
+	DecodersOnly model(128, 4, 512, 2);
 
 	std::string model_path = "Decoder_Only_model3.pt";
 	std::ifstream filem(model_path);

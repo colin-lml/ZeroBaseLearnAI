@@ -5,7 +5,7 @@
 void Tokenizer::InitLoadDataSrc()
 {
     bool b = loadMap();
-    if (!b)
+    if (!b || true)
     {
         LoadDataTxtFile();
 
@@ -14,7 +14,7 @@ void Tokenizer::InitLoadDataSrc()
 
         saveMap(m_stringToID, m_vEncodeDataList);
     }
-    /* 
+     /* 
     for (auto& i : m_vEncodeDataList)
     {
         auto str = GetTangshiString(i);
@@ -26,6 +26,9 @@ void Tokenizer::InitLoadDataSrc()
 void Tokenizer::LoadDataTxtFile()
 {
     m_vdata.clear();
+    m_nMaxTitle = 0;
+    m_nMaxAuthor = 0;
+    m_nMaxContent = 0;
 
 	std::ifstream ifs("tangshi.data.txt");
 	bool bopen = ifs.is_open();
@@ -47,18 +50,14 @@ void Tokenizer::LoadDataTxtFile()
 
         std::string n;
         std::stringstream data(line);
-        data >> n >> item.title;
+        data >>  item.title;
    
         m_nMaxTitle = std::max(m_nMaxTitle, ChineseCount(item.title));
 
         if (getline(ss, line))
         {
             item.author = line;
-            m_nMaxAuthor = std::max(m_nMaxAuthor, ChineseCount(item.author));
-            if (m_nMaxAuthor == 4)
-            {
-
-            }
+            m_nMaxAuthor = std::max(m_nMaxAuthor, ChineseCount(item.author));      
         }
 
         while (getline(ss, line))
@@ -70,7 +69,15 @@ void Tokenizer::LoadDataTxtFile()
             item.content += line + "\n";
         }
 
+
         m_nMaxContent = std::max(m_nMaxContent, ChineseCount(item.content));
+
+        if (m_nMaxContent == 132)
+        {
+            int xx = 9;
+            xx += 9;
+
+        }
 
         m_vdata.push_back(item);
     }
@@ -290,15 +297,15 @@ void  Tokenizer::InitEncodeTangshi(std::vector<Tangshi>& vDataList)
         auto c = GetTangshiCode(item.content);
 
         int len = 0;
-
         len = m_nMaxContent - c.size() + m_nMaxAuthor - a.size() + m_nMaxTitle - t.size();
+      
+        c.push_back(2); /// add E
+
         for (int i = 0; i < len; i++)
         {
             c.push_back(0);
         }
-
-        c.push_back(2); /// add E
-
+        
         encode.insert(encode.end(), t.begin(), t.end());
         encode.insert(encode.end(), a.begin(), a.end());
         encode.insert(encode.end(), c.begin(), c.end());

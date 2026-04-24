@@ -64,9 +64,377 @@ struct NetModule : torch::nn::Module
 
 
 
+
+
+
+
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <string>
+#include <algorithm>
+#include <regex>
+#include <cstdint>
+#include <cstring>
+
+using namespace std;
+
+// 自定义 vector<uint8_t> 的哈希函数（用于 unordered_map 做 key）
+struct VectorHash 
+{
+    size_t operator()(const vector<uint8_t>& v) const 
+    {
+        size_t hash = 0;
+        for (uint8_t b : v) 
+        {
+            hash ^= std::hash<uint8_t>{}(b)+0x9e3779b9 + (hash << 6) + (hash >> 2);
+        }
+        return hash;
+    }
+};
+
+class BPETokenizer
+{
+private:
+    map<vector<uint8_t>, uint32_t> b2i;       // bytes -> id（有序）
+    unordered_map<uint32_t, vector<uint8_t>> i2b; // id -> bytes
+    uint32_t next_id = 0;
+
+    unordered_map<string, uint32_t> sp_s2i;   // special token str -> id
+    unordered_map<uint32_t, string> sp_i2s;   // id -> special token str
+
+    // 统计相邻 token 频率
+    void pair_stats(const vector<vector<uint8_t>>& tokens, unordered_map<vector<uint8_t>, int, VectorHash>& stats)
+    {
+        for (size_t i = 0; i < tokens.size() - 1; ++i) 
+        {
+            vector<uint8_t> merged;
+            int a = tokens[i].size();
+            int b = tokens[i+1].size();
+
+            merged.reserve(tokens[i].size() + tokens[i + 1].size());
+            merged.insert(merged.end(), tokens[i].begin(), tokens[i].end());
+            merged.insert(merged.end(), tokens[i + 1].begin(), tokens[i + 1].end());
+            stats[merged]++;
+        }
+    }
+
+    // 合并指定 token
+    vector<vector<uint8_t>> merge_pair(const vector<vector<uint8_t>>& tokens,const vector<uint8_t>& target)
+    {
+        vector<vector<uint8_t>> res;
+        size_t i = 0;
+        while (i < tokens.size()) 
+        {
+            if (i + 1 < tokens.size()) 
+            {
+                vector<uint8_t> combined;
+                combined.reserve(tokens[i].size() + tokens[i + 1].size());
+                combined.insert(combined.end(), tokens[i].begin(), tokens[i].end());
+                combined.insert(combined.end(), tokens[i + 1].begin(), tokens[i + 1].end());
+                if (combined == target) 
+                {
+                    res.push_back(combined);
+                    i += 2;
+                    continue;
+                }
+            }
+            res.push_back(tokens[i]);
+            i++;
+        }
+        return res;
+    }
+
+public:
+    BPETokenizer() 
+    {
+        // 初始化 0~255 基础字节
+        for (int i = 0; i < 256; ++i) 
+        {
+            b2i[{(uint8_t)i}] = i;
+        }
+        next_id = 256;
+        rebuild_i2b();
+    }
+
+    void rebuild_i2b() 
+    {
+        i2b.clear();
+        for (auto& p : b2i)
+        {
+            i2b[p.second] = p.first;
+        }
+    }
+
+    // 训练 BPE
+    void train(const vector<string>& text_list, uint32_t vocab_size)
+    {
+        vector<vector<vector<uint8_t>>> tokens_list;
+
+        for (auto& s : text_list) 
+        {
+            vector<vector<uint8_t>> tokens;
+            for (uint8_t c : s)
+            {
+                tokens.push_back({ c });
+            }
+            tokens_list.push_back(tokens);
+        }
+
+        while (next_id < vocab_size) 
+        {
+            unordered_map<vector<uint8_t>, int, VectorHash> stats;
+            for (auto& tokens : tokens_list) 
+            {
+                pair_stats(tokens, stats);
+            }
+
+            if (stats.empty())
+            {
+                break;
+            }
+
+            vector<uint8_t> best_pair;
+            int max_cnt = 0;
+            for (auto& p : stats) 
+            {
+                if (p.second > max_cnt) 
+                {
+                    max_cnt = p.second;
+                    best_pair = p.first;
+                }
+            }
+
+            for (auto& tokens : tokens_list)
+            {
+                tokens = merge_pair(tokens, best_pair);
+            }
+            string str(best_pair.begin(), best_pair.end());
+            cout << next_id <<" ,  " << str << endl;
+                 
+            b2i[best_pair] = next_id++;
+            
+            rebuild_i2b();
+        }
+
+    }
+
+    // 添加特殊 token
+    void add_special_tokens(const vector<string>& tokens)
+    {
+        for (auto& s : tokens) 
+        {
+            if (sp_s2i.count(s)) continue;
+            sp_s2i[s] = next_id;
+            sp_i2s[next_id] = s;
+            next_id++;
+        }
+    }
+
+    // 编码：文本 → ids, tokens
+    pair<vector<uint32_t>, vector<vector<uint8_t>>> encode(const string& text)
+    {
+        vector<uint32_t> ids;
+        vector<vector<uint8_t>> tokens_out;
+
+        if (!sp_s2i.empty())
+        {
+            string pat;
+            for (auto& p : sp_s2i) 
+            {
+                if (!pat.empty()) pat += "|";
+                pat += regex_replace(p.first, regex(R"([.^$|*+?()\[\]{}])"), R"(\$&)");
+            }
+            regex reg("(" + pat + ")");
+            sregex_token_iterator it(text.begin(), text.end(), reg, { -1, 0 });
+            sregex_token_iterator end;
+
+            for (auto seg = it; seg != end; ++seg)
+            {
+                string s = *seg;
+                if (s.empty()) continue;
+
+                if (sp_s2i.count(s)) 
+                {
+                    uint32_t id = sp_s2i[s];
+                    ids.push_back(id);
+                    tokens_out.emplace_back(s.begin(), s.end());
+                    continue;
+                }
+
+                vector<vector<uint8_t>> tokens;
+                for (uint8_t c : s) tokens.push_back({ c });
+
+                while (true) 
+                {
+                    unordered_map<vector<uint8_t>, int, VectorHash> stats;
+                    pair_stats(tokens, stats);
+                    if (stats.empty()) break;
+
+                    vector<uint8_t> best;
+                    uint32_t min_id = UINT32_MAX;
+                    for (auto& p : stats)
+                    {
+                        auto& tok = p.first;
+                        if (!b2i.count(tok)) continue;
+                        uint32_t id = b2i[tok];
+                        if (id < min_id) {
+                            min_id = id;
+                            best = tok;
+                        }
+                    }
+                    if (best.empty()) break;
+                    tokens = merge_pair(tokens, best);
+                }
+
+                for (auto& t : tokens) 
+                {
+                    ids.push_back(b2i[t]);
+                    tokens_out.push_back(t);
+                }
+            }
+        }
+        return { ids, tokens_out };
+    }
+
+    // 解码
+    string decode(const vector<uint32_t>& ids) 
+    {
+        vector<uint8_t> bytes;
+        for (uint32_t id : ids)
+        {
+            if (sp_i2s.count(id))
+            {
+                auto& s = sp_i2s[id];
+                bytes.insert(bytes.end(), s.begin(), s.end());
+            }
+            else if (i2b.count(id)) 
+            {
+                auto& b = i2b[id];
+                bytes.insert(bytes.end(), b.begin(), b.end());
+            }
+        }
+        return string(bytes.begin(), bytes.end());
+    }
+
+    // 保存
+    void save(const string& path) 
+    {
+        ofstream f(path, ios::binary);
+        uint32_t n = b2i.size();
+        f.write((char*)&n, 4);
+        for (auto& p : b2i) {
+            uint32_t len = p.first.size();
+            f.write((char*)&len, 4);
+            f.write((char*)p.first.data(), len);
+            f.write((char*)&p.second, 4);
+        }
+
+        uint32_t m = sp_s2i.size();
+        f.write((char*)&m, 4);
+        for (auto& p : sp_s2i) {
+            uint32_t len = p.first.size();
+            f.write((char*)&len, 4);
+            f.write(p.first.data(), len);
+            f.write((char*)&p.second, 4);
+        }
+
+        f.write((char*)&next_id, 4);
+    }
+
+    // 加载
+    void load(const string& path) 
+    {
+        ifstream f(path, ios::binary);
+        b2i.clear();
+        sp_s2i.clear();
+        sp_i2s.clear();
+
+        uint32_t n;
+        f.read((char*)&n, 4);
+        for (uint32_t i = 0; i < n; ++i) 
+        {
+            uint32_t len;
+            f.read((char*)&len, 4);
+            vector<uint8_t> buf(len);
+            f.read((char*)buf.data(), len);
+            uint32_t id;
+            f.read((char*)&id, 4);
+            b2i[buf] = id;
+        }
+
+        uint32_t m;
+        f.read((char*)&m, 4);
+        for (uint32_t i = 0; i < m; ++i) 
+        {
+            uint32_t len;
+            f.read((char*)&len, 4);
+            string s(len, 0);
+            f.read((char*)s.data(), len);
+            uint32_t id;
+            f.read((char*)&id, 4);
+            sp_s2i[s] = id;
+            sp_i2s[id] = s;
+        }
+
+        f.read((char*)&next_id, 4);
+        rebuild_i2b();
+    }
+
+    uint32_t vocab_size() { return next_id; }
+};
+
+// ===================== 测试示例 =====================
+int main2() {
+    // 训练语料
+    vector<string> corpus = {
+        "用电电电鳗电鳗会不会被电电死?",
+       // "一生一代一双人",
+       // "Hello world",
+       // "今天天气不错",
+       // "BPE tokenizer test",
+       // "你好世界"
+    };
+
+    // 训练
+    BPETokenizer tok;
+    tok.train(corpus, 800);
+
+    // 特殊 token
+    tok.add_special_tokens({ "<|im_start|>", "<|im_end|>", "<|endoftext|>" });
+
+    // 保存 & 加载
+    tok.save("tokenizer.bin");
+    BPETokenizer tok2;
+    tok2.load("tokenizer.bin");
+
+    // 编码
+    string test = "<|im_start|>用电电电鳗电鳗会不会被电电死<|im_end|>";
+    auto [ids, tokens] = tok2.encode(test);
+
+    cout << "encode ids: ";
+    for (auto id : ids) cout << id << " ";
+    cout << endl;
+
+    // 解码
+    string res = tok2.decode(ids);
+    cout << "decode: " << res << endl;
+
+    return 0;
+}
+
+
+
+
+
+
+
 int main()
 {
-
+    main2();
 #if 1
 	//autogradMain();
 	//CnnMain();
@@ -79,7 +447,7 @@ int main()
 
 	//TransformerAttentionMain();
 	///HandwrittenTransformerMain();
-	  DecoderOnlyMain();
+	//  DecoderOnlyMain();
 	  //std::cout << "DecoderOnlyMain ...." << std::endl;
 #else
 

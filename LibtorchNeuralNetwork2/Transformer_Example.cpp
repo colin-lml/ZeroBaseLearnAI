@@ -7,6 +7,8 @@
 
 #include "TransformerTestData.h"
 
+#if 1
+
 class TranslatorImpl : public torch::nn::Module
 {
 public:
@@ -108,6 +110,166 @@ public:
     torch::nn::Linear fc{ nullptr };
 };
 TORCH_MODULE(Translator);
+
+
+
+
+#else
+
+class Transformer2Impl : public torch::nn::Module
+{
+public:
+    Transformer2Impl(torch::nn::TransformerOptions& opts)
+    {
+        mEncoderLayers = register_module("Encoder", torch::nn::ModuleList());
+        mDecoderLayers = register_module("mDecoderLayers", torch::nn::ModuleList());
+
+        auto dim = opts.d_model();
+        auto head = opts.nhead();
+        auto ffn = opts.dim_feedforward();
+        auto d = opts.dropout();
+
+        for (int i = 0; i < opts.num_encoder_layers(); i++)
+        {
+            torch::nn::TransformerEncoderLayerOptions opt(dim, head);
+            opt.dim_feedforward(ffn);
+            opt.dropout(d);
+            auto options = torch::nn::TransformerEncoderLayer(opt);
+
+            mEncoderLayers->push_back(options);
+        }
+
+        for (int i = 0; i < opts.num_decoder_layers(); i++)
+        {
+            torch::nn::TransformerDecoderLayerOptions opt(dim, head);
+            opt.dim_feedforward(ffn);
+            opt.dropout(d);
+            auto options = torch::nn::TransformerDecoderLayer(opt);
+
+            mDecoderLayers->push_back(options);
+        }
+    }
+
+    torch::Tensor forward(torch::Tensor src, torch::Tensor tgt)
+    {
+
+    }
+
+    torch::nn::ModuleList mEncoderLayers{ nullptr };
+    torch::nn::ModuleList mDecoderLayers{ nullptr };
+
+};
+
+TORCH_MODULE(Transformer2);
+
+
+
+class TranslatorImpl : public torch::nn::Module
+{
+public:
+    TranslatorImpl()
+    {
+        src_emb = register_module("src_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(src_vocab_size, dim_model)));
+        tgt_emb_ = register_module("tgt_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(tgt_vocab_size, dim_model)));
+        pos_encoder = register_module("pos_encoder", PositionalEncoding(dim_model, max_vocab_len));
+        torch::nn::TransformerOptions opts;
+        opts.nhead(2);
+        opts.dim_feedforward(dim_feed);
+        opts.num_decoder_layers(1);
+        opts.num_encoder_layers(1);
+        opts.dropout(0.0);
+        opts.d_model(dim_model);
+        transformer = register_module("transformer", Transformer2(opts));
+        fc = register_module("fc", torch::nn::Linear(dim_model, tgt_vocab_size));
+
+    }
+
+    torch::Tensor forward(torch::Tensor src, torch::Tensor tgt)
+    {
+        auto none_mask = torch::Tensor();
+        auto srclen = src.size(1);
+        auto src_mask = torch::zeros({ srclen,srclen }, torch::kBool);
+        auto tgt_mask = generate_square_subsequent_mask(tgt.size(1));
+        auto src_key_padding_mask = (src == PadId).to(torch::kBool);  // [batch,seq]
+        auto tgt_key_padding_mask = (tgt == PadId).to(torch::kBool);  // [batch,seq]
+        auto memory_key_padding_mask = src_key_padding_mask;
+        //std::cout << "tgt_mask\n" << tgt_mask << std::endl;
+        //std::cout << "src_key_padding_mask\n" << src_key_padding_mask << std::endl;
+        //std::cout << "tgt_key_padding_mask\n" << tgt_key_padding_mask << std::endl;
+
+
+        //[batch, seq]  --> [seq, batch]
+        src = src.permute({ 1,0 });
+        tgt = tgt.permute({ 1,0 });
+
+        //std::cout << "input " << src << std::endl;
+        src = src_emb->forward(src) * std::sqrt(dim_model);
+        src = pos_encoder->forward(src);
+
+        tgt = tgt_emb_->forward(tgt) * std::sqrt(dim_model);
+        tgt = pos_encoder->forward(tgt);
+
+        // tgt & src: (seq, batch, dim)
+        //auto outs = transformer->forward(src, tgt);
+        auto outs = transformer->forward(src, tgt, src_mask, tgt_mask, none_mask, src_key_padding_mask, tgt_key_padding_mask, memory_key_padding_mask);
+
+        outs = fc->forward(outs);
+
+        return outs;
+
+    }
+
+
+    torch::Tensor predict(torch::Tensor src)
+    {
+        //std::cout << src << std::endl;
+        auto srclen = src.size(0);
+        auto src_mask = torch::zeros({ srclen,srclen }, torch::kBool);
+        auto srcemb = src_emb->forward(src) * std::sqrt(dim_model);
+        srcemb = pos_encoder->forward(srcemb);
+        auto memory = transformer->encoder.forward(srcemb, src_mask);
+
+        std::vector<int64_t> tgtpad = GetWordId(tgt_vocab, "S");
+
+        int i = 0;
+        while (i < tgt_vocab_size * 2)
+        {
+            torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong);
+            auto tgt_mask = generate_square_subsequent_mask(tgt.size(0));
+            ///std::cout << "tgt_mask " << tgt_mask << std::endl;
+            auto tgt_emb = tgt_emb_->forward(tgt) * std::sqrt(dim_model);
+            tgt_emb = pos_encoder->forward(tgt_emb);
+            auto out = transformer->decoder.forward(tgt_emb, memory, tgt_mask);
+            out = fc->forward(out).squeeze(-2);
+            auto next_token = out.argmax(-1);
+            int64_t key = next_token[i].item<int64_t>();
+            tgtpad.push_back(key);
+            //tgtpad.insert(tgtpad.begin(), );
+            if ("E" == GetWordById(tgt_vocab, key))
+            {
+                break;
+            }
+            i++;
+        }
+
+        //tgtpad.pop_back();
+        return torch::tensor(tgtpad, torch::kLong);
+    }
+
+
+    torch::nn::Embedding src_emb{ nullptr };
+    torch::nn::Embedding tgt_emb_{ nullptr };
+    PositionalEncoding pos_encoder{ nullptr };
+    Transformer2 transformer{ nullptr };
+
+    torch::nn::Linear fc{ nullptr };
+};
+TORCH_MODULE(Translator);
+
+#endif
+
+
+
 
 void TestData(Translator& model);
 void TrainData(Translator& model);
