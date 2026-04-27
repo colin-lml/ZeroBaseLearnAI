@@ -175,13 +175,13 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="BPE.h" />
+    <ClInclude Include="BBPE.h" />
     <ClInclude Include="Tokenizer.h" />
     <ClInclude Include="TransformerTestData.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="autograd.cpp" />
-    <ClCompile Include="BPE.cpp" />
+    <ClCompile Include="BBPE.cpp" />
     <ClCompile Include="CNNExample.cpp" />
     <ClCompile Include="Decoder-Only.cpp" />
     <ClCompile Include="Embedding.cpp" />

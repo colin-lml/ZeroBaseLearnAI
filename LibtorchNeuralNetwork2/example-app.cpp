@@ -6,6 +6,9 @@
 #include "torch/torch.h"
 #include <chrono>
 #include "Tokenizer.h"
+#include <windows.h>
+
+#include "BBPE.h"
 
 using namespace std;
 void CnnMain();
@@ -212,8 +215,8 @@ public:
             {
                 tokens = merge_pair(tokens, best_pair);
             }
-            string str(best_pair.begin(), best_pair.end());
-            cout << next_id <<" ,  " << str << endl;
+            //string str(best_pair.begin(), best_pair.end());
+           // cout << next_id <<" ,  " << str << endl;
                  
             b2i[best_pair] = next_id++;
             
@@ -432,9 +435,22 @@ int main2() {
 
 
 
+
 int main()
 {
-    main2();
+    vector<string> corpus = {
+    "用电电电鳗电鳗会不会被电电死?",
+     "bbpe 是 byte level bpe 分词算法。",
+     "bpe 算法用于大模型 token 编码。",
+     "bbpe 基于 utf8 字节合并中文英文。",
+     "token 编码电鳗放电测试。"
+    };
+
+    BBPE bbpe;
+    bbpe.Train(corpus);
+
+   /// auto ss = ToUTF8(a);
+  //  main2();
 #if 1
 	//autogradMain();
 	//CnnMain();

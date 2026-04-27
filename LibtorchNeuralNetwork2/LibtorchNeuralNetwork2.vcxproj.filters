@@ -33,7 +33,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Tokenizer.cpp" />
-    <ClCompile Include="BPE.cpp" />
+    <ClCompile Include="BBPE.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
@@ -43,6 +43,6 @@
   <ItemGroup>
     <ClInclude Include="TransformerTestData.h" />
     <ClInclude Include="Tokenizer.h" />
-    <ClInclude Include="BPE.h" />
+    <ClInclude Include="BBPE.h" />
   </ItemGroup>
 </Project>
