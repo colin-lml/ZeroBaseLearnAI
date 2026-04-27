@@ -4,7 +4,10 @@ void remove_all_spaces(std::string& s)
 {
     s.erase(std::remove(s.begin(), s.end(), ' '), s.end());
 }
-
+bool isDelimiter(uint8_t  c)
+{
+    return c == ' ' || c == '£¬' || c == '¡£' ;
+}
 
 
 BBPE::BBPE()
@@ -26,6 +29,36 @@ string  BBPE::ToGBK(const string& str)
     return MultiByteToMultiByte(str, CP_UTF8, CP_ACP);
 }
 
+VectorString BBPE::SplitText(const string& str)
+{
+    VectorString  wlist;
+    string current;
+
+    for (auto& ch : str)
+    {
+        if (isDelimiter(ch))
+        {
+            if (!current.empty()) 
+            {
+                wlist.push_back(current);
+                current.clear();
+            }
+        }
+        else
+        {
+            current += ch;
+        }
+    }
+
+    if (!current.empty())
+    {
+        wlist.push_back(current);
+    }
+
+    return wlist;
+}
+
+
 string BBPE::MultiByteToMultiByte(const string& str, UINT from , UINT bto )
 {
     int wide_size = MultiByteToWideChar(from, 0, str.c_str(), -1, NULL, 0);
@@ -46,11 +79,25 @@ string BBPE::MultiByteToMultiByte(const string& str, UINT from , UINT bto )
 
 void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
 {
-    VectorVectorUint vEnumWordList;
+    Vector3Uint8 vEnumWordList;
+
+  
+    MapVocabTable historyMerge;
     
     EnumerationWord(textList, vEnumWordList);
-    uint64_t tNewWord = 0;
-    MapVocabTable historyMerge;
+
+    /* 
+   for (auto& all : vEnumWordList)
+   {
+       for (auto &item : all)
+       {
+           string strutf8(item.begin(), item.end());
+           string gbk = ToGBK(strutf8);
+           cout << gbk;
+       }
+       cout << endl;
+   }
+   */
 
     while ((historyMerge.size() + m_mapVocabTable.size()) < vocabSize)
     {
@@ -142,36 +189,37 @@ int  BBPE::GetWordSzie(uint8_t ch)
     return  len;
 }
 
-void BBPE::EnumerationWord(const VectorString& textList, VectorVectorUint& vEnumWordList)
+void BBPE::EnumerationWord(const VectorString& textList, Vector3Uint8& vEnumWordList)
 {
     vEnumWordList.clear();
+    VectorString vAllString;
 
     for (auto& slist : textList)
     {
-        
+       auto  item = SplitText(slist);
+       vAllString.insert(vAllString.end(), item.begin(), item.end());
+    }
+     
+    for (auto& slist : vAllString)
+    {
         auto strutf8 =  ToUTF8(slist);
 
-        //remove_all_spaces(strutf8);
-
+        Vector2Uint8 item;
         for (int i=0;i< strutf8.size();i++)
         {
             int len = GetWordSzie(strutf8[i]);
             VectorUint8 word;
 
-            if (len == 1 && strutf8[i] == ' ')
-            {
-                continue;
-            }
-
             for (int j = 0; j < len; j++)
             {
-                word.push_back(strutf8[i+j]);
+                word.push_back(strutf8[i + j]);
             }
-
-            vEnumWordList.push_back(word);
+            item.push_back(word);
 
             i += len-1;
         }
+
+        vEnumWordList.push_back(item );
     }
 
 }
@@ -204,45 +252,56 @@ void BBPE::MergeWord(VectorUint8& outMerge, const VectorUint8& a, const VectorUi
     outMerge.insert(outMerge.end(), b.begin(), b.end());
 }
 
-void BBPE::CountPairWord(VectorVectorUint& vAllWordList, MapVocabTable& vPairCount)
+void BBPE::CountPairWord(Vector3Uint8& vAllWordList, MapVocabTable& vPairCount)
 {
-    for (int i = 0; i < vAllWordList.size()-1; i++)
+    for (int i = 0; i < vAllWordList.size(); i++)
     {
-        VectorUint8 merged;
+        auto& items = vAllWordList[i];
 
-        MergeWord(merged, vAllWordList[i], vAllWordList[i+1]);
-        
-        if (vPairCount.find(merged) == vPairCount.end())
+        for (int j = 0; j+1 < items.size(); j++)
         {
-            vPairCount.emplace(merged, 0);
+            VectorUint8 merged;
+
+            MergeWord(merged, items[j], items[j + 1]);
+
+            if (vPairCount.find(merged) == vPairCount.end())
+            {
+                vPairCount.emplace(merged, 0);
+            }
+            else
+            {
+                vPairCount[merged]++;
+            }
         }
-        else
-        {
-            vPairCount[merged]++;
-        }
-        
+          
     }
 }
 
-void BBPE::MergeMaxPairWord(VectorVectorUint& vAllWordList, MapVocabTable& historyMerge, VectorUint8& tgtKey)
+void BBPE::MergeMaxPairWord(Vector3Uint8& vAllWordList, MapVocabTable& historyMerge, VectorUint8& tgtKey)
 {
-    VectorVectorUint temp;
+    Vector3Uint8 temp;
 
-    for (int i = 0; i < vAllWordList.size()-1; i++)
+    for (int i = 0; i < vAllWordList.size(); i++)
     {
-        VectorUint8 merged;
-        MergeWord(merged, vAllWordList[i], vAllWordList[i+1]);
+        auto& items = vAllWordList[i];
+        Vector2Uint8 tempItem;
+        for (int j = 0; j+1 < items.size(); j++)
+        {
+            VectorUint8 merged;
+            MergeWord(merged, items[j], items[j + 1]);
 
-        if (merged == tgtKey)
-        {
-            temp.push_back(merged);
-            i += 1;
-            historyMerge.emplace(merged,1);
+            if (merged == tgtKey)
+            {
+                tempItem.push_back(merged);
+                j += 1;
+                historyMerge.emplace(merged, 1);
+            }
+            else
+            {
+                tempItem.push_back(items[j]);
+            }
         }
-        else
-        {
-            temp.push_back(vAllWordList[i]);
-        }
+        temp.push_back(tempItem);
     }
 
     vAllWordList.swap(temp);

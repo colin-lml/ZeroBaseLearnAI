@@ -31,24 +31,20 @@ struct VectorUint8Key
     }
 };
 
-/*
-struct TrainPairCount
-{
-    int64_t lastCount;
-    int64_t currCount;
-};
- */
+
 
 typedef vector<string> VectorString;
 typedef vector<uint8_t> VectorUint8;
 
-typedef vector<VectorUint8> VectorVectorUint;
+typedef vector<VectorUint8> Vector2Uint8;
+
+typedef vector<Vector2Uint8> Vector3Uint8;
+
 
 typedef unordered_map<VectorUint8, int64_t, VectorUint8Key> MapVocabTable; /// codeid - > id
 
 typedef unordered_map<int64_t, VectorUint8> MapIDToCodeId; /// id - > codeid
 
-//typedef unordered_map<VectorUint8, TrainPairCount, VectorUint8Key> MapTrainPair;
 
 class BBPE
 {
@@ -60,10 +56,10 @@ public:
 //private:
     void InitData();
     int GetWordSzie(uint8_t ch);
-    void EnumerationWord(const VectorString& textList, VectorVectorUint& vEnumWordList);
+    void EnumerationWord(const VectorString& textList, Vector3Uint8& vEnumWordList);
 
-    void CountPairWord(VectorVectorUint& vAllWordList, MapVocabTable& vPairCount);
-    void MergeMaxPairWord(VectorVectorUint& vAllWordList, MapVocabTable& historyMerge, VectorUint8& tgtKey);
+    void CountPairWord(Vector3Uint8& vAllWordList, MapVocabTable& vPairCount);
+    void MergeMaxPairWord(Vector3Uint8& vAllWordList, MapVocabTable& historyMerge, VectorUint8& tgtKey);
 
     void MergeWord(VectorUint8& outMerge, const VectorUint8& a, const VectorUint8& b);
 
@@ -72,6 +68,7 @@ public:
     bool IsExistVocabTable(VectorUint8& v);
     string  ToUTF8(const string& str);
     string  ToGBK(const string& str);
+    VectorString SplitText(const string& str);
     void AddNewKeyToVocabTable(VectorUint8& vlist);
     string MultiByteToMultiByte(const string& str, UINT from = CP_ACP, UINT bto = CP_UTF8);
 
