@@ -31,6 +31,14 @@ struct VectorUint8Key
     }
 };
 
+/*
+struct TrainPairCount
+{
+    int64_t lastCount;
+    int64_t currCount;
+};
+ */
+
 typedef vector<string> VectorString;
 typedef vector<uint8_t> VectorUint8;
 
@@ -39,6 +47,8 @@ typedef vector<VectorUint8> VectorVectorUint;
 typedef unordered_map<VectorUint8, int64_t, VectorUint8Key> MapVocabTable; /// codeid - > id
 
 typedef unordered_map<int64_t, VectorUint8> MapIDToCodeId; /// id - > codeid
+
+//typedef unordered_map<VectorUint8, TrainPairCount, VectorUint8Key> MapTrainPair;
 
 class BBPE
 {
@@ -53,6 +63,9 @@ public:
     void EnumerationWord(const VectorString& textList, VectorVectorUint& vEnumWordList);
 
     void CountPairWord(VectorVectorUint& vAllWordList, MapVocabTable& vPairCount);
+    void MergeMaxPairWord(VectorVectorUint& vAllWordList, MapVocabTable& historyMerge, VectorUint8& tgtKey);
+
+    void MergeWord(VectorUint8& outMerge, const VectorUint8& a, const VectorUint8& b);
 
     pair<VectorUint8, int64_t> FindMaxPairCount(MapVocabTable& vPairCount);
 
