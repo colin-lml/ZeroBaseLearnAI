@@ -86,7 +86,7 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
     
     EnumerationWord(textList, vEnumWordList);
 
-    /* 
+     
    for (auto& all : vEnumWordList)
    {
        for (auto &item : all)
@@ -96,8 +96,9 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
            cout << gbk;
        }
        cout << endl;
+       cout << endl;
    }
-   */
+ 
 
     while ((historyMerge.size() + m_mapVocabTable.size()) < vocabSize)
     {
@@ -113,8 +114,22 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
         }
 
         MergeMaxPairWord(vEnumWordList, historyMerge, pairKey);    
+        for (auto& p : wordCount)
+        {
+            if (0 < p.second)
+            {
+                auto item = p.first;
+                string strutf8(item.begin(), item.end());
+                string gbk = ToGBK(strutf8);
+                cout << gbk <<" , " << p.second << endl;
+            }
+        }
+        cout << endl;
+        cout << endl;
+
     }
 
+    /*
     for (auto& x : historyMerge)
     {
         auto item = x.first;
@@ -123,7 +138,7 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
         cout << gbk << endl;
     }
    
-    /*
+    
     for (auto& item : vEnumWordList)
     {
         string strutf8(item.begin(), item.end());
