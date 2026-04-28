@@ -6,7 +6,6 @@
 
 #define PadId 0
 
-using json = nlohmann::json;
 
 typedef struct _Tangshi
 {

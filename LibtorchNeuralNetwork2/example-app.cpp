@@ -438,12 +438,14 @@ int main2() {
 
 int main()
 {
-    vector<string> corpus = {
-    "用电电电鳗电鳗会不会被电电死?",
-    "bbpe 是 byte level bpe 分词算法。"
-    // "bpe 算法用于大模型 token 编码。",
-    // "bbpe 基于 utf8 字节合并中文英文。",
-   //  "token 编码电鳗放电测试。"
+    vector<string> corpus = 
+    {
+        "用电电电鳗电鳗会不会被电电死?",
+        "bbpe 是 byte level bpe 分词算法。",
+        "bpe 算法用于大模型 token 编码。",
+        "bbpe 基于 utf8 字节合并中文英文。",
+        "token 编码电鳗放电测试。",
+        "token  to a ab abc abc  abcd abcf.,，。"
     };
 
     BBPE bbpe;

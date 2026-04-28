@@ -16,6 +16,8 @@ using namespace std;
 
 
 #define VocabSize   600
+#define BBPE_PATH   "BBPE_Model.bin"
+
 
 
 struct VectorUint8Key
@@ -45,6 +47,10 @@ typedef unordered_map<VectorUint8, int64_t, VectorUint8Key> MapVocabTable; /// c
 
 typedef unordered_map<int64_t, VectorUint8> MapIDToCodeId; /// id - > codeid
 
+typedef map<int, string> MapSplitString;
+
+typedef map<VectorUint8, int64_t> MapVocabPairCount;
+
 
 class BBPE
 {
@@ -58,19 +64,23 @@ public:
     int GetWordSzie(uint8_t ch);
     void EnumerationWord(const VectorString& textList, Vector3Uint8& vEnumWordList);
 
-    void CountPairWord(Vector3Uint8& vAllWordList, MapVocabTable& vPairCount);
-    void MergeMaxPairWord(Vector3Uint8& vAllWordList, MapVocabTable& historyMerge, VectorUint8& tgtKey);
+    void CountPairWord(Vector3Uint8& vAllWordList, MapVocabPairCount& vPairCount);
+    void MergeMaxPairWord(Vector3Uint8& vAllWordList, MapVocabPairCount& historyMerge, VectorUint8& tgtKey, int64_t count);
 
     void MergeWord(VectorUint8& outMerge, const VectorUint8& a, const VectorUint8& b);
 
-    pair<VectorUint8, int64_t> FindMaxPairCount(MapVocabTable& vPairCount);
+    pair<VectorUint8, int64_t> FindMaxPairCount(MapVocabPairCount& vPairCount);
 
-    bool IsExistVocabTable(VectorUint8& v);
+    bool IsExistVocabTable(const VectorUint8& v);
     string  ToUTF8(const string& str);
     string  ToGBK(const string& str);
-    VectorString SplitText(const string& str);
-    void AddNewKeyToVocabTable(VectorUint8& vlist);
+    string  VectorUint8ToGBK(const VectorUint8& item);
+    VectorString SplitText(string str, VectorString& delimiter);
+    void AddNewKeyToVocabTable(const VectorUint8& vlist);
     string MultiByteToMultiByte(const string& str, UINT from = CP_ACP, UINT bto = CP_UTF8);
+
+    void SaveFile(const string& path = BBPE_PATH);
+    bool LoadFile(const string& path = BBPE_PATH);
 
     MapVocabTable m_mapVocabTable;
     MapIDToCodeId m_mapIDtoCodeId;
