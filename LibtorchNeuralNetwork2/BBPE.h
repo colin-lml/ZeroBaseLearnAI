@@ -18,6 +18,9 @@ using namespace std;
 #define VocabSize   600
 #define BBPE_PATH   "BBPE_Model.bin"
 
+#define BOS   "<BOS>"
+#define EOS   "</BOS>"  
+#define PAD   "<PAD>"
 
 
 struct VectorUint8Key
@@ -51,6 +54,8 @@ typedef map<int, string> MapSplitString;
 
 typedef map<VectorUint8, int64_t> MapVocabPairCount;
 
+typedef vector<int64_t> VectorCodeID;
+
 
 class BBPE
 {
@@ -59,7 +64,11 @@ public:
     ~BBPE();
     void Train(const VectorString& textList, uint32_t vocabSize = VocabSize);
 
-//private:
+    string Decode(const VectorCodeID& ids);
+
+    void Encode(const string& text, VectorCodeID& ids);
+
+private:
     void InitData();
     int GetWordSzie(uint8_t ch);
     void EnumerationWord(const VectorString& textList, Vector3Uint8& vEnumWordList);
@@ -75,14 +84,19 @@ public:
     string  ToUTF8(const string& str);
     string  ToGBK(const string& str);
     string  VectorUint8ToGBK(const VectorUint8& item);
-    VectorString SplitText(string str, VectorString& delimiter);
+    VectorString SplitText(string str, VectorString& delimiter, bool bSave=false);
     void AddNewKeyToVocabTable(const VectorUint8& vlist);
     string MultiByteToMultiByte(const string& str, UINT from = CP_ACP, UINT bto = CP_UTF8);
+
+    void AddSpecialTokens(const VectorString& tokens);
 
     void SaveFile(const string& path = BBPE_PATH);
     bool LoadFile(const string& path = BBPE_PATH);
 
     MapVocabTable m_mapVocabTable;
     MapIDToCodeId m_mapIDtoCodeId;
+
+    VectorString m_delimiters;
+    size_t m_nMaxKey = 0;
 };
 

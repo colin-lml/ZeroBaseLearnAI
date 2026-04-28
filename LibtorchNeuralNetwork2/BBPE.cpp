@@ -7,12 +7,26 @@ void remove_all_spaces(std::string& s)
 
 BBPE::BBPE()
 {
+    m_delimiters.clear();
+    m_delimiters.push_back(" ");
+    m_delimiters.push_back("?");
+    m_delimiters.push_back("!");
+    m_delimiters.push_back(",");
+    m_delimiters.push_back(".");
+
+    m_delimiters.push_back("£¬");
+    m_delimiters.push_back("¡£");
+    m_delimiters.push_back("£¡");
+    m_delimiters.push_back("£¿");
+
     if (!LoadFile())
     {
         InitData();
     }
 
 }
+
+
 BBPE::~BBPE()
 {
 
@@ -43,7 +57,7 @@ vector<size_t> FindSplitIndex(const string& str, const string& d)
     return vIndex;
 }
 
-VectorString BBPE::SplitText(string str, VectorString& delimiter)
+VectorString BBPE::SplitText(string str, VectorString& delimiter, bool bSave)
 {
 
     VectorString  wlist;
@@ -61,12 +75,20 @@ VectorString BBPE::SplitText(string str, VectorString& delimiter)
     }
     
     size_t prev = 0;
-   
+    
     for (auto& i : mapIndexList)
     {
-        std::string token(str.begin() + prev, str.begin()+ i.first);
-         
+        int dlen = i.first;
+        
+        if (bSave)
+        {
+            dlen += i.second.length();
+        }
+     
+        std::string token(str.begin() + prev, str.begin()+ dlen);
+
         prev = i.first + i.second.length();
+
         if (0 < token.length())
         {
             wlist.push_back(token);
@@ -137,6 +159,13 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
        // cout << str<<" : "<< addItem.second <<endl;
     }
 
+    VectorString special;
+    special.push_back(BOS);
+    special.push_back(EOS);
+    special.push_back(PAD);
+    //special.push_back();
+    AddSpecialTokens(special);
+
     SaveFile();
     LoadFile();
    
@@ -202,21 +231,10 @@ void BBPE::EnumerationWord(const VectorString& textList, Vector3Uint8& vEnumWord
 {
     vEnumWordList.clear();
     VectorString vAllString;
-    VectorString delimiters;
-    delimiters.push_back(" ");
-    delimiters.push_back("?");
-    delimiters.push_back("!");
-    delimiters.push_back(",");
-    delimiters.push_back(".");
- 
-    delimiters.push_back("£¬");
-    delimiters.push_back("¡£");
-    delimiters.push_back("£¡");
-    delimiters.push_back("£¿");
-
+    
     for (auto& slist : textList)
     {
-       auto  item = SplitText(slist, delimiters);
+       auto  item = SplitText(slist, m_delimiters);
        vAllString.insert(vAllString.end(), item.begin(), item.end());
     }
      
@@ -362,7 +380,11 @@ void BBPE::SaveFile(const string& path)
         f.write((const char*)&len, sizeof(len));
         f.write((const char*)k.data(), sizeof(uint8_t) * len);
         f.write((const char*)&v, sizeof(v));
+        m_nMaxKey = max(m_nMaxKey, len);
     }
+
+    f.write((const char*)&m_nMaxKey, sizeof(m_nMaxKey));
+
     
 }
 bool BBPE::LoadFile(const string& path)
@@ -398,7 +420,58 @@ bool BBPE::LoadFile(const string& path)
         AddNewKeyToVocabTable(key);
     }
 
+    m_nMaxKey = 0;
+
+    ifs.read((char*)&m_nMaxKey, sizeof(m_nMaxKey));
+
     b = true;
 
     return b;
 }
+
+void BBPE::AddSpecialTokens(const VectorString& tokens)
+{
+    for (auto& slist : tokens)
+    {
+        auto strutf8 = ToUTF8(slist);
+        VectorUint8 item;
+        for (int j = 0; j < strutf8.length(); j++)
+        {
+            item.push_back(strutf8[j]);
+        }
+
+        if (0 < item.size())
+        {
+            AddNewKeyToVocabTable(item);
+        }
+    }
+    
+}
+
+
+void BBPE::Encode(const string& text, VectorCodeID& ids)
+{
+    ids.clear();
+    auto  vListText = SplitText(text, m_delimiters, true);
+
+   
+}
+
+
+string BBPE::Decode(const VectorCodeID& ids)
+{
+    string str="";
+
+    for (auto& k : ids)
+    {
+        if (m_mapIDtoCodeId.find(k) !=  m_mapIDtoCodeId.end())
+        {
+            auto vlist = m_mapIDtoCodeId.at(k);
+            str += VectorUint8ToGBK(vlist);
+        }
+    }
+
+    return str;
+}
+
+

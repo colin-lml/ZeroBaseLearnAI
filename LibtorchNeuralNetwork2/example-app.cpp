@@ -284,7 +284,8 @@ public:
                         auto& tok = p.first;
                         if (!b2i.count(tok)) continue;
                         uint32_t id = b2i[tok];
-                        if (id < min_id) {
+                        if (id < min_id) 
+                        {
                             min_id = id;
                             best = tok;
                         }
@@ -450,6 +451,8 @@ int main()
 
     BBPE bbpe;
     bbpe.Train(corpus);
+    VectorCodeID ids;
+    bbpe.Encode("µç÷©±àÂë²âÊÔ token, bbpe ·Ö´ÊËã·¨¡£", ids);
 
    /// auto ss = ToUTF8(a);
   //  main2();
