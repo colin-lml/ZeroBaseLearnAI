@@ -70,8 +70,9 @@ public:
 
 private:
     void InitData();
-    int GetWordSzie(uint8_t ch);
-    void EnumerationWord(const VectorString& textList, Vector3Uint8& vEnumWordList);
+    int  GetWordSzie(uint8_t ch);
+    
+    void DataCleansingWord(const VectorString& textList, Vector3Uint8& vEnumWordList);
 
     void CountPairWord(Vector3Uint8& vAllWordList, MapVocabPairCount& vPairCount);
     void MergeMaxPairWord(Vector3Uint8& vAllWordList, MapVocabPairCount& historyMerge, VectorUint8& tgtKey, int64_t count);
@@ -92,6 +93,9 @@ private:
 
     void SaveFile(const string& path = BBPE_PATH);
     bool LoadFile(const string& path = BBPE_PATH);
+
+    VectorUint8 GetWordEncode(VectorUint8& word);
+    void TokenizerVector(string& textLis, Vector2Uint8& vEnumWordList);
 
     MapVocabTable m_mapVocabTable;
     MapIDToCodeId m_mapIDtoCodeId;

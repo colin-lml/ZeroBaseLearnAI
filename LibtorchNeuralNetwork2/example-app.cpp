@@ -452,7 +452,7 @@ int main()
     BBPE bbpe;
     bbpe.Train(corpus);
     VectorCodeID ids;
-    bbpe.Encode("电鳗编码测试 token, bbpe 分词算法。", ids);
+    bbpe.Encode("<BOS>电鳗编码测试 token, bbpe 分词算法。<PAD><PAD></BOS>", ids);
 
    /// auto ss = ToUTF8(a);
   //  main2();

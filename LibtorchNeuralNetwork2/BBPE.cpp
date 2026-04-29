@@ -132,7 +132,7 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
     std::remove(BBPE_PATH);
 
     InitData();
-    EnumerationWord(textList, vEnumWordList);
+    DataCleansingWord(textList, vEnumWordList);
 
 
     while ((historyMerge.size() + m_mapVocabTable.size()) < vocabSize)
@@ -227,7 +227,7 @@ int  BBPE::GetWordSzie(uint8_t ch)
     return  len;
 }
 
-void BBPE::EnumerationWord(const VectorString& textList, Vector3Uint8& vEnumWordList)
+void BBPE::DataCleansingWord(const VectorString& textList, Vector3Uint8& vEnumWordList)
 {
     vEnumWordList.clear();
     VectorString vAllString;
@@ -453,8 +453,28 @@ void BBPE::Encode(const string& text, VectorCodeID& ids)
 {
     ids.clear();
     auto  vListText = SplitText(text, m_delimiters, true);
+    auto  special = regex(R"(<[^>]*>)");
+  
+    sregex_token_iterator it(text.begin(), text.end(), special, { -1, 0 });
+    sregex_token_iterator end;
 
-   
+    for (auto seq = it; seq != end; ++seq)
+    {
+        string s = *seq;
+        if (s.empty())
+        {
+            continue;
+        }
+
+        bool bEncode = false;
+        if (s.length() <= m_nMaxKey)
+        {
+
+        }
+        cout << s <<  endl;
+
+    }
+
 }
 
 
@@ -472,6 +492,16 @@ string BBPE::Decode(const VectorCodeID& ids)
     }
 
     return str;
+}
+
+VectorUint8 BBPE::GetWordEncode(VectorUint8& word)
+{
+
+}
+
+void BBPE::TokenizerVector(string& textLis, Vector2Uint8& vEnumWordList)
+{
+
 }
 
 
