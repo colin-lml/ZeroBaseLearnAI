@@ -159,7 +159,7 @@ public:
 	
 	string predict(string ch, translatDatasetOnly& dataTest)
 	{
-		ch = "S" + ch;
+		ch = "<BOS>" + ch;
 		
 		auto tgtpad = dataTest.GetTangshiCode(ch);
 		
@@ -248,7 +248,7 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 		}
 
 
-		if (i % 5 == 0 || (i + 1 == maxtrain))
+		if (i % 2 == 0 || (i + 1 == maxtrain))
 		{
 			std::cout << "i: " << i + 1 << " / " << maxtrain << " , loss: " << total_loss << std::endl;
 		}
@@ -273,11 +273,11 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
 	std::cout << "测试:" << std::endl;
 	std::vector<std::string> tests;
 
-	tests.push_back("静夜思");
-	tests.push_back("相思");
+	tests.push_back("美人临残月");
+	tests.push_back("白檀山下水声秋");
 	
-	tests.push_back("床前明月光");
-	tests.push_back("白日依山尽");
+	tests.push_back("雄关阻塞戴灵鳌");
+	tests.push_back("伏雨朝寒悉不胜");
 	//tests.push_back("众鸟高飞尽");
 	//tests.push_back("松下问童子");
 
@@ -302,7 +302,7 @@ void DecoderOnlyMain()
 {
 	
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(4, 1, 16, 1);
+	DecodersOnly model(128, 4, 512, 1);
 
 	std::string model_path = "Decoder_Only_model3.pt";
 	std::ifstream filem(model_path);
