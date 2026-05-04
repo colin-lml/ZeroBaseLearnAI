@@ -30,7 +30,7 @@ public:
 
 	torch::data::Example<>  get(size_t index) override
 	{
-		
+		/* 
 		auto item = m_vdata.at(index);
 		item.pop_back();
 		auto inpput = torch::tensor(item, torch::kLong);
@@ -38,20 +38,22 @@ public:
 		item = m_vdata.at(index);
 		item.erase(item.begin());
 		auto lable = torch::tensor(item, torch::kLong);
-
+		
 		return {inpput, lable};
+		*/
+		return {   };
 	}
 	std::vector<int64_t> GetTangshiCode(std::string& line)
 	{
-		return m_dataToken.GetTangshiCode(line);
+		return {};//m_dataToken.GetTangshiCode(line);
 	}
 	std::string GetTangshiString(std::vector<int64_t>& vList)
 	{
-		return m_dataToken.GetTangshiString(vList);
+		return "";//m_dataToken.GetTangshiString(vList);
 	}
 public:
 	
-	std::vector<std::vector<int64_t>> m_vdata;
+	std::vector<VectorCodeTangshi> m_vdata;
 	Tokenizer m_dataToken;
 };
 

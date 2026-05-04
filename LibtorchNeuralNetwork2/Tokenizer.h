@@ -3,8 +3,8 @@
 #include <iostream>
 #include "json.hpp"
 
+#include "BBPE.h"
 
-#define PadId 0
 
 
 typedef struct _Tangshi
@@ -15,50 +15,46 @@ typedef struct _Tangshi
 
 }Tangshi;
 
+struct VectorCodeTangshi
+{
+	VectorCodeID title;
+	VectorCodeID author;
+	VectorCodeID content;
+};
 
-typedef std::unordered_map<std::string, int64_t> CorpusVocabStoID;
-typedef std::unordered_map<int64_t, std::string> CorpusVocabIDtoS;
+
 
 class Tokenizer
 {
 public:
 	void InitLoadDataSrc();
-	std::vector<int64_t> GetTangshiCode(std::string& line);
-	std::string GetTangshiString(std::vector<int64_t>& vList);
-
-	std::vector<std::vector<int64_t>>& GetEncodeData()
+	
+	std::vector<VectorCodeTangshi>& GetEncodeData()
 	{
 		return m_vEncodeDataList;
 	}
 
 	int64_t GetCorpusVocabCount()
 	{
-		return m_stringToID.size();
+		//return m_stringToID.size();
+		return 0;
 	}
 
 private:
 	void LoadDataTxtFile();
-	int ChineseCount(const std::string& s);
-	bool IsChinese(const char& ch);
-	std::vector<std::string> SplitString(std::string line);
+
 	void InitTokenizer(std::vector<Tangshi>& vDataList);
 
-	void AddVocabTable(std::vector<std::string>& stringList,CorpusVocabStoID&stringID, CorpusVocabIDtoS& IDString);
-
-	void saveMap(CorpusVocabStoID& map1, std::vector<std::vector<int64_t>>& vData);
+	void saveMap(std::vector<VectorCodeTangshi>& vData);
 	bool loadMap();
 	void InitEncodeTangshi(std::vector<Tangshi>& vDataList);
 
 	std::vector<Tangshi> m_vdata;
-	std::vector<std::vector<int64_t>> m_vEncodeDataList;
-
-	int m_nMaxTitle = 0;
-	int m_nMaxAuthor = 0;
-	int m_nMaxContent = 0;
-
-	CorpusVocabStoID m_stringToID;
-	CorpusVocabIDtoS m_IDToString;
+	std::vector<VectorCodeTangshi> m_vEncodeDataList;
 	
+	//std::vector<std::vector<int64_t>> m_vEncodeDataList;
+
 	const std::string  m_strBinFile = "TokenizerData.bin";
+	BBPE m_bbpe;
 };
 

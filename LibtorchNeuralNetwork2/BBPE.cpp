@@ -7,18 +7,6 @@ void remove_all_spaces(std::string& s)
 
 BBPE::BBPE()
 {
-    m_delimiters.clear();
-    m_delimiters.push_back(" ");
-    m_delimiters.push_back("?");
-    m_delimiters.push_back("!");
-    m_delimiters.push_back(",");
-    m_delimiters.push_back(".");
-
-    m_delimiters.push_back("£¬");
-    m_delimiters.push_back("¡£");
-    m_delimiters.push_back("£¡");
-    m_delimiters.push_back("£¿");
-
     if (!LoadFile())
     {
         InitData();
@@ -57,46 +45,6 @@ vector<size_t> FindSplitIndex(const string& str, const string& d)
     return vIndex;
 }
 
-VectorString BBPE::SplitText(string str, VectorString& delimiter, bool bSave)
-{
-
-    VectorString  wlist;
-    
-    MapSplitString mapIndexList;
-    
-    for (auto& d : delimiter)
-    {
-        auto x = FindSplitIndex(str, d);
-      
-        for (auto& i : x)
-        {
-            mapIndexList.emplace(i,d);
-        }               
-    }
-    
-    size_t prev = 0;
-    
-    for (auto& i : mapIndexList)
-    {
-        int dlen = i.first;
-        
-        if (bSave)
-        {
-            dlen += i.second.length();
-        }
-     
-        std::string token(str.begin() + prev, str.begin()+ dlen);
-
-        prev = i.first + i.second.length();
-
-        if (0 < token.length())
-        {
-            wlist.push_back(token);
-        }
-    }
-    
-    return wlist;
-}
 
 string BBPE::VectorUint8ToGBK(const VectorUint8& item)
 {
@@ -156,7 +104,7 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
     {
         AddNewKeyToVocabTable(addItem.first);
         //auto str = VectorUint8ToGBK(addItem.first);
-       // cout << str<<" : "<< addItem.second <<endl;
+        //cout << str<<" : "<< addItem.second <<endl;
     }
 
     VectorString special;
@@ -167,9 +115,22 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
     AddSpecialTokens(special);
 
     SaveFile();
-    LoadFile();
+    //LoadFile();
    
 }
+
+bool BBPE::IsExistVocabTable(const string& str)
+{
+    VectorUint8 v;
+    for (int i = 0; i < str.length(); i++)
+    {
+        v.push_back(str[i]);
+    }
+
+    return IsExistVocabTable(v);
+}
+
+
 
 bool BBPE::IsExistVocabTable(const VectorUint8& v)
 {
@@ -227,20 +188,39 @@ int  BBPE::GetWordSzie(uint8_t ch)
     return  len;
 }
 
+
+
 void BBPE::DataCleansingWord(const VectorString& textList, Vector3Uint8& vEnumWordList)
 {
     vEnumWordList.clear();
     VectorString vAllString;
-    
+
+    string strReg = R"(\x3F|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82)";
+  
+    auto  special = regex(strReg);
+
     for (auto& slist : textList)
     {
-       auto  item = SplitText(slist, m_delimiters);
-       vAllString.insert(vAllString.end(), item.begin(), item.end());
+        auto strText= ToUTF8(slist);
+        sregex_token_iterator it(strText.begin(), strText.end(), special, {-1,1});
+        sregex_token_iterator end;
+
+        for (auto seq = it; seq != end; seq++)
+        {
+            string s = *seq;
+            if (s.empty())
+            {
+                continue;
+            }
+            //cout << ToGBK(s) << endl;
+            vAllString.push_back(s);
+        }
+          
     }
      
     for (auto& slist : vAllString)
     {
-        auto strutf8 =  ToUTF8(slist);
+        auto strutf8 =  slist;
 
         Vector2Uint8 item;
         for (int i=0;i< strutf8.size();i++)
@@ -416,8 +396,9 @@ bool BBPE::LoadFile(const string& path)
         key.resize(len);
         ifs.read((char*)key.data(), len * sizeof(uint8_t));
         ifs.read((char*)&v, sizeof(v));
-
-        AddNewKeyToVocabTable(key);
+        m_mapVocabTable.emplace(key, v);
+        m_mapIDtoCodeId.emplace(v, key);
+        ///AddNewKeyToVocabTable(key);
     }
 
     m_nMaxKey = 0;
@@ -452,12 +433,13 @@ void BBPE::AddSpecialTokens(const VectorString& tokens)
 void BBPE::Encode(const string& text, VectorCodeID& ids)
 {
     ids.clear();
-    auto  vListText = SplitText(text, m_delimiters, true);
+
     auto  special = regex(R"(<[^>]*>)");
   
     sregex_token_iterator it(text.begin(), text.end(), special, { -1, 0 });
     sregex_token_iterator end;
 
+   
     for (auto seq = it; seq != end; ++seq)
     {
         string s = *seq;
@@ -465,15 +447,63 @@ void BBPE::Encode(const string& text, VectorCodeID& ids)
         {
             continue;
         }
-
+        Vector2Uint8 vEnumWordList;
+        auto  utf8 = ToUTF8(s);
         bool bEncode = false;
-        if (s.length() <= m_nMaxKey)
+        if (utf8.length() <= m_nMaxKey)
         {
-
+            if (IsExistVocabTable(utf8))
+            {
+                auto w =  GetWordEncode(utf8);
+                ids.insert(ids.end(), w.begin(), w.end());
+            }
+            else
+            {
+                TokenizerVector(utf8, vEnumWordList);
+            }
         }
-        cout << s <<  endl;
+        else
+        {
+            TokenizerVector(utf8, vEnumWordList);
+        }
 
+        for (int  i = 0; i < vEnumWordList.size(); i++)
+        {
+            bool b = false;
+            VectorUint8 merged = vEnumWordList[i];
+            do
+            {
+                VectorUint8 out;
+
+                if (i + 1 < vEnumWordList.size())
+                {
+                    MergeWord(out, merged, vEnumWordList[i + 1]);
+                }
+                else
+                {
+                    out = merged;
+                }
+                   
+                b = IsExistVocabTable(out);
+                if (!b)
+                {
+                    break;
+                }
+                merged = out;
+                i += 1;
+
+            } while (i + 1 < vEnumWordList.size());
+
+            auto w = GetWordEncode(merged);
+            ids.insert(ids.end(), w.begin(), w.end());
+            //string strk(merged.begin(), merged.end());
+            ///cout << ToGBK(strk)<< endl;
+        }
+            
     }
+
+    //string strk(ids.begin(), ids.end());
+   // cout << Decode(ids) << endl;
 
 }
 
@@ -481,27 +511,93 @@ void BBPE::Encode(const string& text, VectorCodeID& ids)
 string BBPE::Decode(const VectorCodeID& ids)
 {
     string str="";
+    VectorUint8 strList;
 
     for (auto& k : ids)
     {
         if (m_mapIDtoCodeId.find(k) !=  m_mapIDtoCodeId.end())
         {
             auto vlist = m_mapIDtoCodeId.at(k);
-            str += VectorUint8ToGBK(vlist);
+            strList.insert(strList.end(), vlist.begin(), vlist.end());
+            //str += VectorUint8ToGBK(vlist);
         }
     }
-
+    str = VectorUint8ToGBK(strList);
     return str;
 }
 
-VectorUint8 BBPE::GetWordEncode(VectorUint8& word)
+VectorCodeID  BBPE::GetWordEncode(const string& str)
 {
+    VectorUint8 word;
+    for (auto& i:str)
+    {
+        word.push_back(i);
+    }
 
+    return GetWordEncode(word);
+}
+
+VectorCodeID BBPE::GetWordEncode(VectorUint8& word)
+{
+    VectorCodeID res;
+
+    if (m_mapVocabTable.find(word) != m_mapVocabTable.end())
+    {
+        res.push_back(m_mapVocabTable.at(word));
+    }
+    else
+    {
+        for (auto& w: word)
+        {
+            res.push_back(m_mapVocabTable.at({ w }));
+        }
+    }
+
+    return res;
 }
 
 void BBPE::TokenizerVector(string& textLis, Vector2Uint8& vEnumWordList)
 {
+    vEnumWordList.clear();
+    auto strutf8 = textLis;
 
+    for (int i = 0; i < strutf8.size(); i++)
+    {
+        int len = GetWordSzie(strutf8[i]);
+        VectorUint8 word;
+
+        for (int j = 0; j < len; j++)
+        {
+            word.push_back(strutf8[i + j]);
+        }
+        vEnumWordList.push_back(word);
+        i += len - 1;
+    }
 }
 
+
+int64_t BBPE::GetBOS()
+{
+   return  GetSpecialString(BOS);
+
+}
+int64_t BBPE::GetEOS()
+{
+    return  GetSpecialString(EOS);
+}
+int64_t BBPE::GetPAD()
+{
+    return GetSpecialString(PAD);
+}
+
+INT64 BBPE::GetSpecialString(const string& str)
+{
+    auto strutf8 = ToUTF8(str);
+    VectorUint8 item;
+    for (int j = 0; j < strutf8.length(); j++)
+    {
+        item.push_back(strutf8[j]);
+    }
+    return  m_mapVocabTable.at(item);
+}
 

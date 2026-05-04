@@ -65,9 +65,10 @@ public:
     void Train(const VectorString& textList, uint32_t vocabSize = VocabSize);
 
     string Decode(const VectorCodeID& ids);
-
     void Encode(const string& text, VectorCodeID& ids);
-
+    int64_t GetBOS();
+    int64_t GetEOS();
+    int64_t GetPAD();
 private:
     void InitData();
     int  GetWordSzie(uint8_t ch);
@@ -81,11 +82,12 @@ private:
 
     pair<VectorUint8, int64_t> FindMaxPairCount(MapVocabPairCount& vPairCount);
 
+    bool IsExistVocabTable(const string& str);
     bool IsExistVocabTable(const VectorUint8& v);
     string  ToUTF8(const string& str);
     string  ToGBK(const string& str);
     string  VectorUint8ToGBK(const VectorUint8& item);
-    VectorString SplitText(string str, VectorString& delimiter, bool bSave=false);
+    
     void AddNewKeyToVocabTable(const VectorUint8& vlist);
     string MultiByteToMultiByte(const string& str, UINT from = CP_ACP, UINT bto = CP_UTF8);
 
@@ -94,13 +96,15 @@ private:
     void SaveFile(const string& path = BBPE_PATH);
     bool LoadFile(const string& path = BBPE_PATH);
 
-    VectorUint8 GetWordEncode(VectorUint8& word);
+    VectorCodeID GetWordEncode(const string& str);
+    VectorCodeID GetWordEncode(VectorUint8& word);
     void TokenizerVector(string& textLis, Vector2Uint8& vEnumWordList);
+
+    INT64 GetSpecialString(const string& str);
 
     MapVocabTable m_mapVocabTable;
     MapIDToCodeId m_mapIDtoCodeId;
 
-    VectorString m_delimiters;
     size_t m_nMaxKey = 0;
 };
 
