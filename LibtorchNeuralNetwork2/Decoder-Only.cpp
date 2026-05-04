@@ -188,7 +188,7 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 {
 	double accuracy = 0.05;
 	auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
-	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(100));
+	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(90));
 	auto options = torch::nn::CrossEntropyLossOptions().ignore_index(PadId);
 	torch::nn::CrossEntropyLoss loss_fn(options);
 	//torch::nn::functional::cross_entropy loss_fn(options);
@@ -199,8 +199,10 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 
 	auto start_time = chrono::high_resolution_clock::now();
 
+	
 	for (int i = 0; i < maxtrain; i++)
 	{
+		uint64_t k = 0;
 		float total_loss = 0;
 		for (auto& item : *train_data_loader)
 		{
@@ -225,7 +227,7 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 			loss.backward();
 
 			optimizer.step();
-
+			std::cout <<i<< " ... "<<k++ << std::endl;
 		}
 
 
@@ -283,7 +285,7 @@ void DecoderOnlyMain()
 {
 	
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(32, 1, 128, 1);
+	DecodersOnly model(64, 1, 128, 1);
 
 	std::string model_path = "Decoder_Only_model3.pt";
 	std::ifstream filem(model_path);
