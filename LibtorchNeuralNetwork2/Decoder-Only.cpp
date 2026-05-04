@@ -29,6 +29,30 @@ public:
 			m_nMaxContent = max(m_nMaxContent, item.content.size());
 		}
 
+		for (auto& item : m_vdata)
+		{
+			VectorCodeID input;
+			input.push_back(m_dataToken.GetBOS());
+			auto addPadLen = m_nMaxContent - item.content.size();
+			input.insert(input.end(), item.content.begin(), item.content.end());
+			for (size_t i = 0; i < addPadLen; i++)
+			{
+				input.push_back(m_dataToken.GetPAD());
+			}
+
+			InputContent.push_back(input);
+
+			input.clear();
+			input.insert(input.end(), item.content.begin(), item.content.end());
+			input.push_back(m_dataToken.GetEOS());
+			for (size_t i = 0; i < addPadLen; i++)
+			{
+				input.push_back(m_dataToken.GetPAD());
+			}
+
+			LableContent.push_back(input);
+		}
+
 	}
 
 	torch::optional<size_t> size() const
@@ -39,26 +63,14 @@ public:
 	torch::data::Example<>  get(size_t index) override
 	{
 		
-		auto in = m_vdata.at(index);
-		in.content.insert(in.content.begin(), m_dataToken.GetBOS());
-		auto addPadLen = m_nMaxContent - in.content.size();
-
-		for (size_t i = 0; i < addPadLen; i++)
-		{
-			in.content.insert(in.content.end(), m_dataToken.GetPAD());
-		}
-		auto inpput = torch::tensor(in.content, torch::kLong);
+		auto in = InputContent.at(index);
+		
+		auto inpput = torch::tensor(in, torch::kLong);
 
 
-
-		auto out = m_vdata.at(index);
-		out.content.insert(out.content.end(), m_dataToken.GetEOS());
-		addPadLen = m_nMaxContent - out.content.size();
-		for (size_t i = 0; i < addPadLen; i++)
-		{
-			out.content.insert(out.content.end(), m_dataToken.GetPAD());
-		}
-		auto lable = torch::tensor(out.content, torch::kLong);
+		auto out = LableContent.at(index);
+		
+		auto lable = torch::tensor(out, torch::kLong);
 		
 		return {inpput, lable};
 
@@ -71,7 +83,10 @@ public:
 	{
 		return m_dataToken.Decode(vList);
 	}
-
+	INT64 GetPad()
+	{
+		return m_dataToken.GetPAD();
+	}
 public:
 	
 	std::vector<VectorCodeTangshi> m_vdata;
@@ -80,6 +95,8 @@ public:
 	size_t m_nMaxAuthor = 0;
 	size_t m_nMaxContent = 0;
 
+	std::vector<VectorCodeID> InputContent;
+	std::vector <VectorCodeID> LableContent;
 };
 
 
@@ -189,7 +206,7 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 	double accuracy = 0.05;
 	auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
 	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(90));
-	auto options = torch::nn::CrossEntropyLossOptions().ignore_index(PadId);
+	auto options = torch::nn::CrossEntropyLossOptions().ignore_index(dataTrain.GetPad());
 	torch::nn::CrossEntropyLoss loss_fn(options);
 	//torch::nn::functional::cross_entropy loss_fn(options);
 
@@ -227,7 +244,7 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 			loss.backward();
 
 			optimizer.step();
-			std::cout <<i<< " ... "<<k++ << std::endl;
+			///std::cout <<i<< " ... "<<k++ << std::endl;
 		}
 
 
@@ -285,7 +302,7 @@ void DecoderOnlyMain()
 {
 	
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(64, 1, 128, 1);
+	DecodersOnly model(4, 1, 16, 1);
 
 	std::string model_path = "Decoder_Only_model3.pt";
 	std::ifstream filem(model_path);
