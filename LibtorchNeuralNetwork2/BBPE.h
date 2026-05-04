@@ -69,6 +69,11 @@ public:
     int64_t GetBOS();
     int64_t GetEOS();
     int64_t GetPAD();
+
+    int64_t GetCorpusVocabCount()
+    {
+        return m_mapVocabTable.size();
+    }
 private:
     void InitData();
     int  GetWordSzie(uint8_t ch);

@@ -21,6 +21,14 @@ public:
 		m_dataToken.InitLoadDataSrc();
 		m_vdata = m_dataToken.GetEncodeData();
 		gCorpusVocabCount = m_dataToken.GetCorpusVocabCount();
+
+		for (auto& item : m_vdata)
+		{
+			m_nMaxTitle = max(m_nMaxTitle, item.title.size());
+			m_nMaxAuthor = max(m_nMaxAuthor, item.author.size());
+			m_nMaxContent = max(m_nMaxContent, item.content.size());
+		}
+
 	}
 
 	torch::optional<size_t> size() const
@@ -30,31 +38,48 @@ public:
 
 	torch::data::Example<>  get(size_t index) override
 	{
-		/* 
-		auto item = m_vdata.at(index);
-		item.pop_back();
-		auto inpput = torch::tensor(item, torch::kLong);
+		
+		auto in = m_vdata.at(index);
+		in.content.insert(in.content.begin(), m_dataToken.GetBOS());
+		auto addPadLen = m_nMaxContent - in.content.size();
 
-		item = m_vdata.at(index);
-		item.erase(item.begin());
-		auto lable = torch::tensor(item, torch::kLong);
+		for (size_t i = 0; i < addPadLen; i++)
+		{
+			in.content.insert(in.content.end(), m_dataToken.GetPAD());
+		}
+		auto inpput = torch::tensor(in.content, torch::kLong);
+
+
+
+		auto out = m_vdata.at(index);
+		out.content.insert(out.content.end(), m_dataToken.GetEOS());
+		addPadLen = m_nMaxContent - out.content.size();
+		for (size_t i = 0; i < addPadLen; i++)
+		{
+			out.content.insert(out.content.end(), m_dataToken.GetPAD());
+		}
+		auto lable = torch::tensor(out.content, torch::kLong);
 		
 		return {inpput, lable};
-		*/
-		return {   };
+
 	}
 	std::vector<int64_t> GetTangshiCode(std::string& line)
 	{
-		return {};//m_dataToken.GetTangshiCode(line);
+		return m_dataToken.Encode(line);
 	}
 	std::string GetTangshiString(std::vector<int64_t>& vList)
 	{
-		return "";//m_dataToken.GetTangshiString(vList);
+		return m_dataToken.Decode(vList);
 	}
+
 public:
 	
 	std::vector<VectorCodeTangshi> m_vdata;
 	Tokenizer m_dataToken;
+	size_t m_nMaxTitle = 0;
+	size_t m_nMaxAuthor = 0;
+	size_t m_nMaxContent = 0;
+
 };
 
 
@@ -258,7 +283,7 @@ void DecoderOnlyMain()
 {
 	
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(128, 4, 512, 2);
+	DecodersOnly model(32, 1, 128, 1);
 
 	std::string model_path = "Decoder_Only_model3.pt";
 	std::ifstream filem(model_path);

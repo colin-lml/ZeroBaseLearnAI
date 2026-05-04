@@ -36,8 +36,34 @@ public:
 
 	int64_t GetCorpusVocabCount()
 	{
-		//return m_stringToID.size();
-		return 0;
+		return m_bbpe.GetCorpusVocabCount();
+		
+	}
+	int64_t GetBOS()
+	{
+		return m_bbpe.GetBOS();
+	}
+	int64_t GetEOS()
+	{
+		return m_bbpe.GetEOS();
+	}
+	int64_t GetPAD()
+	{
+		return m_bbpe.GetPAD();
+	}
+
+	string Decode(const VectorCodeID& ids)
+	{
+		return m_bbpe.Decode(ids);
+	}
+
+	std::vector<int64_t> Encode(const string& text)
+	{
+		VectorCodeID ids;
+
+		m_bbpe.Encode(text, ids);
+
+		return ids;
 	}
 
 private:
@@ -52,7 +78,6 @@ private:
 	std::vector<Tangshi> m_vdata;
 	std::vector<VectorCodeTangshi> m_vEncodeDataList;
 	
-	//std::vector<std::vector<int64_t>> m_vEncodeDataList;
 
 	const std::string  m_strBinFile = "TokenizerData.bin";
 	BBPE m_bbpe;
