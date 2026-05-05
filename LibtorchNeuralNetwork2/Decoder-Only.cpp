@@ -8,7 +8,7 @@
 #include "Tokenizer.h"
 
 using namespace std;
-#define  maxtrain    1000*10
+#define  maxtrain    1000*5
 
 static	int64_t	gCorpusVocabCount = 0;
 
@@ -118,7 +118,7 @@ public:
 		{
 			torch::nn::TransformerEncoderLayerOptions opt(dim, head);
 			opt.dim_feedforward(ffn);
-			opt.dropout(0);
+			//opt.dropout(0);
 			auto options = torch::nn::TransformerEncoderLayer(opt); 
 			
 			moduleLayers->push_back(options);
@@ -205,12 +205,12 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 {
 	double accuracy = 0.05;
 	auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
-	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(90));
+	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(80));
 	auto options = torch::nn::CrossEntropyLossOptions().ignore_index(dataTrain.GetPad());
 	torch::nn::CrossEntropyLoss loss_fn(options);
 	//torch::nn::functional::cross_entropy loss_fn(options);
 
-	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
+	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-4));
 	model->train();
 	std::cout << "ÑµÁ·Ä£ÐÍ" << std::endl;
 
@@ -248,7 +248,7 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 		}
 
 
-		if (i % 2 == 0 || (i + 1 == maxtrain))
+		if (i % 1 == 0 || (i + 1 == maxtrain))
 		{
 			std::cout << "i: " << i + 1 << " / " << maxtrain << " , loss: " << total_loss << std::endl;
 		}
@@ -302,7 +302,7 @@ void DecoderOnlyMain()
 {
 	
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(128, 4, 512, 1);
+	DecodersOnly model(32, 2, 128, 1);
 
 	std::string model_path = "Decoder_Only_model3.pt";
 	std::ifstream filem(model_path);
