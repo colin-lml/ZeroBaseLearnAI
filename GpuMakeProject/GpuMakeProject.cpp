@@ -104,6 +104,10 @@ public:
         int64_t batch = x.size(0);
         int64_t seq = x.size(1);
         auto src_mask = generate_square_subsequent_mask(seq);
+
+        auto tgt_key_padding_mask = (x == 0).to(torch::kBool);
+
+
         x = m_emb->forward(x);
         
         x = x.permute({ 1,0, 2 });
@@ -111,7 +115,7 @@ public:
 
         for (auto& item :  *moduleLayers)
         {
-            x = item->as<torch::nn::TransformerEncoderLayer>()->forward(x, src_mask);
+            x = item->as<torch::nn::TransformerEncoderLayer>()->forward(x, src_mask, tgt_key_padding_mask);
             //std::cout << "tgt\n" << tgt.sizes() << std::endl;
             //tgt = item->as<torch::nn::TransformerEncoderLayer>()->forward(tgt);
         }
@@ -140,6 +144,10 @@ TORCH_MODULE(DecodersOnly);
 
 int main()
 {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(4, 600);
+
 	gDType = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
 
     double accuracy = 0.0003;
@@ -168,8 +176,9 @@ int main()
     in.push_back(1);
     for (int i=3;i<320;i++)
     {
-        in.push_back(i);
-        lab.push_back(i);
+        int randomNumber = dis(gen);
+        in.push_back(randomNumber);
+        lab.push_back(randomNumber);
     }
    lab.push_back(2);
 
