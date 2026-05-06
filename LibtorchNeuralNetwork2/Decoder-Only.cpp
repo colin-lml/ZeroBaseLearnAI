@@ -117,7 +117,7 @@ public:
 
 		tgt_emb_ = register_module("tgt_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(gCorpusVocabCount, dim)));
 		//pos_encoder = register_module("pos_encoder", torch::nn::Embedding(torch::nn::EmbeddingOptions(gCorpusVocabCount, dim)));
-		pos_encoder = register_module("pos_encoder", PositionalEncoding(dim, max_vocab_len));;
+		pos_encoder = register_module("pos_encoder", PositionalEncoding(dim, max_vocab_len));
 
 		fc = register_module("fc", torch::nn::Linear(dim, gCorpusVocabCount));
 
@@ -149,7 +149,7 @@ public:
 		//pos = pos.unsqueeze(0).repeat({ batch, 1 });
 
 		//tgt = tgt.permute({ 1,0 });
-		tgt = tgt_emb_->forward(tgt) * std::sqrt(m_dim);
+		tgt = tgt_emb_->forward(tgt);
 		tgt = pos_encoder->forward(tgt);
 
 		///tgt = tgt + pos2;
@@ -193,7 +193,6 @@ public:
 
 		return dataTest.GetTangshiString(tgtpad);
 	}
-
 
 
 	int64_t m_dim = 0;

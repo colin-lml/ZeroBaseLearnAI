@@ -7,4 +7,5 @@
 
 #include <torch/torch.h>
 
+#include <fstream>
 // TODO: 在此处引用程序需要的其他标头。
