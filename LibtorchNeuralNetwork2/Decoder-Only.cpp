@@ -10,6 +10,7 @@
 using namespace std;
 #define  maxtrain    1000*5
 
+static	int64_t  gPad = 0;
 static	int64_t	gCorpusVocabCount = 0;
 
 class translatDatasetOnly : public torch::data::Dataset<translatDatasetOnly>
@@ -53,6 +54,7 @@ public:
 			LableContent.push_back(input);
 		}
 
+		gPad = m_dataToken.GetPAD();
 	}
 
 	torch::optional<size_t> size() const
@@ -86,6 +88,11 @@ public:
 	INT64 GetPad()
 	{
 		return m_dataToken.GetPAD();
+	}
+
+	INT64 GetEOS()
+	{
+		return m_dataToken.GetEOS();
 	}
 public:
 	
@@ -133,7 +140,7 @@ public:
 		int64_t seq = tgt.size(1);
 		int64_t batch = tgt.size(0);
 		auto tgt_mask = generate_square_subsequent_mask(seq);
-		auto tgt_key_padding_mask = (tgt == PadId).to(torch::kBool);  // [batch,seq]
+		auto tgt_key_padding_mask = (tgt == gPad).to(torch::kBool);  // [batch,seq]
 		//std::cout << "tgt_mask\n" << tgt_mask << std::endl;
 		//std::cout << "tgt_key_padding_mask\n" << tgt_key_padding_mask << std::endl;
 		//[batch, seq]  --> [seq, batch]
@@ -141,13 +148,13 @@ public:
 		//torch::Tensor pos = torch::arange(0, seq);
 		//pos = pos.unsqueeze(0).repeat({ batch, 1 });
 
-		tgt = tgt.permute({ 1,0 });
+		//tgt = tgt.permute({ 1,0 });
 		tgt = tgt_emb_->forward(tgt) * std::sqrt(m_dim);
 		tgt = pos_encoder->forward(tgt);
 
 		///tgt = tgt + pos2;
 
-		//tgt = tgt.permute({ 1,0, 2});
+		tgt = tgt.permute({ 1,0, 2});
 
 		for each(auto& item in * moduleLayers)
 		{
@@ -177,7 +184,7 @@ public:
 			auto next_token = out.argmax(-1);
 			int64_t key = next_token[i].item<int64_t>();
 			tgtpad.push_back(key);
-			if (key == 2)
+			if (key == dataTest.GetEOS())
 			{
 				break;
 			}
@@ -209,7 +216,7 @@ void TrainData3(DecodersOnly& model, translatDatasetOnly& dataTrain)
 {
 	double accuracy = 0.05;
 	auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
-	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(100));
+	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(300));
 	auto options = torch::nn::CrossEntropyLossOptions().ignore_index(dataTrain.GetPad());
 	torch::nn::CrossEntropyLoss loss_fn(options);
 	//torch::nn::functional::cross_entropy loss_fn(options);
@@ -279,11 +286,11 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
 	std::cout << "²âÊÔ:" << std::endl;
 	std::vector<std::string> tests;
 
-	tests.push_back("ÃÀÈËÁÙ²ĞÔÂ");
-	tests.push_back("°×Ì´É½ÏÂË®ÉùÇï");
+	tests.push_back("»­ÌÃ´º");
+	tests.push_back("¾ÆÈª×Ó");
 	
-	tests.push_back("ĞÛ¹Ø×èÈû´÷Áé÷¡");
-	tests.push_back("·üÓê³¯º®Ï¤²»Ê¤");
+	//tests.push_back("ĞÛ¹Ø×èÈû´÷Áé÷¡");
+	//tests.push_back("·üÓê³¯º®Ï¤²»Ê¤");
 	//tests.push_back("ÖÚÄñ¸ß·É¾¡");
 	//tests.push_back("ËÉÏÂÎÊÍ¯×Ó");
 
@@ -308,12 +315,12 @@ void DecoderOnlyMain()
 {
 	
 	auto datasetTrain = translatDatasetOnly();
-	DecodersOnly model(256, 4, 1024, 1);
+	DecodersOnly model(512, 8, 1024, 1);
 
 	std::string model_path = "Decoder_Only_model3.pt";
 	std::ifstream filem(model_path);
 	bool bmodel = filem.is_open();
-	if (!bmodel||true)
+	if (!bmodel)
 	{
 		TrainData3(model, datasetTrain);
 		torch::save(model, model_path);
