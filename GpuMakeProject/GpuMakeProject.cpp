@@ -173,6 +173,13 @@ int main()
     }
    lab.push_back(2);
 
+   for (int i = 0; i < 100; i++)
+   {
+       in.push_back(0);
+       lab.push_back(0);
+   }
+
+
     auto input = torch::tensor(in, torch::kLong).unsqueeze(0);
     auto lable = torch::tensor(lab, torch::kLong);
     
