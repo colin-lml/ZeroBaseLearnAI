@@ -7,6 +7,11 @@ using namespace std;
 
 torch::DeviceType gDType = torch::kCUDA;
 
+static	int64_t  gBOS = 5001;
+static	int64_t  gEOS = 5002;
+static	int64_t  gPad = 5003;
+
+
 
 class EmbeddingWithPositionImpl : public torch::nn::Module
 {
@@ -25,17 +30,18 @@ public:
 
     torch::Tensor forward(torch::Tensor& x)
     {
-
+        // x [bath, seq]
         x = m_emb->forward(x);
-        if ((x.dim() == 2))
-        {
-            x = x.unsqueeze_(-2);
-        }
-        auto dim = x.size(0);
 
-        // std::cout <<"pos " << _posEncode.slice(0, 0, dim).sizes() << std::endl;
-         //std::cout <<"x " << x.sizes() << std::endl;
-        x = x + m_posEncode.slice(0, 0, dim);
+        // x [bath, seq, dim]
+
+        auto dim = x.size(1);
+       // cout << "x  " << x.sizes() << endl;
+        //cout << "m_posEncode  "  << m_posEncode.sizes() << endl;
+        //cout << "m_posEncode.slice  " << m_posEncode.slice(1, 0, dim).sizes() << endl;
+
+        x = x + m_posEncode.slice(1, 0, dim);
+
         return  x;
     }
 
@@ -47,10 +53,10 @@ private:
         auto den = torch::exp(-den_indices * std::log(10000.0f) / m_iDmodel);
         m_posEncode.index_put_({ torch::indexing::Slice(), torch::indexing::Slice(0, m_iDmodel, 2) }, torch::sin(pos * den));
         m_posEncode.index_put_({ torch::indexing::Slice(), torch::indexing::Slice(1, m_iDmodel, 2) }, torch::cos(pos * den));
-        m_posEncode.unsqueeze_(-2);
+        m_posEncode.unsqueeze_(0);
+        // [bath,seq,dim]
 
     }
-
 
     torch::nn::Embedding m_emb{ nullptr };
     torch::Tensor m_posEncode;
@@ -103,21 +109,21 @@ public:
         // x [bath, seq]
         int64_t batch = x.size(0);
         int64_t seq = x.size(1);
-        auto src_mask = generate_square_subsequent_mask(seq);
+        auto src_mask = generate_square_subsequent_mask(seq).to(gDType);
 
-        auto tgt_key_padding_mask = (x == 0).to(torch::kBool);
-
+        auto tgt_key_padding_mask = (x == gPad).to(torch::kBool).to(gDType);
 
         x = m_emb->forward(x);
         
         x = x.permute({ 1,0, 2 });
        // cout <<x.sizes()<< endl;
 
+        
+       
         for (auto& item :  *moduleLayers)
         {
             x = item->as<torch::nn::TransformerEncoderLayer>()->forward(x, src_mask, tgt_key_padding_mask);
-            //std::cout << "tgt\n" << tgt.sizes() << std::endl;
-            //tgt = item->as<torch::nn::TransformerEncoderLayer>()->forward(tgt);
+
         }
 
         return fc->forward(x);
@@ -142,71 +148,89 @@ TORCH_MODULE(DecodersOnly);
 
 #define max_train  1000*5
 
-int main()
+vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(const int count=3)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(4, 600);
+    std::uniform_int_distribution<> dis(0, 4900);
+    vector<pair<vector<int64_t>, vector<int64_t>>> data;
+    for (size_t i = 0; i < count; i++)
+    {
+        vector<int64_t> in;
+        vector<int64_t> lab;
+        in.push_back(gBOS);
+
+        for (int i = 0; i < 3000; i++)
+        {
+            int randomNumber = dis(gen);
+            in.push_back(randomNumber);
+            lab.push_back(randomNumber);
+        }
+        lab.push_back(gEOS);
+
+        for (int i = 0; i < 100; i++)
+        {
+            in.push_back(gPad);
+            lab.push_back(gPad);
+        }
+
+        data.push_back({ in ,lab });
+
+    }
+
+    return data;
+}
+
+int main()
+{
 
 	gDType = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
-
     double accuracy = 0.0003;
 
     DeOnlyOptions opt;
-    opt.dmodel = 128;
-    opt.head = 4;
-    opt.ffn = 512;
+    opt.dmodel = 256;
+    opt.head = 8;
+    opt.ffn = 1024;
     opt.layers = 1;
-    opt.max_len = 800;
-    opt.vocab_size = 610;
+    opt.max_len = 10000;
+    opt.vocab_size = 5005;
 
-    float total_loss = 0;
-
+    
     DecodersOnly model(opt);
 
-    auto options = torch::nn::CrossEntropyLossOptions().ignore_index(0);
+    model->to(gDType);
+
+    auto options = torch::nn::CrossEntropyLossOptions().ignore_index(gPad);
     torch::nn::CrossEntropyLoss loss_fn(options);
 
     torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
     model->train();
-    // s: 1, e: 2 , p: 0
+   
+    auto datas = MakeTestData(30);
 
-    vector<int64_t> in;
-    vector<int64_t> lab;
-    in.push_back(1);
-    for (int i=3;i<320;i++)
-    {
-        int randomNumber = dis(gen);
-        in.push_back(randomNumber);
-        lab.push_back(randomNumber);
-    }
-   lab.push_back(2);
-
-   for (int i = 0; i < 100; i++)
-   {
-       in.push_back(0);
-       lab.push_back(0);
-   }
-
-
-    auto input = torch::tensor(in, torch::kLong).unsqueeze(0);
-    auto lable = torch::tensor(lab, torch::kLong);
-    
-    cout << input.sizes()<< endl<<endl;
-    cout << lable.sizes() << endl;
 
     for (int i = 0; i < max_train; i++)
     {
-        auto output = model->forward(input);
-        output = output.reshape({ -1, output.size(2) });
+        float total_loss = 0;
 
-        auto loss = loss_fn(output, lable);
-       
-        torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
-        loss.backward();
-        optimizer.step();
+        for (auto& item :datas)
+        {
+            
+            auto input = torch::tensor(item.first, torch::kLong).unsqueeze(0).to(gDType);
+            auto lable = torch::tensor(item.second, torch::kLong).to(gDType);
 
-        total_loss = loss.item<float>();
+            auto output = model->forward(input);
+            output = output.reshape({ -1, output.size(2) });
+
+            auto loss = loss_fn(output, lable);
+
+            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+            loss.backward();
+            optimizer.step();
+
+            total_loss += loss.item<float>();
+        }
+
 
         if (i % 10 == 0 || (i+1) == max_train)
         {
@@ -220,8 +244,6 @@ int main()
         }
     }
 
-	//auto input = torch::tensor({ 0.050,0.10 }, torch::kDouble).to(gDType);
-	///cout << input << endl;
 
 	cin.get();
 	return 0;
