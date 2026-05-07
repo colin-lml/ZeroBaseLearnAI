@@ -12,6 +12,69 @@ static	int64_t  gEOS = 5002;
 static	int64_t  gPad = 5003;
 
 
+vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(const int count = 3)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 4900);
+    vector<pair<vector<int64_t>, vector<int64_t>>> data;
+    for (size_t i = 0; i < count; i++)
+    {
+        vector<int64_t> in;
+        vector<int64_t> lab;
+        in.push_back(gBOS);
+
+        for (int j = 1; j < 400; j++)
+        {
+            int randomNumber = i+1+j;//dis(gen);
+            in.push_back(randomNumber);
+            lab.push_back(randomNumber);
+        }
+        lab.push_back(gEOS);
+
+        for (int i = 0; i < 10; i++)
+        {
+            in.push_back(gPad);
+            lab.push_back(gPad);
+        }
+
+        data.push_back({ in ,lab });
+
+    }
+
+    return data;
+}
+
+
+class translatDatasetOnly : public torch::data::Dataset<translatDatasetOnly>
+{
+public:
+
+    translatDatasetOnly()
+    {
+        m_vTestData = MakeTestData(10);
+
+    }
+    torch::optional<size_t> size() const
+    {
+        return m_vTestData.size();
+    }
+
+    torch::data::Example<torch::Tensor, torch::Tensor>  get(size_t index) override
+    {
+
+        auto& item = m_vTestData.at(index);
+
+        auto inpput = torch::tensor(item.first, torch::kLong);
+
+        auto lable = torch::tensor(item.second, torch::kLong);
+
+        return { inpput, lable };
+
+    }
+
+    vector<pair<vector<int64_t>, vector<int64_t>>> m_vTestData;
+};
 
 class EmbeddingWithPositionImpl : public torch::nn::Module
 {
@@ -72,8 +135,8 @@ struct DeOnlyOptions
     int64_t head = 8;
     int64_t ffn = 2048;
     int64_t layers = 6;
-    int64_t vocab_size = 300;
-    int64_t max_len = 500;
+    int64_t vocab_size = 3000;
+    int64_t max_len = 5000;
 };
 
 
@@ -147,39 +210,7 @@ public:
 TORCH_MODULE(DecodersOnly);
 
 #define max_train  1000*5
-
-vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(const int count=3)
-{
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 4900);
-    vector<pair<vector<int64_t>, vector<int64_t>>> data;
-    for (size_t i = 0; i < count; i++)
-    {
-        vector<int64_t> in;
-        vector<int64_t> lab;
-        in.push_back(gBOS);
-
-        for (int i = 0; i < 3000; i++)
-        {
-            int randomNumber = dis(gen);
-            in.push_back(randomNumber);
-            lab.push_back(randomNumber);
-        }
-        lab.push_back(gEOS);
-
-        for (int i = 0; i < 100; i++)
-        {
-            in.push_back(gPad);
-            lab.push_back(gPad);
-        }
-
-        data.push_back({ in ,lab });
-
-    }
-
-    return data;
-}
+#define batchsize  50
 
 void SaveTrainState(const string& path, DecodersOnly& mode, torch::optim::Adam& optimizer, int step)
 {
@@ -190,12 +221,12 @@ int main()
 {
 
 	gDType = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
-    double accuracy = 0.0003;
+    double accuracy = 0.008;
 
     DeOnlyOptions opt;
-    opt.dmodel = 256;
-    opt.head = 8;
-    opt.ffn = 1024;
+    opt.dmodel = 160;
+    opt.head = 4;
+    opt.ffn = 512;
     opt.layers = 1;
     opt.max_len = 10000;
     opt.vocab_size = 5005;
@@ -209,35 +240,43 @@ int main()
     torch::nn::CrossEntropyLoss loss_fn(options);
 
     torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
+    translatDatasetOnly dataTrain;
+    auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
+    auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(batchsize));
+
     model->train();
    
-    auto datas = MakeTestData(300);
-
-
+ 
     for (int i = 0; i < max_train; i++)
     {
         float total_loss = 0;
 
-        for (auto& item :datas)
+        for (auto& item : *train_data_loader)
         {
             
-            auto input = torch::tensor(item.first, torch::kLong).unsqueeze(0).to(gDType);
-            auto lable = torch::tensor(item.second, torch::kLong).to(gDType);
+            auto input = item.data.to(gDType);
+            auto lable = item.target.to(gDType);
 
+            //cout << input.sizes() << endl;
+           // cout << lable.sizes() << endl;
+            
             auto output = model->forward(input);
             output = output.reshape({ -1, output.size(2) });
+            auto tgt = item.target.reshape({ -1 });
 
-            auto loss = loss_fn(output, lable);
+            auto loss = loss_fn(output, tgt);
 
             torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
             loss.backward();
             optimizer.step();
 
             total_loss += loss.item<float>();
+           
+
         }
 
 
-        if (i % 10 == 0 || (i+1) == max_train)
+        if (i % 3 == 0 || (i+1) == max_train)
         {
             cout << i + 1 << " , loss: " << total_loss << endl;
         }
