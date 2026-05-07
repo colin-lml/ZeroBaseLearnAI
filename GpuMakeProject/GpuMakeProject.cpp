@@ -181,6 +181,11 @@ vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(const int count=3)
     return data;
 }
 
+void SaveTrainState(const string& path, DecodersOnly& mode, torch::optim::Adam& optimizer, int step)
+{
+
+}
+
 int main()
 {
 
@@ -206,7 +211,7 @@ int main()
     torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
     model->train();
    
-    auto datas = MakeTestData(30);
+    auto datas = MakeTestData(300);
 
 
     for (int i = 0; i < max_train; i++)
