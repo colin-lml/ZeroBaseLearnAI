@@ -26,7 +26,7 @@ public:
 
     translatDatasetOnly()
     {
-        m_vTestData = MakeTestData(5);
+        m_vTestData = MakeTestData(40);
 
     }
     torch::optional<size_t> size() const

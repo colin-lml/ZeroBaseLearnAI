@@ -20,27 +20,23 @@ vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(const int count)
         vector<int64_t> lab;
         in.push_back(gBOS);
 
-        for (int j = 1; j < 20 - 2 * i; j++)
+        for (int j = 1; j < 95 - 2 * i; j++)
         {
-            int randomNumber = 2 * i + j;//dis(gen);
+            int randomNumber = dis(gen);
             in.push_back(randomNumber);
-            lab.push_back(randomNumber);
+          
         }
-        lab.push_back(gEOS);
+        in.push_back(gEOS);
+        
+
         for (int k = 0; k < 2 * i; k++)
         {
             in.push_back(gPad);
-            lab.push_back(gPad);
         }
-
-
-
-        //for (int i = 0; i < 10; i++)
-        {
-            //in.push_back(gPad);
-            //lab.push_back(gPad);
-        }
-
+        lab = in;
+        lab.erase(lab.begin());
+        lab.push_back(gPad);
+        
         data.push_back({ in ,lab });
 
     }
@@ -113,6 +109,8 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
             //cout << lable.sizes() << endl;
 
             auto output = model->forward(input);
+          
+
             output = output.reshape({ -1, output.size(2) });
             auto tgt = lable.reshape({ -1 });
 
@@ -126,9 +124,9 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
 
         }
+        
 
-
-        if (i % 50 == 0 || (i + 1) == maxtrain)
+        if (i % 10 == 0 || (i + 1) == maxtrain)
         {
             cout << i + 1 << " , loss: " << total_loss << endl;
         }

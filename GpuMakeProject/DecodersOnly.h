@@ -23,6 +23,104 @@ struct DeOnlyOptions
 };
 
 
+class XMultiHeadAttentionImpl : public torch::nn::Module
+{
+public:
+
+    XMultiHeadAttentionImpl(int64_t dim, int64_t head)
+    {
+        assert(dim % head == 0);
+
+        InitQKV(dim, head);
+    }
+
+    //q k v : [seq, batch, dim]
+    torch::Tensor forward(torch::Tensor& q, torch::Tensor& k, torch::Tensor& v, torch::Tensor mask = {})
+    {
+        auto q1 = Q->forward(q);
+        auto k1 = Q->forward(k);
+        auto v1 = Q->forward(v);
+
+        return ScaledDotProductAttention(q1, k1, v1, mask);
+    }
+
+
+private:
+    void InitQKV(int64_t dim, int64_t head)
+    {
+
+        auto linear = torch::nn::LinearOptions(dim, dim).bias(false);
+
+        Q = register_module("q", torch::nn::Linear(linear));
+        K = register_module("k", torch::nn::Linear(linear));
+        V = register_module("v", torch::nn::Linear(linear));
+        Wo = register_module("Wo", torch::nn::Linear(linear)); // 输出投影
+
+        norm_fact = 1.0 / sqrt(dim);
+
+        Dk = dim / head;
+        H = head;
+    }
+
+    /// q: [batch,seq, dim]
+    torch::Tensor ScaledDotProductAttention(torch::Tensor q, torch::Tensor k, torch::Tensor v, torch::Tensor& mask)
+    {
+        /// k==v q可以不等于 k v
+        auto batch  = q.size(0);
+        auto seq    =  q.size(1);
+        auto dim    =  q.size(2);
+
+        auto batch2 = k.size(0);
+        auto seq2  = k.size(1);
+        auto dim2 = k.size(2);
+
+        q = q.view({ batch ,seq,  H, Dk }); // [b, s, h, d]
+        k = k.view({ batch2,seq2, H, Dk });
+        v = v.view({ batch2,seq2, H, Dk });
+
+        q = q.permute({ 0,2,1,3 }); //[b, s, h, d] --->[B, H, S, Dk]
+        k = k.permute({ 0,2,1,3 });
+        v = v.permute({ 0,2,1,3 });
+
+        auto kt = k.permute({ 0,1,3,2 }); //kt:  [B, H, S, Dk] --> [B, H, Dk, S]
+
+        //cout << "q\n" << q.sizes() << endl;
+        //cout << "kt\n" << kt.sizes() << endl;
+
+
+        auto attn_score = torch::matmul(q, kt);
+
+        attn_score = attn_score * norm_fact;
+
+        if (mask.defined())
+        {
+            ///std::cout << "attn_score\n" << attn_score.sizes() << std::endl;
+            //std::cout << "mask\n" << mask.sizes() << std::endl;
+            attn_score += mask;
+        }
+
+        attn_score = torch::softmax(attn_score, -1); /// attn_score: [B, H, S, S]
+
+        auto out = torch::matmul(attn_score, v); // [B, H, S, S] * [B, H, S, Dk]  ->  out: [B, H, S, Dk]
+        out = out.transpose(1, 2).contiguous().view({ batch,seq, dim }); //  [B, H, S, Dk] --> [B, S, H, Dk] -> [batch,seq, dim]
+        //cout <<"out\n" << out.squeeze() << endl;
+        out = Wo->forward(out);
+        return out;
+    }
+
+    torch::nn::Linear Q{ nullptr };
+    torch::nn::Linear K{ nullptr };
+    torch::nn::Linear V{ nullptr };
+    torch::nn::Linear Wo{ nullptr };
+
+    double norm_fact = 0;
+    int64_t Dk;
+    int64_t H;
+};
+TORCH_MODULE(XMultiHeadAttention);
+
+
+
 class EmbeddingWithPositionImpl : public torch::nn::Module
 {
 public:
@@ -89,7 +187,7 @@ public:
                          torch::nn::GELU(), torch::nn::Linear(feedforward, dmodel)));
 
        // torch::nn::MultiheadAttentionOptions opt;
-        m_attention = register_module("multiAttention", torch::nn::MultiheadAttention(dmodel, nheads));
+        m_attention = register_module("multiAttention", XMultiHeadAttention(dmodel, nheads));
         
         m_norm1 = register_module("norm1", torch::nn::LayerNorm(normOpt));
         m_norm2 = register_module("norm2", torch::nn::LayerNorm(normOpt));
@@ -106,7 +204,8 @@ public:
         //cout << x.sizes()<< endl;
         //cout << mask.sizes() << endl;
 
-        auto [attnOutput, attnWeights] = m_attention->forward(q, k, v,{},true, mask);
+       // auto [attnOutput, attnWeights] = m_attention->forward(q, k, v,{},true, mask);
+        auto attnOutput= m_attention->forward(q, k, v, mask);
 
         auto y = m_norm1->forward(attnOutput + x);
         auto y2 = m_fFeedForward->forward(y);
@@ -116,7 +215,8 @@ public:
 
 
     torch::nn::LayerNorm m_norm1{ nullptr }, m_norm2{ nullptr };
-    torch::nn::MultiheadAttention m_attention{ nullptr };
+    //torch::nn::MultiheadAttention m_attention{ nullptr };
+    XMultiHeadAttention m_attention{ nullptr };
     torch::nn::Sequential m_fFeedForward{ nullptr };
 };
 TORCH_MODULE(DeOnlyLayer);
@@ -160,7 +260,7 @@ public:
 
         x = m_emb->forward(x);
 
-        x = x.permute({ 1,0, 2 });
+       /// x = x.permute({ 1,0, 2 });
         // cout <<x.sizes()<< endl;
 
 
