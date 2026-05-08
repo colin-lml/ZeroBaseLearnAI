@@ -34,7 +34,6 @@ file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 
 add_executable (${targetExeName} ${SRC_FILES})
 
-
 target_link_libraries(${targetExeName} "${TORCH_LIBRARIES}")
 
 file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll"

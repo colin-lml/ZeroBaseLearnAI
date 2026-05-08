@@ -148,11 +148,13 @@ class FeedForwardNetImpl : public torch::nn::Module
 public:
 	FeedForwardNetImpl(int64_t dim = 512, int64_t dff = 2048)
 	{
-
 		ffn = register_module("SeqFFN", torch::nn::Sequential(torch::nn::Linear(dim, dff),
 			torch::nn::GELU(),
 			torch::nn::Linear(dff, dim)
 		));
+
+
+
 	}
 
 	auto forward(torch::Tensor x)

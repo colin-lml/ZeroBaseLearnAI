@@ -1,0 +1,155 @@
+
+#include "LoadDataset.h"
+#include "DecodersOnly.h"
+
+int64_t  gBOS = 101;
+int64_t  gEOS = 102;
+int64_t  gPad = 103;
+torch::DeviceType gDType = torch::kCPU;
+
+
+vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(const int count)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 99);
+    vector<pair<vector<int64_t>, vector<int64_t>>> data;
+    for (size_t i = 0; i < count; i++)
+    {
+        vector<int64_t> in;
+        vector<int64_t> lab;
+        in.push_back(gBOS);
+
+        for (int j = 1; j < 20 - 2 * i; j++)
+        {
+            int randomNumber = 2 * i + j;//dis(gen);
+            in.push_back(randomNumber);
+            lab.push_back(randomNumber);
+        }
+        lab.push_back(gEOS);
+        for (int k = 0; k < 2 * i; k++)
+        {
+            in.push_back(gPad);
+            lab.push_back(gPad);
+        }
+
+
+
+        //for (int i = 0; i < 10; i++)
+        {
+            //in.push_back(gPad);
+            //lab.push_back(gPad);
+        }
+
+        data.push_back({ in ,lab });
+
+    }
+
+    return data;
+}
+
+
+void  LoadTrainState(const string& path, const string& path2, DecodersOnly& mode, torch::optim::Adam& optimizer, int& step)
+{
+    /*
+    step = 0;
+    ifstream f(path2, ios::binary);
+    if (f.is_open())
+    {
+        f.read((char*)&step, sizeof(step));
+
+        torch::OrderedDict<std::string, torch::IValue> dict;
+        torch::load(dict, path);
+        mode = dict["model"].to<DecodersOnly>();
+        optimizer = dict["optim"].to<torch::optim::Adam>();
+    }
+    */
+}
+
+void SaveTrainState(const string& path, const string& path2, DecodersOnly& mode, torch::optim::Adam& optimizer, int step)
+{
+    /*
+    torch::OrderedDict<std::string, torch::IValue> dict;
+    dict.insert("model", mode);
+    dict.insert("optim", optimizer);
+    torch::save(dict, path);
+
+    ofstream f(path2, ios::binary);
+    f.write((char*)&step, sizeof(step));
+    */
+}
+
+
+void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxtrain, int64_t batchsize)
+{
+    string strTmpState = "TrainData.tmp.pt.bin";
+    string strTmpState2 = "TrainData.tmp.step.bin";
+    double accuracy = 0.008;
+    auto options = torch::nn::CrossEntropyLossOptions().ignore_index(gPad);
+    torch::nn::CrossEntropyLoss loss_fn(options);
+
+    torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
+
+    auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
+    auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(batchsize));
+
+    int step = 0;
+    // LoadTrainState(strTmpState, strTmpState2, model, optimizer, step);
+
+    model->train();
+
+
+    for (int i = step; i < maxtrain; i++)
+    {
+        float total_loss = 0;
+
+        for (auto& item : *train_data_loader)
+        {
+
+            auto input = item.data.to(gDType);
+            auto lable = item.target.to(gDType);
+
+            //cout << input.sizes() << endl;
+            //cout << lable.sizes() << endl;
+
+            auto output = model->forward(input);
+            output = output.reshape({ -1, output.size(2) });
+            auto tgt = lable.reshape({ -1 });
+
+            auto loss = loss_fn(output, tgt);
+
+            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+            loss.backward();
+            optimizer.step();
+
+            total_loss += loss.item<float>();
+
+
+        }
+
+
+        if (i % 50 == 0 || (i + 1) == maxtrain)
+        {
+            cout << i + 1 << " , loss: " << total_loss << endl;
+        }
+
+        if (total_loss < accuracy)
+        {
+            cout << i + 1 << " , loss: " << total_loss << " , end... " << endl;
+            break;
+        }
+        if (i % 200 == 0)
+        {
+            // SaveTrainState(strTmpState, strTmpState2, model, optimizer, i);
+        }
+
+    }
+
+    std::remove(strTmpState2.c_str());
+    std::remove(strTmpState.c_str());
+}
+
+
+
+
+
