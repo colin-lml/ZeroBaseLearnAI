@@ -9,7 +9,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
 
 #define max_train  1000*10
-#define batchsize2  300
+#define batchsize2  80
 
 
 
@@ -28,9 +28,9 @@ int main()
 	translatDatasetOnly dataTrain;
 
 	DeOnlyOptions opt;
-	opt.dmodel = 360;
+	opt.dmodel = 400;
 	opt.head = 10;
-	opt.ffn = 1024;
+	opt.ffn = 1600;
 	opt.layers = 1;
 	opt.max_len = 1000;
 	opt.vocab_size = gVocabCount;

@@ -33,7 +33,7 @@ void Tokenizer::LoadDataTxtFile()
 {
     m_vdata.clear();
     auto p = std::filesystem::current_path().string();
-    auto x =p + "/../tangshi.data.txt";
+  
 	std::ifstream ifs(p +"/../tangshi.data.txt");
 	bool bopen = ifs.is_open();
     std::stringstream ss;
@@ -53,8 +53,9 @@ void Tokenizer::LoadDataTxtFile()
         Tangshi item;
 
         std::string n;
+        std::string num;
         std::stringstream data(line);
-        data >>  item.title;
+        data >> num>>  item.title;
    
         if (getline(ss, line))
         {

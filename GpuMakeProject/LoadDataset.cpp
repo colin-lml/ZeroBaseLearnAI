@@ -1,6 +1,7 @@
 
 #include "LoadDataset.h"
 #include "DecodersOnly.h"
+#include <filesystem>
 
 int64_t  gBOS = 101;
 int64_t  gEOS = 102;
@@ -80,6 +81,7 @@ void SaveTrainState(const string& path, const string& path2, DecodersOnly& mode,
 
 void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxtrain, int64_t batchsize)
 {
+    auto p = std::filesystem::current_path().string() + "/../Decoder_Only_model3_tmp.pt";
     string strTmpState = "TrainData.tmp.pt.bin";
     string strTmpState2 = "TrainData.tmp.step.bin";
     double accuracy = 0.008;
@@ -129,7 +131,6 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
         }
         
-
         if (i % 20 == 0 || (i + 1) == maxtrain)
         {
             cout << i + 1 << " , loss: " << total_loss << endl;
@@ -140,12 +141,16 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
             cout << i + 1 << " , loss: " << total_loss << " , end... " << endl;
             break;
         }
-        if (i % 200 == 0)
+        if (i % 1000 == 0 && total_loss < 1.5)
         {
             // SaveTrainState(strTmpState, strTmpState2, model, optimizer, i);
+           
+            torch::save(model, p);
         }
 
     }
+
+    torch::save(model, p);
 
     std::remove(strTmpState2.c_str());
     std::remove(strTmpState.c_str());
