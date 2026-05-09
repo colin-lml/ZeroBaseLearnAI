@@ -78,6 +78,15 @@ public:
 
     }
 
+    std::vector<int64_t> GetTangshiCode(std::string& line)
+    {
+        return m_dataToken.Encode(line);
+    }
+    std::string GetTangshiString(std::vector<int64_t>& vList)
+    {
+        return m_dataToken.Decode(vList);
+    }
+
     std::vector<VectorCodeTangshi> m_vdata;
     Tokenizer m_dataToken;
     size_t m_nMaxTitle = 0;

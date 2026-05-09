@@ -277,6 +277,40 @@ public:
         return fc->forward(x);
     }
 
+    string predict(string ch, translatDatasetOnly& dataTest)
+    {
+        ch = "<BOS>" + ch;
+
+        auto tgtpad = dataTest.GetTangshiCode(ch);
+
+
+        int i = 0;
+        while (i < 100)
+        {
+            torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong).to(gDType);
+            auto out = forward(tgt.unsqueeze(0));
+            
+            out = out.squeeze(-2);
+           
+            auto next_token = out.argmax(-1).cpu();
+            cout << next_token << endl;
+
+            int64_t key = next_token[i].item<int64_t>();
+            tgtpad.push_back(key);
+            if (key == gEOS)
+            {
+                break;
+            }
+            i++;
+        }
+
+        return dataTest.GetTangshiString(tgtpad);
+    }
+
+
+
+
+
     torch::Tensor generate_square_subsequent_mask(int64_t sz)
     {
         auto mask = torch::triu(torch::ones({ sz, sz }, torch::kFloat32), 1);

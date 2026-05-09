@@ -6,7 +6,7 @@
 #include "LoadDataset.h"
 
 void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxtrain, int64_t batchsize);
-
+void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
 
 #define max_train  1000*10
 #define batchsize2  80
@@ -50,6 +50,15 @@ int main()
 			TrainData(model, dataTrain, max_train, batchsize2);
 			torch::save(model, model_path);
 		}
+		else
+		{
+			torch::load(model, model_path);
+			std::cout << "load model ...." << std::endl;
+		}
+
+		filem.close();
+
+		TestData3(model, dataTrain);
 	}
 	catch (const torch::Error& e)
 	{

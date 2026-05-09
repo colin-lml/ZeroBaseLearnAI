@@ -157,5 +157,27 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
 
 
+void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
+{
+    model->eval();
+    std::cout << "测试:" << std::endl;
+    std::vector<std::string> tests;
+
+    tests.push_back("山一程");
+    tests.push_back("人生若只如初见");
+
+    for (auto ch : tests)
+    {
+        auto result = model->predict(ch, dataTest);
+
+        // std::cout << std::regex_replace(ch, std::regex("Pad"), "") << " :  ";
+
+        std::cout << ch << " :" << std::endl;
+        std::cout << result << std::endl;;
+
+        std::cout << std::endl;
+    }
+
+}
 
 
