@@ -139,6 +139,9 @@ public:
     torch::Tensor forward(torch::Tensor& x)
     {
         // x [bath, seq]
+        //cout << x.sizes()<<endl;
+        //cout <<m_emb << endl;
+
         x = m_emb->forward(x) * std::sqrt(m_iDmodel);
 
         // x [bath, seq, dim]

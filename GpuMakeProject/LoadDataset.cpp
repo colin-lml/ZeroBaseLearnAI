@@ -5,6 +5,8 @@
 int64_t  gBOS = 101;
 int64_t  gEOS = 102;
 int64_t  gPad = 103;
+int64_t gVocabCount = 105;
+
 torch::DeviceType gDType = torch::kCPU;
 
 
@@ -92,6 +94,8 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
     int step = 0;
     // LoadTrainState(strTmpState, strTmpState2, model, optimizer, step);
 
+    std::cout << "ÑµÁ·Ä£ÐÍ" << std::endl;
+
     model->train();
 
 
@@ -126,7 +130,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
         }
         
 
-        if (i % 10 == 0 || (i + 1) == maxtrain)
+        if (i % 20 == 0 || (i + 1) == maxtrain)
         {
             cout << i + 1 << " , loss: " << total_loss << endl;
         }
