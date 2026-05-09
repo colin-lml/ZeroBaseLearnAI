@@ -48,6 +48,7 @@ int main()
 		if (!bmodel)
 		{
 			TrainData(model, dataTrain, max_train, batchsize2);
+			torch::save(model, model_path);
 		}
 	}
 	catch (const torch::Error& e)

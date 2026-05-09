@@ -104,7 +104,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
     for (int i = step; i < maxtrain; i++)
     {
         float total_loss = 0;
-
+        float loss1 = 0;
         for (auto& item : *train_data_loader)
         {
 
@@ -125,20 +125,19 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
             torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
             loss.backward();
             optimizer.step();
-
-            total_loss += loss.item<float>();
-
+            loss1 = loss.item<float>();
+            total_loss += loss1;
 
         }
         
         if (i % 20 == 0 || (i + 1) == maxtrain)
         {
-            cout << i + 1 << " , loss: " << total_loss << endl;
+            cout << i + 1 << " , total-loss: " << total_loss<< " , loss: "<< loss1 << endl;
         }
 
         if (total_loss < accuracy)
         {
-            cout << i + 1 << " , loss: " << total_loss << " , end... " << endl;
+            cout << i + 1 << " , loss: " << total_loss << " , loss: " << loss1 << " , end... " << endl;
             break;
         }
         if (i % 1000 == 0 && total_loss < 1.5)
