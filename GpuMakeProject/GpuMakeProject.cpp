@@ -47,12 +47,22 @@ int main()
 		bool bmodel = filem.is_open();
 		if (!bmodel)
 		{
-			TrainData(model, dataTrain, max_train, batchsize2);
-			torch::save(model, model_path);
+			if (gDType == torch::kCUDA)
+			{
+				TrainData(model, dataTrain, max_train, batchsize2);
+			}
+			else
+			{
+				TrainData(model, dataTrain, max_train/5, batchsize2 * 4);
+			}
+
+			
+			torch::save(model->parameters(), model_path);
 		}
 		else
 		{
-			torch::load(model, model_path);
+			model->to(torch::kCPU);
+			torch::load(model, model_path, torch::kCPU);
 			std::cout << "load model ...." << std::endl;
 		}
 

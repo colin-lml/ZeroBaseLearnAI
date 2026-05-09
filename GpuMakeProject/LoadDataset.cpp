@@ -100,25 +100,23 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
     model->train();
 
+    int showItem = 10;
+    if (gDType == torch::kCUDA)
+    {
+        showItem = 20;
+    }
 
     for (int i = step; i < maxtrain; i++)
     {
         float total_loss = 0;
         float loss1 = 0;
         for (auto& item : *train_data_loader)
-        {
-
-            auto input = item.data.to(gDType);
-            auto lable = item.target.to(gDType);
-
-            //cout << input.sizes() << endl;
-            //cout << lable.sizes() << endl;
-
-            auto output = model->forward(input);
+        {   
+  
+            auto output = model->forward(item.data.to(gDType));
           
-
             output = output.reshape({ -1, output.size(2) });
-            auto tgt = lable.reshape({ -1 });
+            auto tgt = item.target.to(gDType).reshape({ -1 });
 
             auto loss = loss_fn(output, tgt);
 
@@ -130,7 +128,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
         }
         
-        if (i % 20 == 0 || (i + 1) == maxtrain)
+        if (i % showItem == 0 || (i + 1) == maxtrain)
         {
             cout << i + 1 << " , total-loss: " << total_loss<< " , loss: "<< loss1 << endl;
         }
@@ -144,12 +142,12 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
         {
             // SaveTrainState(strTmpState, strTmpState2, model, optimizer, i);
            
-            torch::save(model, p);
+            torch::save(model->parameters(), p);
         }
 
     }
 
-    torch::save(model, p);
+    torch::save(model->parameters(), p);
 
     std::remove(strTmpState2.c_str());
     std::remove(strTmpState.c_str());

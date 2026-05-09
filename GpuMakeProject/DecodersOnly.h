@@ -35,7 +35,7 @@ public:
     }
 
     //q k v : [seq, batch, dim]
-    torch::Tensor forward(torch::Tensor& q, torch::Tensor& k, torch::Tensor& v, torch::Tensor mask = {})
+    torch::Tensor forward(torch::Tensor& q, torch::Tensor& k, torch::Tensor& v, torch::Tensor& mask)
     {
         auto q1 = Q->forward(q);
         auto k1 = Q->forward(k);
@@ -136,7 +136,7 @@ public:
     }
 
 
-    torch::Tensor forward(torch::Tensor& x)
+    torch::Tensor& forward(torch::Tensor& x)
     {
         // x [bath, seq]
         //cout << x.sizes()<<endl;
@@ -197,18 +197,16 @@ public:
 
     }
 
-    torch::Tensor forward(torch::Tensor x, torch::Tensor mask)
+    torch::Tensor forward(torch::Tensor& x, torch::Tensor& mask)
     {
-        torch::Tensor q = x;
-        torch::Tensor k = x;
-        torch::Tensor v = x;
+
         //auto kkk = m_attention->forward(q, k, v);
 
         //cout << x.sizes()<< endl;
         //cout << mask.sizes() << endl;
 
        // auto [attnOutput, attnWeights] = m_attention->forward(q, k, v,{},true, mask);
-        auto attnOutput= m_attention->forward(q, k, v, mask);
+        auto attnOutput= m_attention->forward(x, x, x, mask);
 
         auto y = m_norm1->forward(attnOutput + x);
         auto y2 = m_fFeedForward->forward(y);
@@ -290,7 +288,7 @@ public:
             torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong).to(gDType);
             auto out = forward(tgt.unsqueeze(0));
             
-            out = out.squeeze(-2);
+            out = out.squeeze();
            
             auto next_token = out.argmax(-1).cpu();
             cout << next_token << endl;
