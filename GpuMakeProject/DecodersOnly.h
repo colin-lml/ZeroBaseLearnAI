@@ -291,7 +291,7 @@ public:
             out = out.squeeze();
            
             auto next_token = out.argmax(-1).cpu();
-            cout << next_token << endl;
+           // cout << next_token << endl;
 
             int64_t key = next_token[i].item<int64_t>();
             tgtpad.push_back(key);

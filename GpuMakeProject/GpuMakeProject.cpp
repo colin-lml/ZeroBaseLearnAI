@@ -53,16 +53,16 @@ int main()
 			}
 			else
 			{
-				TrainData(model, dataTrain, max_train/5, batchsize2 * 4);
+				TrainData(model, dataTrain, max_train/3, batchsize2 * 4);
 			}
 
 			
-			torch::save(model->parameters(), model_path);
+			torch::save(model, model_path);
 		}
 		else
 		{
-			model->to(torch::kCPU);
-			torch::load(model, model_path, torch::kCPU);
+			//model->to(torch::kCPU);
+			torch::load(model, model_path);
 			std::cout << "load model ...." << std::endl;
 		}
 
