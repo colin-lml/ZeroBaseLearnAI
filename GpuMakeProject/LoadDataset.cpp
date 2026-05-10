@@ -163,8 +163,8 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
     std::cout << "测试:" << std::endl;
     std::vector<std::string> tests;
 
-    tests.push_back("山一程");
-    tests.push_back("人生若只如初见");
+    tests.push_back("春眠不觉晓");
+    tests.push_back("白日依山尽");
 
     for (auto ch : tests)
     {

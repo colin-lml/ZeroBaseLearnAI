@@ -28,9 +28,9 @@ int main()
 	translatDatasetOnly dataTrain;
 
 	DeOnlyOptions opt;
-	opt.dmodel = 400;
-	opt.head = 10;
-	opt.ffn = 1600;
+	opt.dmodel = 256;
+	opt.head = 8;
+	opt.ffn = 1024;
 	opt.layers = 1;
 	opt.max_len = 1000;
 	opt.vocab_size = gVocabCount;

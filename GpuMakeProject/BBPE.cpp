@@ -3,48 +3,14 @@
 #include <locale>
 #include <codecvt>
 
+#include <filesystem>
+
+
 
 void remove_all_spaces(std::string& s)
 {
     s.erase(std::remove(s.begin(), s.end(), ' '), s.end());
 }
-
-// 【C++11 纯标准库】wstring UTF-16 转 UTF-8 string
-inline std::string wstring_to_utf8(const std::wstring& wstr)
-{
-    if (wstr.empty()) return {};
-
-    // C++11 标准库转换器：UTF-16 <-> UTF-8
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    return converter.to_bytes(wstr);
-}
-
-// 【C++11 纯标准库】本地 string 转 UTF-8 string
-inline std::string string_to_utf8(const std::string& str)
-{
-    if (str.empty()) return {};
-
-    // 1. 本地编码 string → wstring (UTF-16)
-    std::wstring_convert<std::codecvt<wchar_t, char, std::mbstate_t>> converter;
-    std::wstring wstr = converter.from_bytes(str);
-
-    // 2. wstring → UTF-8 string
-    return wstring_to_utf8(wstr);
-}
-
-inline std::string utf8_to_string(const std::string& utf8_str)
-{
-    if (utf8_str.empty()) return {};
-
-    // 1. UTF-8 → wstring
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    std::wstring wstr = converter.from_bytes(utf8_str);
-   
-    // 2. wstring → 本地系统编码 string
-    std::wstring_convert<std::codecvt<wchar_t, char, std::mbstate_t>> local_cvt;
-    return local_cvt.to_bytes(wstr);
-}
-
 
 BBPE::BBPE()
 {
@@ -59,16 +25,6 @@ BBPE::BBPE()
 BBPE::~BBPE()
 {
 
-}
-
-string  BBPE::ToUTF8(const string& str)
-{
-    return string_to_utf8(str);
-}
-
-string  BBPE::ToGBK(const string& str)
-{
-    return utf8_to_string(str);//MultiByteToMultiByte(str, CP_UTF8, CP_ACP);
 }
 
 
@@ -87,18 +43,9 @@ vector<size_t> FindSplitIndex(const string& str, const string& d)
 }
 
 
-string BBPE::VectorUint8ToGBK(const VectorUint8& item)
-{
-    string strutf8(item.begin(), item.end());
-    string gbk = ToGBK(strutf8);
-    return gbk;
-}
-
-
 
 void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
 {
-
     Vector3Uint8 vEnumWordList;
     MapVocabPairCount historyMerge;
 
@@ -109,34 +56,23 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
 
     int k = vocabSize - m_mapVocabTable.size();
     cout << "BBPE - Train" << endl;
-    while ((historyMerge.size() + m_mapVocabTable.size()) < vocabSize)
+
+    for (int i = 0; i < vEnumWordList.size(); i++)
     {
-        MapVocabPairCount wordCount;
-        wordCount.clear();
-        CountPairWord(vEnumWordList, wordCount);
-
-        auto[pairKey,pairCount] = FindMaxPairCount(wordCount);
-
-        if (wordCount.empty() || pairCount == 0)
+        auto& items = vEnumWordList[i];
+        for (int j = 0; j < items.size(); j++)
         {
-            break;
+            auto text = items[j];
+            if (!IsExistVocabTable(text))
+            {
+                //string str(text.begin(), text.end());
+                //cout << str << endl;
+                AddNewKeyToVocabTable(items[j]); 
+            }
+            
         }
+    }
 
-        MergeMaxPairWord(vEnumWordList, historyMerge, pairKey,  pairCount);
-        k--;
-        if (historyMerge.size() % 30 == 0)
-        {
-            cout << "Merge Count:" << historyMerge.size() << " // " << vocabSize << " , k "<< k << endl;
-        }
-        
-    }
- 
-    for (auto& addItem : historyMerge)
-    {
-        AddNewKeyToVocabTable(addItem.first);
-        //auto str = VectorUint8ToGBK(addItem.first);
-        //cout << str<<" : "<< addItem.second <<endl;
-    }
 
     VectorString special;
     special.push_back(BOS);
@@ -195,25 +131,10 @@ void BBPE::InitData()
 int  BBPE::GetWordSzie(uint8_t ch)
 {
     int len = 1;
-    if ((ch & 0x80) == 0)
-    {
-        len = 1; // ASCII
-    }
-    else if((ch & 0xE0) == 0xC0)
+
+    if (ch > 0x7F)
     {
         len = 2;
-    }
-    else if ((ch & 0xF0) == 0xE0)
-    {
-        len = 3; // 中文
-    }
-    else if ((ch & 0xF8) == 0xF0)
-    {
-        len = 4;
-    }
-    else
-    {
-        len = 1;
     }
 
     return  len;
@@ -224,44 +145,17 @@ int  BBPE::GetWordSzie(uint8_t ch)
 void BBPE::DataCleansingWord(const VectorString& textList, Vector3Uint8& vEnumWordList)
 {
     vEnumWordList.clear();
-    VectorString vAllString;
-
-    string strReg = R"(\x3F|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82)";
-  
-    auto  special = regex(strReg);
 
     for (auto& slist : textList)
     {
-        auto strText= ToUTF8(slist);
-        sregex_token_iterator it(strText.begin(), strText.end(), special, {-1,1});
-        sregex_token_iterator end;
-
-        for (auto seq = it; seq != end; seq++)
-        {
-            string s = *seq;
-            if (s.empty())
-            {
-                continue;
-            }
-            //cout << ToGBK(s) << endl;
-            vAllString.push_back(s);
-        }
-          
-    }
-     
-    for (auto& slist : vAllString)
-    {
-        auto strutf8 =  slist;
-
         Vector2Uint8 item;
-        for (int i=0;i< strutf8.size();i++)
+        for (int i=0;i< slist.size();i++)
         {
-            int len = GetWordSzie(strutf8[i]);
+            int len = GetWordSzie(slist[i]);
             VectorUint8 word;
-
             for (int j = 0; j < len; j++)
             {
-                word.push_back(strutf8[i + j]);
+                word.push_back(slist[i + j]);
             }
             item.push_back(word);
 
@@ -445,7 +339,7 @@ void BBPE::AddSpecialTokens(const VectorString& tokens)
 {
     for (auto& slist : tokens)
     {
-        auto strutf8 = ToUTF8(slist);
+        auto strutf8 = slist;
         VectorUint8 item;
         for (int j = 0; j < strutf8.length(); j++)
         {
@@ -479,7 +373,7 @@ void BBPE::Encode(const string& text, VectorCodeID& ids)
             continue;
         }
         Vector2Uint8 vEnumWordList;
-        auto  utf8 = ToUTF8(s);
+        auto  utf8 = s;
         bool bEncode = false;
         if (utf8.length() <= m_nMaxKey)
         {
@@ -541,7 +435,7 @@ void BBPE::Encode(const string& text, VectorCodeID& ids)
 
 string BBPE::Decode(const VectorCodeID& ids)
 {
-    string str="";
+   
     VectorUint8 strList;
 
     for (auto& k : ids)
@@ -553,7 +447,7 @@ string BBPE::Decode(const VectorCodeID& ids)
             //str += VectorUint8ToGBK(vlist);
         }
     }
-    str = VectorUint8ToGBK(strList);
+    string str(strList.begin(), strList.end());
     return str;
 }
 
@@ -623,7 +517,7 @@ int64_t BBPE::GetPAD()
 
 int64_t BBPE::GetSpecialString(const string& str)
 {
-    auto strutf8 = ToUTF8(str);
+    auto strutf8 = str;
     VectorUint8 item;
     for (int j = 0; j < strutf8.length(); j++)
     {

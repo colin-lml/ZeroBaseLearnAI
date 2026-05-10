@@ -41,6 +41,7 @@ public:
             m_nMaxTitle = max(m_nMaxTitle, item.title.size());
             m_nMaxAuthor = max(m_nMaxAuthor, item.author.size());
             m_nMaxContent = max(m_nMaxContent, item.content.size());
+           
         }
 
         for (auto& item : m_vdata)

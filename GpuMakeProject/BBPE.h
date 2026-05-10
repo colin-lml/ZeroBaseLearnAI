@@ -89,9 +89,7 @@ private:
 
     bool IsExistVocabTable(const string& str);
     bool IsExistVocabTable(const VectorUint8& v);
-    string  ToUTF8(const string& str);
-    string  ToGBK(const string& str);
-    string  VectorUint8ToGBK(const VectorUint8& item);
+
     
     void AddNewKeyToVocabTable(const VectorUint8& vlist);
    

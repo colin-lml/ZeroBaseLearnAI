@@ -283,7 +283,7 @@ public:
 
 
         int i = 0;
-        while (i < 100)
+        while (i < 50)
         {
             torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong).to(gDType);
             auto out = forward(tgt.unsqueeze(0));
@@ -300,6 +300,8 @@ public:
                 break;
             }
             i++;
+            cout<< dataTest.GetTangshiString(tgtpad) <<endl;
+
         }
 
         return dataTest.GetTangshiString(tgtpad);

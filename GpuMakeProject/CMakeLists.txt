@@ -13,6 +13,8 @@ project ("GpuMakeProject")
 
 set(targetExeName "MakeProject")
 
+ 
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(torchpath "D:/libtorch_gpu2.11.0/debug")
 else()
