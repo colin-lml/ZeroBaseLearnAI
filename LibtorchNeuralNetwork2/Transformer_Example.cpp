@@ -20,8 +20,8 @@ public:
         torch::nn::TransformerOptions opts;
         opts.nhead(2);
         opts.dim_feedforward(dim_feed);
-        opts.num_decoder_layers(1);
-        opts.num_encoder_layers(1);
+        opts.num_decoder_layers(2);
+        opts.num_encoder_layers(2);
         opts.dropout(0.0);
         opts.d_model(dim_model);
         transformer = register_module("transformer", torch::nn::Transformer(opts));
@@ -44,8 +44,7 @@ public:
 
 
         //[batch, seq]  --> [seq, batch]
-        src = src.permute({ 1,0 });
-        tgt = tgt.permute({ 1,0 });
+        
 
         //std::cout << "input " << src << std::endl;
         src = src_emb->forward(src) * std::sqrt(dim_model);
@@ -54,6 +53,8 @@ public:
         tgt = tgt_emb_->forward(tgt) * std::sqrt(dim_model);
         tgt = pos_encoder->forward(tgt);
 
+        src = src.permute({ 1,0,2 });
+        tgt = tgt.permute({ 1,0,2 });
         // tgt & src: (seq, batch, dim)
         //auto outs = transformer->forward(src, tgt);
         auto outs = transformer->forward(src, tgt, src_mask, tgt_mask, none_mask, src_key_padding_mask, tgt_key_padding_mask, memory_key_padding_mask);
