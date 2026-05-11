@@ -37,18 +37,16 @@ vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(int count)
             in.push_back(randomNumber);
           
         }
+        in.push_back(gEOS);
         
-        
-
         for (int k = 0; k < i; k++)
         {
             in.push_back(gPad);
         }
-        //in.push_back(gEOS);
-
+     
         lab = in;
         lab.erase(lab.begin());
-        lab.push_back(gEOS);
+        lab.push_back(gPad);
         
         data.push_back({ in ,lab });
 

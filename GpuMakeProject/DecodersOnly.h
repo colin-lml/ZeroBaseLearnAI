@@ -287,7 +287,7 @@ public:
         std::vector<int64_t> tgtpad;
 
         tgtpad.push_back(gBOS);
-        tgtpad.push_back(5);
+        tgtpad.push_back(1);
         //tgtpad.push_back(6);
         //tgtpad.push_back(7);
         std::vector<int64_t> outVector;
@@ -303,7 +303,7 @@ public:
             auto next_token = out.argmax(-1).cpu();
             cout << next_token << endl;
             
-            int64_t key = next_token[i].item<int64_t>();
+            int64_t key = next_token[i+1].item<int64_t>();
             
            
             tgtpad.push_back(key);
