@@ -288,8 +288,8 @@ public:
 
         tgtpad.push_back(gBOS);
         tgtpad.push_back(5);
-        tgtpad.push_back(6);
-        tgtpad.push_back(7);
+        //tgtpad.push_back(6);
+        //tgtpad.push_back(7);
         std::vector<int64_t> outVector;
         int i = 0;
         while (i < 100)

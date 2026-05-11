@@ -81,10 +81,10 @@ int main()
 	//EmbeddingMain();
 	/// ResNetMain();
 
-	//TransformerMain();
+	TransformerMain();
 
 	//TransformerAttentionMain();
-	  HandwrittenTransformerMain();
+	 // HandwrittenTransformerMain();
 	 // DecoderOnlyMain();
 #else
 
