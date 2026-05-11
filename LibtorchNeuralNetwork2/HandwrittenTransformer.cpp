@@ -172,28 +172,30 @@ public:
 
 		auto tgt_mask = generate_square_subsequent_mask(tgt.size(1));
 	
-
 		//[batch, seq]  --> [seq, batch]
-		src = src.permute({ 1,0 });
-		tgt = tgt.permute({ 1,0 });
+		//src = src.permute({ 1,0 });
+		//tgt = tgt.permute({ 1,0 });
 
 		//std::cout << "input " << src << std::endl;
 		src = src_emb->forward(src) * std::sqrt(dim_model);
 		src = pos_encoder->forward(src);
 
 		tgt = tgt_emb_->forward(tgt) * std::sqrt(dim_model);
-		tgt = pos_encoder->forward(tgt);
-	
 
+		tgt = pos_encoder->forward(tgt);
+
+		src = src.permute({ 1,0,2 });
+		tgt = tgt.permute({ 1,0,2 });
 		return TransformerForward(src, tgt, tgt_mask);
 	}
 
 	torch::Tensor predict(torch::Tensor src)
 	{
-		//std::cout << src << std::endl;
-
+		
 		auto srcemb = src_emb->forward(src) * std::sqrt(dim_model);
+	
 		srcemb = pos_encoder->forward(srcemb);
+		///cout<<srcemb.sizes() << endl;
 		auto memory = encoders->forward(srcemb);
 
 		std::vector<int64_t> tgtpad = GetWordId(tgt_vocab, "S");
@@ -286,7 +288,7 @@ void TestData2(MyTransformer& model)
 
 void TrainData2(MyTransformer& model)
 {
-	double accuracy = 0.003;
+	double accuracy = 0.03;
 
 	auto datasetTrain = translatDataset().map(torch::data::transforms::Stack<>());
 	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(1));
