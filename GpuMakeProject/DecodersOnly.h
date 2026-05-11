@@ -62,25 +62,25 @@ private:
         H = head;
     }
 
-    /// q: [batch,seq, dim]
+    /// q: [seq,batch, dim]
     torch::Tensor ScaledDotProductAttention(torch::Tensor q, torch::Tensor k, torch::Tensor v, torch::Tensor& mask)
     {
         /// k==v q可以不等于 k v
-        auto batch  = q.size(0);
-        auto seq    =  q.size(1);
+        auto batch  = q.size(1);
+        auto seq    =  q.size(0);
         auto dim    =  q.size(2);
 
-        auto batch2 = k.size(0);
-        auto seq2  = k.size(1);
+        auto batch2 = k.size(1);
+        auto seq2  = k.size(0);
         auto dim2 = k.size(2);
 
-        q = q.view({ batch ,seq,  H, Dk }); // [b, s, h, d]
-        k = k.view({ batch2,seq2, H, Dk });
-        v = v.view({ batch2,seq2, H, Dk });
+        q = q.view({ seq, batch,  H, Dk }); // [s, b,  h, d]
+        k = k.view({ seq2, batch2, H, Dk });
+        v = v.view({ seq2, batch2, H, Dk });
 
-        q = q.permute({ 0,2,1,3 }); //[b, s, h, d] --->[B, H, S, Dk]
-        k = k.permute({ 0,2,1,3 });
-        v = v.permute({ 0,2,1,3 });
+        q = q.permute({ 1,2,0,3 }); //[s, b, h, d] --->[B, H, S, Dk]
+        k = k.permute({ 1,2,0,3 });
+        v = v.permute({ 1,2,0,3 });
 
         auto kt = k.permute({ 0,1,3,2 }); //kt:  [B, H, S, Dk] --> [B, H, Dk, S]
 
@@ -102,7 +102,7 @@ private:
         attn_score = torch::softmax(attn_score, -1); /// attn_score: [B, H, S, S]
 
         auto out = torch::matmul(attn_score, v); // [B, H, S, S] * [B, H, S, Dk]  ->  out: [B, H, S, Dk]
-        out = out.transpose(1, 2).contiguous().view({ batch,seq, dim }); //  [B, H, S, Dk] --> [B, S, H, Dk] -> [batch,seq, dim]
+        out = out.transpose(1, 2).contiguous().view({ seq,batch, dim }); //  [B, H, S, Dk] --> [B, S, H, Dk] -> [batch,seq, dim]
         //cout <<"out\n" << out.squeeze() << endl;
         out = Wo->forward(out);
         return out;
@@ -266,7 +266,7 @@ public:
 
         x = m_emb->forward(x);
 
-       /// x = x.permute({ 1,0, 2 });
+        x = x.permute({ 1,0, 2 });
         // cout <<x.sizes()<< endl;
 
 
@@ -290,25 +290,21 @@ public:
         tgtpad.push_back(5);
         tgtpad.push_back(6);
         tgtpad.push_back(7);
-
+        std::vector<int64_t> outVector;
         int i = 0;
         while (i < 100)
         {
             torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong).to(gDType);
             auto out = forward(tgt.unsqueeze(0));
 
-            out = out.squeeze();
+           // out = out.squeeze();
 
-            //cout << out << endl;
+            cout << out.sizes() << endl;
             auto next_token = out.argmax(-1).cpu();
-            //cout << next_token << endl;
-            std::vector<int64_t> outVector;
+            cout << next_token << endl;
+            
             int64_t key = next_token[i].item<int64_t>();
-            for (int k = 0; k < next_token.size(0); k++)
-            {
-                outVector.push_back(next_token[k].item<int64_t>());
-
-            }
+            
            
             tgtpad.push_back(key);
             if (key == gEOS)
@@ -318,12 +314,14 @@ public:
             i++;
             
         }
-
+        cout  << "tgtpad ";
         for (auto& key : tgtpad)
         {
             cout << key << " ";
         }
 
+        cout << endl << endl<<endl;
+        
 
         return "__TestData__";
     }

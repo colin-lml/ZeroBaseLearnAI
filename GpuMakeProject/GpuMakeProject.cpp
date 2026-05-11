@@ -39,10 +39,10 @@ int main()
 	translatDatasetOnly dataTrain;
 	
 	DeOnlyOptions opt;
-	opt.head = 6;
+	opt.head = 2;
 	opt.dmodel = nHeadLen * opt.head;
 	opt.ffn = opt.dmodel * 4;
-	opt.layers = 6;
+	opt.layers = 2;
 	opt.max_len = 1000;
 	opt.vocab_size = gVocabCount;
 
@@ -63,10 +63,6 @@ int main()
 
 		std::ifstream filem(model_path);
 		bool bmodel = filem.is_open();
-
-#ifdef __TestData__
-		bmodel = false;
-#endif // __TestData__
 
 		if (!bmodel)
 		{

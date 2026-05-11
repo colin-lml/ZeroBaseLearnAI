@@ -16,7 +16,7 @@ vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(int count)
 
     count = min(count, 50);
 
-    gVocabCount = count + 5;
+    gVocabCount = 55;
     gBOS = count + 1;
     gEOS = count + 2;
     gPad = count + 3;
@@ -37,16 +37,18 @@ vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(int count)
             in.push_back(randomNumber);
           
         }
-        in.push_back(gEOS);
+        
         
 
         for (int k = 0; k < i; k++)
         {
             in.push_back(gPad);
         }
+        //in.push_back(gEOS);
+
         lab = in;
         lab.erase(lab.begin());
-        lab.push_back(gPad);
+        lab.push_back(gEOS);
         
         data.push_back({ in ,lab });
 

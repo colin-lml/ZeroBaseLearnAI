@@ -30,7 +30,7 @@ public:
 #ifdef __TestData__
 
         m_vTestData = MakeTestData(40);
-        gVocabCount = m_vTestData.size();
+        
 
 #else 
 
