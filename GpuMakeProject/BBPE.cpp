@@ -122,9 +122,9 @@ void BBPE::InitData()
    
     for (int i = 0; i < 256; i++)
     {
-        VectorUint8 b;
-        b.push_back(i);
-        AddNewKeyToVocabTable(b);
+       // VectorUint8 b;
+        //b.push_back(i);
+        //AddNewKeyToVocabTable(b);
     }
 }
 

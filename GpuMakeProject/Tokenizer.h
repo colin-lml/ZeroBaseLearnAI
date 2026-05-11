@@ -5,6 +5,7 @@
 
 #include "BBPE.h"
 
+#define __TestData__
 
 
 typedef struct _Tangshi

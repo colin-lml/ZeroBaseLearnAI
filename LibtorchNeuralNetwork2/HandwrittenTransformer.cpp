@@ -286,7 +286,7 @@ void TestData2(MyTransformer& model)
 
 void TrainData2(MyTransformer& model)
 {
-	double accuracy = 0.03;
+	double accuracy = 0.003;
 
 	auto datasetTrain = translatDataset().map(torch::data::transforms::Stack<>());
 	auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(1));

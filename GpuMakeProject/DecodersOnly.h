@@ -131,7 +131,8 @@ public:
         m_posEncode = torch::zeros({ m_iMaxlen, m_iDmodel }, torch::kFloat32);
 
         Encoding();
-        m_emb = register_module("tgt_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(vocab_size, m_iDmodel)));
+        m_embPosition = register_module("m_embPosition", torch::nn::Embedding(torch::nn::EmbeddingOptions(max_len, m_iDmodel)));
+        m_emb = register_module("m_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(vocab_size, m_iDmodel)));
         register_buffer("posEncode", m_posEncode);
     }
 
@@ -146,14 +147,17 @@ public:
 
         // x [bath, seq, dim]
 
-        auto dim = x.size(1);
+        auto seq = x.size(1);
+        auto B = x.size(0);
         // cout << "x  " << x.sizes() << endl;
          //cout << "m_posEncode  "  << m_posEncode.sizes() << endl;
          //cout << "m_posEncode.slice  " << m_posEncode.slice(1, 0, dim).sizes() << endl;
 
-        x = x + m_posEncode.slice(1, 0, dim);
-
-        return  x;
+        auto pos = torch::arange(seq, x.device()).unsqueeze(0).expand({ B, seq });
+       
+       // x = x + m_posEncode.slice(1, 0, seq);
+        x = x + m_embPosition->forward(pos);
+        return  x ;
     }
 
 private:
@@ -170,6 +174,7 @@ private:
     }
 
     torch::nn::Embedding m_emb{ nullptr };
+    torch::nn::Embedding m_embPosition{ nullptr };
     torch::Tensor m_posEncode;
     int64_t m_iDmodel = 0;
     int64_t m_iMaxlen = 0;
@@ -275,12 +280,60 @@ public:
         return fc->forward(x);
     }
 
+#ifdef __TestData__
+
+    string predict(string ch, translatDatasetOnly& dataTest)
+    {
+        std::vector<int64_t> tgtpad;
+
+        tgtpad.push_back(gBOS);
+        tgtpad.push_back(5);
+        tgtpad.push_back(6);
+        tgtpad.push_back(7);
+
+        int i = 0;
+        while (i < 100)
+        {
+            torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong).to(gDType);
+            auto out = forward(tgt.unsqueeze(0));
+
+            out = out.squeeze();
+
+            //cout << out << endl;
+            auto next_token = out.argmax(-1).cpu();
+            //cout << next_token << endl;
+            std::vector<int64_t> outVector;
+            int64_t key = next_token[i].item<int64_t>();
+            for (int k = 0; k < next_token.size(0); k++)
+            {
+                outVector.push_back(next_token[k].item<int64_t>());
+
+            }
+           
+            tgtpad.push_back(key);
+            if (key == gEOS)
+            {
+                break;
+            }
+            i++;
+            
+        }
+
+        for (auto& key : tgtpad)
+        {
+            cout << key << " ";
+        }
+
+
+        return "__TestData__";
+    }
+#else
+
     string predict(string ch, translatDatasetOnly& dataTest)
     {
         ch = "<BOS>" + ch;
 
         auto tgtpad = dataTest.GetTangshiCode(ch);
-
 
         int i = 0;
         while (i < 50)
@@ -290,23 +343,31 @@ public:
             
             out = out.squeeze();
            
+            //cout << out << endl;
             auto next_token = out.argmax(-1).cpu();
-           // cout << next_token << endl;
-
+            //cout << next_token << endl;
+            std::vector<int64_t> outVector;
             int64_t key = next_token[i].item<int64_t>();
+            for (int k = 0; k < next_token.size(0); k++)
+            {
+                outVector.push_back(next_token[k].item<int64_t>());
+                
+            }
+            cout << dataTest.GetTangshiString(outVector) << endl;
+            
             tgtpad.push_back(key);
             if (key == gEOS)
             {
                 break;
             }
             i++;
-            cout<< dataTest.GetTangshiString(tgtpad) <<endl;
+           // cout<< dataTest.GetTangshiString(tgtpad) <<endl;
 
         }
 
         return dataTest.GetTangshiString(tgtpad);
     }
-
+#endif
 
 
 

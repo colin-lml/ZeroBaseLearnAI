@@ -4,13 +4,24 @@
 #include "GpuMakeProject.h"
 #include "DecodersOnly.h"
 #include "LoadDataset.h"
+#include <filesystem>
 
 void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxtrain, int64_t batchsize);
 void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
 
-#define max_train  1000*10
-#define batchsize2  80
 
+#ifdef __TestData__
+
+#define max_train  (100 * 3)
+#define batchsize2  8
+#define nHeadLen 64   // 单头维度 = 64（优先）
+
+#else
+#define max_train  1000//*5
+#define batchsize2  80
+#define nHeadLen 64   // 单头维度 = 64（优先）
+
+#endif // __TestData__
 
 
 int main()
@@ -26,15 +37,19 @@ int main()
 	cout <<"device: " << device << endl;
 
 	translatDatasetOnly dataTrain;
-
+	
 	DeOnlyOptions opt;
-	opt.dmodel = 256;
-	opt.head = 8;
-	opt.ffn = 1024;
-	opt.layers = 1;
+	opt.head = 6;
+	opt.dmodel = nHeadLen * opt.head;
+	opt.ffn = opt.dmodel * 4;
+	opt.layers = 6;
 	opt.max_len = 1000;
 	opt.vocab_size = gVocabCount;
 
+	if (opt.ffn < gVocabCount * 2)
+	{
+		opt.ffn = gVocabCount * 2;
+	}
 
 	DecodersOnly model(opt);
 	
@@ -43,8 +58,16 @@ int main()
 	try
 	{
 		std::string model_path = "Decoder_Only_model3.pt";
+
+		
+
 		std::ifstream filem(model_path);
 		bool bmodel = filem.is_open();
+
+#ifdef __TestData__
+		bmodel = false;
+#endif // __TestData__
+
 		if (!bmodel)
 		{
 			if (gDType == torch::kCUDA)
@@ -54,9 +77,7 @@ int main()
 			else
 			{
 				TrainData(model, dataTrain, max_train/3, batchsize2 * 4);
-			}
-
-			
+			}			
 			torch::save(model, model_path);
 		}
 		else

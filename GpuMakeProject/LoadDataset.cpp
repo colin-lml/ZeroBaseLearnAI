@@ -3,19 +3,27 @@
 #include "DecodersOnly.h"
 #include <filesystem>
 
-int64_t  gBOS = 101;
-int64_t  gEOS = 102;
-int64_t  gPad = 103;
-int64_t gVocabCount = 105;
+int64_t  gBOS = 0;
+int64_t  gEOS = 0;
+int64_t  gPad = 0;
+int64_t  gVocabCount = 0;
 
 torch::DeviceType gDType = torch::kCPU;
 
 
-vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(const int count)
+vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(int count)
 {
+
+    count = min(count, 50);
+
+    gVocabCount = count + 5;
+    gBOS = count + 1;
+    gEOS = count + 2;
+    gPad = count + 3;
+
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 99);
+    std::uniform_int_distribution<> dis(0, 49);
     vector<pair<vector<int64_t>, vector<int64_t>>> data;
     for (size_t i = 0; i < count; i++)
     {
@@ -23,16 +31,16 @@ vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(const int count)
         vector<int64_t> lab;
         in.push_back(gBOS);
 
-        for (int j = 1; j < 95 - 2 * i; j++)
+        for (int j = 1; j < 55 -  i; j++)
         {
-            int randomNumber = dis(gen);
+            int randomNumber =  i + j;//dis(gen);
             in.push_back(randomNumber);
           
         }
         in.push_back(gEOS);
         
 
-        for (int k = 0; k < 2 * i; k++)
+        for (int k = 0; k < i; k++)
         {
             in.push_back(gPad);
         }
@@ -84,7 +92,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
     auto p = std::filesystem::current_path().string() + "/../Decoder_Only_model3_tmp.pt";
     string strTmpState = "TrainData.tmp.pt.bin";
     string strTmpState2 = "TrainData.tmp.step.bin";
-    double accuracy = 0.008;
+    double accuracy = 0.05;
     auto options = torch::nn::CrossEntropyLossOptions().ignore_index(gPad);
     torch::nn::CrossEntropyLoss loss_fn(options);
 
@@ -129,7 +137,14 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
             total_loss += loss1;
 
         }
-        
+       
+        if (std::isnan(total_loss))
+        {
+            cout <<"########### nan break : " << i + 1 << endl;
+            break;
+        }
+
+
         if (i % showItem == 0 || (i + 1) == maxtrain)
         {
             cout << i + 1 <<" / "<< maxtrain << " , total-loss: " << total_loss << " , loss: " << loss1 << endl;
@@ -164,7 +179,7 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
     std::vector<std::string> tests;
 
     tests.push_back("¥∫√ﬂ≤ªæıœ˛");
-    tests.push_back("∞◊»’“¿…Ωæ°");
+    //tests.push_back("∞◊»’“¿…Ωæ°");
 
     for (auto ch : tests)
     {

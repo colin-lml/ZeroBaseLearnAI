@@ -18,7 +18,7 @@ extern	int64_t  gPad;
 extern	int64_t gVocabCount;
 extern  torch::DeviceType gDType;
 
-vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(const int count);
+vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(int count);
 
 
 class translatDatasetOnly : public torch::data::Dataset<translatDatasetOnly>
@@ -27,6 +27,13 @@ public:
 
     translatDatasetOnly()
     {
+#ifdef __TestData__
+
+        m_vTestData = MakeTestData(40);
+        gVocabCount = m_vTestData.size();
+
+#else 
+
         m_dataToken.InitLoadDataSrc();
         m_vdata = m_dataToken.GetEncodeData();
         gVocabCount = m_dataToken.GetCorpusVocabCount();
@@ -34,7 +41,7 @@ public:
         gPad = m_dataToken.GetPAD();
         gBOS = m_dataToken.GetBOS();
         gEOS = m_dataToken.GetEOS();;
-       // m_vTestData = MakeTestData(40);
+        
 
         for (auto& item : m_vdata)
         {
@@ -61,22 +68,38 @@ public:
             LableContent.push_back(input);
         }
 
-
+#endif // DEBUG
     }
     torch::optional<size_t> size() const
     {
+#ifdef __TestData__
+        return m_vTestData.size();
+#else
+
         return InputContent.size();
+#endif
     }
 
     torch::data::Example<torch::Tensor, torch::Tensor>  get(size_t index) override
     {
 
+#ifdef __TestData__
+
+        auto item  = m_vTestData.at(index);
+
+        auto inpput = torch::tensor(item.first, torch::kLong);
+
+        auto lable = torch::tensor(item.second, torch::kLong);
+
+        return { inpput, lable };
+
+#else
         auto inpput = torch::tensor(InputContent.at(index), torch::kLong);
 
         auto lable = torch::tensor(LableContent.at(index), torch::kLong);
 
         return { inpput, lable };
-
+#endif
     }
 
     std::vector<int64_t> GetTangshiCode(std::string& line)
@@ -96,7 +119,7 @@ public:
 
     std::vector<VectorCodeID> InputContent;
     std::vector <VectorCodeID> LableContent;
-   // vector<pair<vector<int64_t>, vector<int64_t>>> m_vTestData;
+    vector<pair<vector<int64_t>, vector<int64_t>>> m_vTestData;
 };
 
 

@@ -84,8 +84,8 @@ int main()
 	//TransformerMain();
 
 	//TransformerAttentionMain();
-	///HandwrittenTransformerMain();
-	  DecoderOnlyMain();
+	  HandwrittenTransformerMain();
+	 // DecoderOnlyMain();
 #else
 
 	NetModule net;
