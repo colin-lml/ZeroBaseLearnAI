@@ -7,6 +7,7 @@ int64_t  gBOS = 0;
 int64_t  gEOS = 0;
 int64_t  gPad = 0;
 int64_t  gVocabCount = 0;
+size_t   m_gMaxBatch = 0;
 
 torch::DeviceType gDType = torch::kCPU;
 

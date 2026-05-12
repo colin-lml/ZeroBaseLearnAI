@@ -19,7 +19,8 @@ extern	int64_t gVocabCount;
 extern  torch::DeviceType gDType;
 
 vector<vector<int64_t>> MakeTestData(int count);
-static size_t m_gMaxBatch = 0;
+
+extern size_t m_gMaxBatch;
 
 class translatDatasetOnly : public torch::data::Dataset<translatDatasetOnly>
 {
@@ -42,31 +43,6 @@ public:
         gEOS = m_dataToken.GetEOS();;
         
 
-        for (auto& item : m_vdata)
-        {
-            m_nMaxTitle = max(m_nMaxTitle, item.title.size());
-            m_nMaxAuthor = max(m_nMaxAuthor, item.author.size());
-            m_nMaxContent = max(m_nMaxContent, item.content.size());
-           
-        }
-
-        for (auto& item : m_vdata)
-        {
-            VectorCodeID input;
-            input.push_back(gBOS);
-            auto addPadLen = m_nMaxContent - item.content.size();
-            input.insert(input.end(), item.content.begin(), item.content.end());
-            input.push_back(gEOS);
-            for (size_t i = 0; i < addPadLen; i++)
-            {
-                input.push_back(gPad);
-            }
-            InputContent.push_back(input);
-            input.erase(input.begin());
-            input.push_back(gPad);
-            LableContent.push_back(input);
-        }
-
 #endif // DEBUG
     }
     torch::optional<size_t> size() const
@@ -75,7 +51,7 @@ public:
         return m_vTestData.size();
 #else
 
-        return InputContent.size();
+        return m_vdata.size();
 #endif
     }
 
@@ -83,8 +59,12 @@ public:
     {
 
 #ifdef __TestData__
-
+  
         auto item  = m_vTestData.at(index);
+
+#else
+        auto item = m_vdata.at(index).content;
+#endif
         int  len = m_gMaxBatch - item.size();
         item.insert(item.begin(), gBOS);
         item.push_back(gEOS);
@@ -103,16 +83,9 @@ public:
 
         return { inpput, lable };
 
-#else
-        auto inpput = torch::tensor(InputContent.at(index), torch::kLong);
-
-        auto lable = torch::tensor(LableContent.at(index), torch::kLong);
-
-        return { inpput, lable };
-#endif
     }
 
-    void UpdateBatchMax(std::vector<size_t> vlist)
+    void UpdateBatchMax(std::vector<size_t>& vlist)
     {
         m_gMaxBatch = 0;
 #ifdef __TestData__
@@ -121,7 +94,14 @@ public:
         {
             m_gMaxBatch = max(m_gMaxBatch, m_vTestData.at(vlist.at(i)).size());
         }
+
+        
 #else
+
+        for (size_t i = 0; i < vlist.size(); i++)
+        {
+            m_gMaxBatch = max(m_gMaxBatch, m_vdata.at(vlist.at(i)).content.size());
+        }
 
 #endif
     }
@@ -138,14 +118,9 @@ public:
 
     std::vector<VectorCodeTangshi> m_vdata;
     Tokenizer m_dataToken;
-    size_t m_nMaxTitle = 0;
-    size_t m_nMaxAuthor = 0;
-    size_t m_nMaxContent = 0;
 
-    std::vector<VectorCodeID> InputContent;
-    std::vector <VectorCodeID> LableContent;
     vector<vector<int64_t>> m_vTestData;
-   
+    
 };
 
 struct BatchSampler : public torch::data::samplers::RandomSampler
