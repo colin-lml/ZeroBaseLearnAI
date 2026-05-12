@@ -26,6 +26,7 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
 
 int main()
 {
+	torch::manual_seed(10);
 	std::locale loc = std::locale();
 	string name  = (loc.name()==""|| loc.name() == "C") ? "GBK" : loc.name();
 	

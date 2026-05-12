@@ -13,7 +13,7 @@
 using namespace std;
 
 
-#define dropoutp 0.1
+#define dropoutp 0.0
 
 struct DeOnlyOptions
 {
@@ -59,6 +59,8 @@ private:
         V = register_module("v", torch::nn::Linear(linear));
         Wo = register_module("Wo", torch::nn::Linear(linear)); // Êä³öÍ¶Ó°
 
+        //attn_dropout = register_module("attn_dropout", torch::nn::Dropout(dropoutp));
+
         norm_fact = 1.0 / sqrt(dim);
 
         Dk = dim / head;
@@ -102,6 +104,8 @@ private:
             attn_score += mask;
         }
 
+        //attn_score = attn_dropout->forward(attn_score);
+
         attn_score = torch::softmax(attn_score, -1); /// attn_score: [B, H, S, S]
 
         auto out = torch::matmul(attn_score, v); // [B, H, S, S] * [B, H, S, Dk]  ->  out: [B, H, S, Dk]
@@ -115,6 +119,8 @@ private:
     torch::nn::Linear K{ nullptr };
     torch::nn::Linear V{ nullptr };
     torch::nn::Linear Wo{ nullptr };
+
+   // torch::nn::Dropout attn_dropout{ nullptr };
 
     double norm_fact = 0;
     int64_t Dk;
@@ -134,7 +140,7 @@ public:
         m_posEncode = torch::zeros({ m_iMaxlen, m_iDmodel }, torch::kFloat32);
 
         Encoding();
-        emb_dropout = register_module("emb_dropout", torch::nn::Dropout(dropoutp));
+        emb_dropout = register_module("emb_dropout1", torch::nn::Dropout(dropoutp));
         m_embPosition = register_module("m_embPosition", torch::nn::Embedding(torch::nn::EmbeddingOptions(max_len, m_iDmodel)));
         m_emb = register_module("m_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(vocab_size, m_iDmodel)));
         register_buffer("posEncode", m_posEncode);
@@ -148,6 +154,8 @@ public:
         //cout <<m_emb << endl;
 
         x = m_emb->forward(x) * std::sqrt(m_iDmodel);
+       
+       // cout << x.sizes() << endl;
 
         // x [bath, seq, dim]
 
@@ -161,6 +169,9 @@ public:
        
          x = x + m_posEncode.slice(1, 0, seq);
          //x = x + m_embPosition->forward(pos);
+
+         x = emb_dropout->forward(x);
+
         return  x ;
     }
 
@@ -203,6 +214,8 @@ public:
         
         m_norm1 = register_module("norm1", torch::nn::LayerNorm(normOpt));
         m_norm2 = register_module("norm2", torch::nn::LayerNorm(normOpt));
+        m_dropoutAtt = register_module("m_dropoutAtt", torch::nn::Dropout(dropoutp));
+        m_dropoutFfn = register_module("m_dropoutFfn", torch::nn::Dropout(dropoutp));
 
     }
 
@@ -212,8 +225,12 @@ public:
        // auto [attnOutput, attnWeights] = m_attention->forward(q, k, v,{},true, mask);
         auto attnOutput= m_attention->forward(x, x, x, mask);
 
+        attnOutput = m_dropoutAtt->forward(attnOutput);
+       
         auto y = m_norm1->forward(attnOutput + x);
         auto y2 = m_fFeedForward->forward(y);
+        y2 = m_dropoutFfn->forward(y2);
+       
 
         return m_norm2->forward(y2 + y);
     }
@@ -223,6 +240,9 @@ public:
     //torch::nn::MultiheadAttention m_attention{ nullptr };
     XMultiHeadAttention m_attention{ nullptr };
     torch::nn::Sequential m_fFeedForward{ nullptr };
+    torch::nn::Dropout m_dropoutAtt{ nullptr };
+    torch::nn::Dropout m_dropoutFfn{ nullptr };
+   
 };
 TORCH_MODULE(DeOnlyLayer);
 
