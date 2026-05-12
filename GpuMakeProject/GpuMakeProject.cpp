@@ -17,8 +17,8 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
 #define nHeadLen 64   // 单头维度 = 64（优先）
 
 #else
-#define max_train  1000//*5
-#define batchsize2  80
+#define max_train  1500
+#define batchsize2  20
 #define nHeadLen 64   // 单头维度 = 64（优先）
 
 #endif // __TestData__
@@ -54,7 +54,7 @@ int main()
 	opt.layers = opt.head;
 #else
 
-	opt.head = 4;
+	opt.head = 6;
 	opt.dmodel = nHeadLen * opt.head;
 	opt.ffn = opt.dmodel * 4;
 	opt.layers = opt.head;

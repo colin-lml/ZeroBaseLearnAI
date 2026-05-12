@@ -47,32 +47,40 @@ vector<vector<int64_t>> MakeTestData(int count)
 
 void  LoadTrainState(const string& path, const string& path2, DecodersOnly& mode, torch::optim::Adam& optimizer, int& step)
 {
-    /*
+   
     step = 0;
     ifstream f(path2, ios::binary);
     if (f.is_open())
     {
         f.read((char*)&step, sizeof(step));
 
-        torch::OrderedDict<std::string, torch::IValue> dict;
-        torch::load(dict, path);
-        mode = dict["model"].to<DecodersOnly>();
-        optimizer = dict["optim"].to<torch::optim::Adam>();
+        torch::serialize::InputArchive oa;
+        oa.load_from(path+"1");
+        mode->load(oa);
+
+        torch::serialize::InputArchive adam;
+        adam.load_from(path + "2");
+        optimizer.load(adam);
     }
-    */
+    
 }
 
 void SaveTrainState(const string& path, const string& path2, DecodersOnly& mode, torch::optim::Adam& optimizer, int step)
 {
-    /*
-    torch::OrderedDict<std::string, torch::IValue> dict;
-    dict.insert("model", mode);
-    dict.insert("optim", optimizer);
-    torch::save(dict, path);
+    
+    torch::serialize::OutputArchive oa;
+
+    mode->save(oa);               
+    oa.save_to(path+"1");
+   
+
+    torch::serialize::OutputArchive adam;
+    optimizer.save(adam);
+    adam.save_to(path + "2");
 
     ofstream f(path2, ios::binary);
     f.write((char*)&step, sizeof(step));
-    */
+    
 }
 
 
@@ -93,18 +101,18 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
     auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), std::move(sampler),torch::data::DataLoaderOptions().batch_size(batchsize));
 
     int step = 0;
-    // LoadTrainState(strTmpState, strTmpState2, model, optimizer, step);
+    LoadTrainState(strTmpState, strTmpState2, model, optimizer, step);
 
     std::cout << "训练模型" << std::endl;
 
     model->train();
 
     int showItem = 10;
-    int showSave = 1000;
+    int showSave = 20;
     if (gDType == torch::kCUDA)
     {
         showItem = 20;
-        showSave = 500;
+        showSave = 100;
     }
 
     for (int i = step; i < maxtrain; i++)
@@ -146,10 +154,9 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
             cout << i + 1 << " / " << maxtrain << " , loss: " << total_loss << " , loss: " << loss1 << " , end... " << endl;
             break;
         }
-        if (i % showSave == 0 && total_loss < 1.2)
+        if (i % 5 == 0)
         {
-            // SaveTrainState(strTmpState, strTmpState2, model, optimizer, i);
-           
+            SaveTrainState(strTmpState, strTmpState2, model, optimizer, i);
             torch::save(model, p);
         }
 
@@ -157,8 +164,8 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
     torch::save(model, p);
 
-    std::remove(strTmpState2.c_str());
-    std::remove(strTmpState.c_str());
+    //std::remove(strTmpState2.c_str());
+   // std::remove(strTmpState.c_str());
 }
 
 
@@ -170,7 +177,10 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
     std::vector<std::string> tests;
 
     tests.push_back("春眠不觉晓");
-    //tests.push_back("白日依山尽");
+    tests.push_back("床前明月光");
+    tests.push_back("海上生明月");
+    tests.push_back("白日依山尽");
+    tests.push_back("空山不见人");
 
     for (auto ch : tests)
     {
