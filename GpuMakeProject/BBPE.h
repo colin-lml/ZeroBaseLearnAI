@@ -18,9 +18,9 @@ using namespace std;
 #define VocabSize   1000
 #define BBPE_PATH   "BBPE_Model.bin"
 
-#define BOS   "<BOS>"
-#define EOS   "</BOS>"  
-#define PAD   "<PAD>"
+#define BOS   "<S>"
+#define EOS   "</S>"  
+#define PAD   "<P>"
 
 
 struct VectorUint8Key

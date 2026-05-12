@@ -12,7 +12,7 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
 
 #ifdef __TestData__
 
-#define max_train  (1000 * 2)
+#define max_train  (1000 * 1)
 #define batchsize2  50
 #define nHeadLen 64   // 单头维度 = 64（优先）
 
@@ -44,13 +44,13 @@ int main()
 	opt.head = 2;
 	opt.dmodel = nHeadLen * opt.head;
 	opt.ffn = opt.dmodel * 4;
-	opt.layers = 2;
+	opt.layers = opt.head;
 #else
 
 	opt.head = 4;
 	opt.dmodel = nHeadLen * opt.head;
 	opt.ffn = opt.dmodel * 4;
-	opt.layers = 4;
+	opt.layers = opt.head;
 
 #endif
 	opt.max_len = 1000;

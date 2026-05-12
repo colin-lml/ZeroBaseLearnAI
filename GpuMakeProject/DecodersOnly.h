@@ -12,6 +12,9 @@
 
 using namespace std;
 
+
+#define dropoutp 0.1
+
 struct DeOnlyOptions
 {
     int64_t dmodel = 512;
@@ -131,6 +134,7 @@ public:
         m_posEncode = torch::zeros({ m_iMaxlen, m_iDmodel }, torch::kFloat32);
 
         Encoding();
+        emb_dropout = register_module("emb_dropout", torch::nn::Dropout(dropoutp));
         m_embPosition = register_module("m_embPosition", torch::nn::Embedding(torch::nn::EmbeddingOptions(max_len, m_iDmodel)));
         m_emb = register_module("m_emb", torch::nn::Embedding(torch::nn::EmbeddingOptions(vocab_size, m_iDmodel)));
         register_buffer("posEncode", m_posEncode);
@@ -155,8 +159,8 @@ public:
 
         auto pos = torch::arange(seq, x.device()).unsqueeze(0).expand({ B, seq });
        
-        x = x + m_posEncode.slice(1, 0, seq);
-        //x = x + m_embPosition->forward(pos);
+         x = x + m_posEncode.slice(1, 0, seq);
+         //x = x + m_embPosition->forward(pos);
         return  x ;
     }
 
@@ -172,7 +176,7 @@ private:
         // [bath,seq,dim]
 
     }
-
+    torch::nn::Dropout emb_dropout{ nullptr };
     torch::nn::Embedding m_emb{ nullptr };
     torch::nn::Embedding m_embPosition{ nullptr };
     torch::Tensor m_posEncode;
@@ -204,11 +208,6 @@ public:
 
     torch::Tensor forward(torch::Tensor& x, torch::Tensor& mask)
     {
-
-        //auto kkk = m_attention->forward(q, k, v);
-
-        //cout << x.sizes()<< endl;
-        //cout << mask.sizes() << endl;
 
        // auto [attnOutput, attnWeights] = m_attention->forward(q, k, v,{},true, mask);
         auto attnOutput= m_attention->forward(x, x, x, mask);
@@ -250,6 +249,8 @@ public:
             //opt.dropout(0);
 
             moduleLayers->push_back(DeOnlyLayer(inOpt.dmodel, inOpt.head, inOpt.ffn));
+
+           /// moduleLayers->push_back(torch::nn::TransformerEncoderLayer(opt));
         }
 
 
@@ -273,8 +274,9 @@ public:
 
         for (auto& item : *moduleLayers)
         {
-            x = item->as<DeOnlyLayer>()->forward(x, src_mask);
-
+             x = item->as<DeOnlyLayer>()->forward(x, src_mask);
+            //x = item->as<torch::nn::TransformerEncoderLayer>()->forward(x, src_mask, tgt_key_padding_mask);
+            
         }
 
         return fc->forward(x);
@@ -300,9 +302,9 @@ public:
 
            // out = out.squeeze();
 
-            cout << out.sizes() << endl;
+           //cout << out.sizes() << endl;
             auto next_token = out.argmax(-1).cpu();
-            cout << next_token << endl;
+           // cout << next_token << endl;
             
             int64_t key = next_token[i+ start].item<int64_t>();
             
@@ -330,7 +332,7 @@ public:
 
     string predict(string ch, translatDatasetOnly& dataTest)
     {
-        ch = "<BOS>" + ch;
+        ch = BOS + ch;
 
         auto tgtpad = dataTest.GetTangshiCode(ch);
         int start = tgtpad.size() - 1;

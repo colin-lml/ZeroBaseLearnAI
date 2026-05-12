@@ -52,10 +52,7 @@ void Tokenizer::LoadDataTxtFile()
 
         Tangshi item;
 
-        std::string n;
-        std::string num;
-        std::stringstream data(line);
-        data >> num>>  item.title;
+        item.title = line;
    
         if (getline(ss, line))
         {
