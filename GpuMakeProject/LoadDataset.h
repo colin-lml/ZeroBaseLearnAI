@@ -18,8 +18,8 @@ extern	int64_t  gPad;
 extern	int64_t gVocabCount;
 extern  torch::DeviceType gDType;
 
-vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(int count);
-
+vector<vector<int64_t>> MakeTestData(int count);
+static size_t m_gMaxBatch = 0;
 
 class translatDatasetOnly : public torch::data::Dataset<translatDatasetOnly>
 {
@@ -31,7 +31,6 @@ public:
 
         m_vTestData = MakeTestData(40);
         
-
 #else 
 
         m_dataToken.InitLoadDataSrc();
@@ -86,10 +85,21 @@ public:
 #ifdef __TestData__
 
         auto item  = m_vTestData.at(index);
+        int  len = m_gMaxBatch - item.size();
+        item.insert(item.begin(), gBOS);
+        item.push_back(gEOS);
 
-        auto inpput = torch::tensor(item.first, torch::kLong);
+        for (int i = 0; i < len; i++)
+        {
+            item.push_back(gPad);
+        }
 
-        auto lable = torch::tensor(item.second, torch::kLong);
+        auto inpput = torch::tensor(item, torch::kLong);
+
+        item.erase(item.begin());
+        item.push_back(gPad);
+
+        auto lable = torch::tensor(item, torch::kLong);
 
         return { inpput, lable };
 
@@ -101,6 +111,21 @@ public:
         return { inpput, lable };
 #endif
     }
+
+    void UpdateBatchMax(std::vector<size_t> vlist)
+    {
+        m_gMaxBatch = 0;
+#ifdef __TestData__
+
+        for (size_t i = 0; i < vlist.size(); i++)
+        {
+            m_gMaxBatch = max(m_gMaxBatch, m_vTestData.at(vlist.at(i)).size());
+        }
+#else
+
+#endif
+    }
+    
 
     std::vector<int64_t> GetTangshiCode(std::string& line)
     {
@@ -119,8 +144,30 @@ public:
 
     std::vector<VectorCodeID> InputContent;
     std::vector <VectorCodeID> LableContent;
-    vector<pair<vector<int64_t>, vector<int64_t>>> m_vTestData;
+    vector<vector<int64_t>> m_vTestData;
+   
 };
+
+struct BatchSampler : public torch::data::samplers::RandomSampler
+{
+    BatchSampler(translatDatasetOnly* dataset) : RandomSampler(*dataset->size())
+    {
+        m_dataset = dataset;
+    }
+
+    std::optional<std::vector<size_t>> next(size_t batch_size) override
+    {
+        auto  vlist = RandomSampler::next(batch_size);
+        if (vlist != std::nullopt)
+        {
+            m_dataset->UpdateBatchMax(*vlist);
+        }  
+        return vlist;
+    }
+
+    translatDatasetOnly* m_dataset;
+};
+
 
 
 

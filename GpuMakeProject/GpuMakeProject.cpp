@@ -13,7 +13,7 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
 #ifdef __TestData__
 
 #define max_train  (1000 * 1)
-#define batchsize2  50
+#define batchsize2  10
 #define nHeadLen 64   // 单头维度 = 64（优先）
 
 #else
@@ -24,8 +24,14 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
 #endif // __TestData__
 
 
+
+
+
+
 int main()
 {
+
+
 	torch::manual_seed(10);
 	std::locale loc = std::locale();
 	string name  = (loc.name()==""|| loc.name() == "C") ? "GBK" : loc.name();
@@ -70,7 +76,9 @@ int main()
 	{
 		std::string model_path = "Decoder_Only_model3.pt";
 
-		
+#ifdef __TestData__
+		std::remove(model_path.c_str());
+#endif // DEBUG
 
 		std::ifstream filem(model_path);
 		bool bmodel = filem.is_open();

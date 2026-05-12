@@ -11,44 +11,32 @@ int64_t  gVocabCount = 0;
 torch::DeviceType gDType = torch::kCPU;
 
 
-vector<pair<vector<int64_t>, vector<int64_t>>> MakeTestData(int count)
+vector<vector<int64_t>> MakeTestData(int count)
 {
-
     count = min(count, 50);
 
     gVocabCount = 55;
-    gBOS = count + 1;
-    gEOS = count + 2;
-    gPad = count + 3;
+
+    gBOS = 51;
+    gEOS = 52;
+    gPad = 53;
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, 49);
-    vector<pair<vector<int64_t>, vector<int64_t>>> data;
+    vector<vector<int64_t>> data;
     for (size_t i = 0; i < count; i++)
     {
-        vector<int64_t> in;
-        vector<int64_t> lab;
-        in.push_back(gBOS);
-
-        for (int j = 1; j < 55 -  i; j++)
+        vector<int64_t> item;
+    
+        for (int j = 1; j < 50 -  i; j++)
         {
             int randomNumber =  i + j;//dis(gen);
-            in.push_back(randomNumber);
+            item.push_back(randomNumber);
           
         }
-        in.push_back(gEOS);
         
-        for (int k = 0; k < i; k++)
-        {
-            in.push_back(gPad);
-        }
-     
-        lab = in;
-        lab.erase(lab.begin());
-        lab.push_back(gPad);
-        
-        data.push_back({ in ,lab });
+        data.push_back(item);
 
     }
 
@@ -98,8 +86,10 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
     torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
 
+    BatchSampler sampler(&dataTrain);
+
     auto datasetTrain = dataTrain.map(torch::data::transforms::Stack<>());
-    auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), torch::data::DataLoaderOptions().batch_size(batchsize));
+    auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), std::move(sampler),torch::data::DataLoaderOptions().batch_size(batchsize));
 
     int step = 0;
     // LoadTrainState(strTmpState, strTmpState2, model, optimizer, step);
