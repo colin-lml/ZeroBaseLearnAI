@@ -155,8 +155,8 @@ public:
 
         auto pos = torch::arange(seq, x.device()).unsqueeze(0).expand({ B, seq });
        
-       // x = x + m_posEncode.slice(1, 0, seq);
-        x = x + m_embPosition->forward(pos);
+        x = x + m_posEncode.slice(1, 0, seq);
+        //x = x + m_embPosition->forward(pos);
         return  x ;
     }
 
@@ -287,9 +287,10 @@ public:
         std::vector<int64_t> tgtpad;
 
         tgtpad.push_back(gBOS);
-        tgtpad.push_back(1);
-        //tgtpad.push_back(6);
-        //tgtpad.push_back(7);
+        tgtpad.push_back(5);
+        tgtpad.push_back(6);
+        tgtpad.push_back(7);
+        int start = tgtpad.size() - 1;
         std::vector<int64_t> outVector;
         int i = 0;
         while (i < 100)
@@ -303,7 +304,7 @@ public:
             auto next_token = out.argmax(-1).cpu();
             cout << next_token << endl;
             
-            int64_t key = next_token[i+1].item<int64_t>();
+            int64_t key = next_token[i+ start].item<int64_t>();
             
            
             tgtpad.push_back(key);
@@ -332,6 +333,7 @@ public:
         ch = "<BOS>" + ch;
 
         auto tgtpad = dataTest.GetTangshiCode(ch);
+        int start = tgtpad.size() - 1;
 
         int i = 0;
         while (i < 50)
@@ -345,13 +347,9 @@ public:
             auto next_token = out.argmax(-1).cpu();
             //cout << next_token << endl;
             std::vector<int64_t> outVector;
-            int64_t key = next_token[i].item<int64_t>();
-            for (int k = 0; k < next_token.size(0); k++)
-            {
-                outVector.push_back(next_token[k].item<int64_t>());
-                
-            }
-            cout << dataTest.GetTangshiString(outVector) << endl;
+            int64_t key = next_token[i+start].item<int64_t>();
+
+            //cout << dataTest.GetTangshiString(outVector) << endl;
             
             tgtpad.push_back(key);
             if (key == gEOS)

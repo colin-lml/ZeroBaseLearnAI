@@ -92,7 +92,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
     auto p = std::filesystem::current_path().string() + "/../Decoder_Only_model3_tmp.pt";
     string strTmpState = "TrainData.tmp.pt.bin";
     string strTmpState2 = "TrainData.tmp.step.bin";
-    double accuracy = 0.05;
+    double accuracy = 0.03;
     auto options = torch::nn::CrossEntropyLossOptions().ignore_index(gPad);
     torch::nn::CrossEntropyLoss loss_fn(options);
 

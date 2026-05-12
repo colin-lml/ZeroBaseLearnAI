@@ -16,7 +16,7 @@ void Tokenizer::InitLoadDataSrc()
         saveMap(m_vEncodeDataList);
     }
 
-    /* 
+   /* 
     for (auto& i : m_vEncodeDataList)
     {
         auto str = m_bbpe.Decode(i.title);
