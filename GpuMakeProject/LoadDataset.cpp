@@ -54,7 +54,7 @@ torch::optim::Adam CreateOptimizer(DecodersOnly& model)
     torch::optim::AdamOptions opt(LR);
     opt.betas({ 0.9, 0.98 });
     opt.eps(1e-9);
-    opt.weight_decay(1e-8);
+    opt.weight_decay(0);
  
     return torch::optim::Adam(model->parameters(), opt);
 }
@@ -134,7 +134,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
     torch::optim::Adam optimizer = CreateOptimizer(model);
     
-    torch::optim::ReduceLROnPlateauScheduler lr_scheduler(optimizer);
+   
 
     BatchSampler sampler(&dataTrain);
 
@@ -163,6 +163,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
     LoadTrainState(strCheckpoint, model, optimizer, step);
 
+    torch::optim::ReduceLROnPlateauScheduler lr_scheduler(optimizer);
 
     std::cout << " step: "<< step << std::endl;
 
@@ -189,7 +190,9 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
             total_loss += loss1;
 
         }
+
         lr_scheduler.step(total_loss);
+
         if (std::isnan(total_loss))
         {
             cout <<"########### nan break : " << i + 1 << endl;

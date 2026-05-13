@@ -54,7 +54,7 @@ int main()
 	opt.layers = opt.head;
 #else
 
-	opt.head = 3;
+	opt.head = 4;
 	opt.dmodel = nHeadLen * opt.head;
 	opt.ffn = max(opt.dmodel * 4, gVocabCount * 2);
 	opt.layers = opt.head;
