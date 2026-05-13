@@ -14,7 +14,7 @@ size_t   m_gMaxBatch = 0;
 
 torch::DeviceType gDType = torch::kCPU;
 
-#define LR   (8e-6)
+#define LR   (8e-5)
 
 
 vector<vector<int64_t>> MakeTestData(int count)
