@@ -20,7 +20,7 @@ void  SaveModel(DecodersOnly& model, const string& path);
 #define nHeadLen 64   // 单头维度 = 64（优先）
 
 #else
-#define max_train  1000*30
+#define max_train  1000*15
 #define batchsize2  60
 #define nHeadLen 64   // 单头维度 = 64（优先）
 
@@ -54,7 +54,7 @@ int main()
 	opt.layers = opt.head;
 #else
 
-	opt.head = 2;
+	opt.head = 3;
 	opt.dmodel = nHeadLen * opt.head;
 	opt.ffn = max(opt.dmodel * 4, gVocabCount * 2);
 	opt.layers = opt.head;
@@ -88,7 +88,7 @@ int main()
 			}
 			else
 			{
-				TrainData(model, dataTrain, max_train/3, batchsize2 * 4);
+				TrainData(model, dataTrain, max_train, batchsize2 * 4);
 			}			
 			SaveModel(model, modelPath);
 		}

@@ -134,7 +134,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
     torch::optim::Adam optimizer = CreateOptimizer(model);
     
-   // torch::optim::ReduceLROnPlateauScheduler lr_scheduler(optimizer);
+    torch::optim::ReduceLROnPlateauScheduler lr_scheduler(optimizer);
 
     BatchSampler sampler(&dataTrain);
 
@@ -189,7 +189,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
             total_loss += loss1;
 
         }
-       // lr_scheduler.step(total_loss);
+        lr_scheduler.step(total_loss);
         if (std::isnan(total_loss))
         {
             cout <<"########### nan break : " << i + 1 << endl;
@@ -211,7 +211,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
             break;
         }
 
-        if (i % (showItem/2) == 0)
+        if (i % (showItem) == 0)
         {
             SaveTrainState(strCheckpoint, model, optimizer, i);
             SaveModel(model, modelTmpPath);
