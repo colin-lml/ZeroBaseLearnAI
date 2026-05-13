@@ -80,7 +80,7 @@ private:
 	std::vector<VectorCodeTangshi> m_vEncodeDataList;
 	
 
-	const std::string  m_strBinFile = "TokenizerData.bin";
+	const std::string  m_strBinFile = "/../tmpbin/TokenizerData.bin";
 	BBPE m_bbpe;
 };
 

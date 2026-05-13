@@ -49,7 +49,7 @@ void BBPE::Train(const VectorString& textList, uint32_t vocabSize)
     Vector3Uint8 vEnumWordList;
     MapVocabPairCount historyMerge;
 
-    std::remove(BBPE_PATH);
+    ///std::remove(BBPE_PATH);
 
     InitData();
     DataCleansingWord(textList, vEnumWordList);
@@ -271,7 +271,9 @@ void BBPE::MergeMaxPairWord(Vector3Uint8& vAllWordList, MapVocabPairCount& histo
 
 void BBPE::SaveFile(const string& path)
 {
-    ofstream f(path, ios::binary);
+    auto p = std::filesystem::current_path().string() + path;
+    std::remove(p.c_str());
+    ofstream f(p, ios::binary);
 
     size_t len = m_mapVocabTable.size();
 
@@ -296,7 +298,8 @@ bool BBPE::LoadFile(const string& path)
 {
     bool b = false;
    
-    std::ifstream ifs(path, std::ios::binary);
+    auto p = std::filesystem::current_path().string();
+    std::ifstream ifs(p + path, std::ios::binary);
     if (!ifs)
     {
         return b;

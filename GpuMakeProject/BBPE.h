@@ -16,7 +16,7 @@ using namespace std;
 
 
 #define VocabSize   1000
-#define BBPE_PATH   "BBPE_Model.bin"
+#define BBPE_PATH   "/../tmpbin/BBPE_Model.bin"
 
 #define BOS   "<S>"
 #define EOS   "</S>"  

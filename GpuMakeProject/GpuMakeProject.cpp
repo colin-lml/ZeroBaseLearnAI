@@ -7,7 +7,10 @@
 #include <filesystem>
 
 void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxtrain, int64_t batchsize);
-void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
+void TestData(DecodersOnly& model, translatDatasetOnly& dataTest);
+
+void  LoadModel(DecodersOnly& model, const string& path);
+void  SaveModel(DecodersOnly& model, const string& path);
 
 
 #ifdef __TestData__
@@ -17,8 +20,8 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
 #define nHeadLen 64   // 单头维度 = 64（优先）
 
 #else
-#define max_train  1500
-#define batchsize2  20
+#define max_train  1000*30
+#define batchsize2  60
 #define nHeadLen 64   // 单头维度 = 64（优先）
 
 #endif // __TestData__
@@ -27,17 +30,15 @@ void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest);
 
 
 
-
 int main()
 {
-
 
 	torch::manual_seed(10);
 	std::locale loc = std::locale();
 	string name  = (loc.name()==""|| loc.name() == "C") ? "GBK" : loc.name();
 	
 	
-	gDType = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
+	//gDType = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
 	string device = (gDType == torch::kCUDA) ? "kCUDA" : "kCPU";
 
 	cout <<"本地编码: "<< name << endl;
@@ -54,19 +55,15 @@ int main()
 	opt.layers = opt.head;
 #else
 
-	opt.head = 6;
+	opt.head = 5;
 	opt.dmodel = nHeadLen * opt.head;
-	opt.ffn = opt.dmodel * 4;
+	opt.ffn = max(opt.dmodel * 4, gVocabCount * 2);
 	opt.layers = opt.head;
 
 #endif
 	opt.max_len = 1000;
 	opt.vocab_size = gVocabCount;
 
-	if (opt.ffn < gVocabCount * 2)
-	{
-		opt.ffn = gVocabCount * 2;
-	}
 
 	DecodersOnly model(opt);
 	
@@ -74,13 +71,13 @@ int main()
 
 	try
 	{
-		std::string model_path = "Decoder_Only_model3.pt";
+		std::string modelPath = "../tmpbin/Decoder_Only_model3.pt";
 
 #ifdef __TestData__
 		std::remove(model_path.c_str());
 #endif // DEBUG
 
-		std::ifstream filem(model_path);
+		std::ifstream filem(modelPath);
 		bool bmodel = filem.is_open();
 
 		if (!bmodel)
@@ -93,18 +90,17 @@ int main()
 			{
 				TrainData(model, dataTrain, max_train/3, batchsize2 * 4);
 			}			
-			torch::save(model, model_path);
+			SaveModel(model, modelPath);
 		}
 		else
 		{
-			//model->to(torch::kCPU);
-			torch::load(model, model_path);
+			LoadModel(model, modelPath);
 			std::cout << "load model ...." << std::endl;
 		}
 
 		filem.close();
 
-		TestData3(model, dataTrain);
+		TestData(model, dataTrain);
 	}
 	catch (const torch::Error& e)
 	{

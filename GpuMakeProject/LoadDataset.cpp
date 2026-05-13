@@ -45,55 +45,81 @@ vector<vector<int64_t>> MakeTestData(int count)
 }
 
 
-void  LoadTrainState(const string& path, const string& path2, DecodersOnly& mode, torch::optim::Adam& optimizer, int& step)
+void  LoadTrainState(const string& path, DecodersOnly& mode, torch::optim::Adam& optimizer, int& step)
 {
-   
+    auto p = std::filesystem::current_path().string();
     step = 0;
-    ifstream f(path2, ios::binary);
-    if (f.is_open())
+    std::ifstream f(p + path);
+    bool exists = f.good();
+
+    if (exists)
     {
-        f.read((char*)&step, sizeof(step));
+        torch::serialize::InputArchive archive;
+        archive.load_from(f);
+        mode->load(archive);
+        mode->to(gDType);
+     
+        optimizer.load(archive);
 
-        torch::serialize::InputArchive oa;
-        oa.load_from(path+"1");
-        mode->load(oa);
-
-        torch::serialize::InputArchive adam;
-        adam.load_from(path + "2");
-        optimizer.load(adam);
+        c10::IValue kk = 0;
+        archive.read("step", kk);
+        step = kk.toInt();
+      
     }
     
 }
 
-void SaveTrainState(const string& path, const string& path2, DecodersOnly& mode, torch::optim::Adam& optimizer, int step)
+void SaveTrainState(const string& path, DecodersOnly& mode, torch::optim::Adam& optimizer, int step)
 {
     
-    torch::serialize::OutputArchive oa;
+    torch::serialize::OutputArchive archive;
 
-    mode->save(oa);               
-    oa.save_to(path+"1");
-   
+    mode->save(archive);
+    optimizer.save(archive);
+    archive.write("step", step);
 
-    torch::serialize::OutputArchive adam;
-    optimizer.save(adam);
-    adam.save_to(path + "2");
+    archive.save_to(path);
+}
 
-    ofstream f(path2, ios::binary);
-    f.write((char*)&step, sizeof(step));
+void  SaveModel(DecodersOnly& model, const string& path)
+{
+    torch::serialize::OutputArchive archive;
+    model->save(archive);
+  
+    archive.save_to(path);
+}
+void  LoadModel(DecodersOnly& model, const string& path)
+{
     
+    std::ifstream f(path);
+    bool exists = f.good();
+    f.close();
+
+    if (exists)
+    {
+        torch::serialize::InputArchive archive;
+        archive.load_from(path);
+        model->load(archive);
+        model->to(gDType);
+    }
 }
 
 
 void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxtrain, int64_t batchsize)
 {
-    auto p = std::filesystem::current_path().string() + "/../Decoder_Only_model3_tmp.pt";
-    string strTmpState = "TrainData.tmp.pt.bin";
-    string strTmpState2 = "TrainData.tmp.step.bin";
+ 
+    auto p = std::filesystem::current_path().string();
+    string strCheckpoint = "acpu.model.checkpoint.pt";
     double accuracy = 0.06;
     auto options = torch::nn::CrossEntropyLossOptions().ignore_index(gPad);
     torch::nn::CrossEntropyLoss loss_fn(options);
 
-    torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
+    torch::optim::AdamOptions opt(5e-5); 
+    opt.betas({ 0.9, 0.98 });   
+    opt.eps(1e-9);             
+    opt.weight_decay(1e-5);    
+
+    torch::optim::Adam optimizer(model->parameters(), opt);
 
     BatchSampler sampler(&dataTrain);
 
@@ -101,19 +127,25 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
     auto train_data_loader = torch::data::make_data_loader(std::move(datasetTrain), std::move(sampler),torch::data::DataLoaderOptions().batch_size(batchsize));
 
     int step = 0;
-    LoadTrainState(strTmpState, strTmpState2, model, optimizer, step);
+   
 
-    std::cout << "训练模型" << std::endl;
+    std::cout << "训练模型, " ;
 
     model->train();
-
+    string logtrain = p + "/../tmpbin/aCPU.train.log";
     int showItem = 10;
-    int showSave = 20;
     if (gDType == torch::kCUDA)
     {
         showItem = 20;
-        showSave = 100;
+        logtrain = p + "/../tmpbin/acuda.train.log";
+        strCheckpoint =  "aCUDA.model.checkpoint.pt";
     }
+
+    LoadTrainState(strCheckpoint, model, optimizer, step);
+
+    std::cout << " step: "<< step << std::endl;
+
+    ofstream logFile(logtrain, step == 0 ? ios::out : ios::app);
 
     for (int i = step; i < maxtrain; i++)
     {
@@ -147,30 +179,30 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
         if (i % showItem == 0 || (i + 1) == maxtrain)
         {
             cout << i + 1 <<" / "<< maxtrain << " , total-loss: " << total_loss << " , loss: " << loss1 << endl;
+        
+            logFile << i + 1 << " / " << maxtrain << " , total-loss: " << total_loss << " , loss: " << loss1 << endl;
         }
 
         if (total_loss < accuracy)
         {
             cout << i + 1 << " / " << maxtrain << " , loss: " << total_loss << " , loss: " << loss1 << " , end... " << endl;
+            logFile << i + 1 << " / " << maxtrain << " , loss: " << total_loss << " , loss: " << loss1 << " , end... " << endl;
             break;
         }
-        if (i % 5 == 0)
+
+        if (i % (showItem/2) == 0)
         {
-            SaveTrainState(strTmpState, strTmpState2, model, optimizer, i);
-            torch::save(model, p);
+            SaveTrainState(strCheckpoint, model, optimizer, i);
+            SaveModel(model, "Decoder_Only_model3.pt.tmp");
         }
 
     }
-
-    torch::save(model, p);
-
-    //std::remove(strTmpState2.c_str());
-   // std::remove(strTmpState.c_str());
+    logFile.close();
 }
 
 
 
-void TestData3(DecodersOnly& model, translatDatasetOnly& dataTest)
+void TestData(DecodersOnly& model, translatDatasetOnly& dataTest)
 {
     model->eval();
     std::cout << "测试:" << std::endl;

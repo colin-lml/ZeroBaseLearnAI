@@ -89,7 +89,10 @@ void Tokenizer::InitTokenizer(std::vector<Tangshi>& vDataList)
 
 void Tokenizer::saveMap(std::vector<VectorCodeTangshi>& vData)
 {
-    std::ofstream ofs(m_strBinFile, std::ios::binary);
+
+    auto p = std::filesystem::current_path().string();
+
+    std::ofstream ofs(p + m_strBinFile, std::ios::binary);
     size_t count = 0;//map1.size();
 
     count = vData.size();
@@ -117,7 +120,9 @@ bool Tokenizer::loadMap()
 {
     bool b = false;
 
-    std::ifstream ifs(m_strBinFile, std::ios::binary);
+    auto p = std::filesystem::current_path().string();
+
+    std::ifstream ifs(p + m_strBinFile, std::ios::binary);
     if (!ifs)
     {
         return b;
