@@ -63,11 +63,10 @@ int main()
 	opt.max_len = 1000;
 	opt.vocab_size = gVocabCount;
 
-
 	DecodersOnly model(opt);
-	
-	model->to(gDType);
 
+	model->to(gDType);
+	
 	try
 	{
 		std::string modelPath = "Decoder_Only_model3.pt";
@@ -95,6 +94,7 @@ int main()
 		else
 		{
 			LoadModel(model, modelPath);
+			
 			std::cout << "load model ...." << std::endl;
 		}
 
