@@ -37,8 +37,7 @@ int main()
 	std::locale loc = std::locale();
 	string name  = (loc.name()==""|| loc.name() == "C") ? "GBK" : loc.name();
 	
-	
-	//gDType = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
+	gDType = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
 	string device = (gDType == torch::kCUDA) ? "kCUDA" : "kCPU";
 
 	cout <<"本地编码: "<< name << endl;
@@ -55,7 +54,7 @@ int main()
 	opt.layers = opt.head;
 #else
 
-	opt.head = 5;
+	opt.head = 2;
 	opt.dmodel = nHeadLen * opt.head;
 	opt.ffn = max(opt.dmodel * 4, gVocabCount * 2);
 	opt.layers = opt.head;
@@ -71,7 +70,7 @@ int main()
 
 	try
 	{
-		std::string modelPath = "../tmpbin/Decoder_Only_model3.pt";
+		std::string modelPath = "Decoder_Only_model3.pt";
 
 #ifdef __TestData__
 		std::remove(model_path.c_str());
@@ -82,6 +81,7 @@ int main()
 
 		if (!bmodel)
 		{
+			
 			if (gDType == torch::kCUDA)
 			{
 				TrainData(model, dataTrain, max_train, batchsize2);
@@ -111,7 +111,7 @@ int main()
 		std::cerr << " 标准异常: " << e.what() << std::endl;
 	}
 
-	cin.get();
+	
 	return 0;
 }
 

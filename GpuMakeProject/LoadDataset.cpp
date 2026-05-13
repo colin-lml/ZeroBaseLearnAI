@@ -2,6 +2,9 @@
 #include "LoadDataset.h"
 #include "DecodersOnly.h"
 #include <filesystem>
+//#include <torch/optim.h>
+//#include <torch/optim/schedulers.h>  
+
 
 int64_t  gBOS = 0;
 int64_t  gEOS = 0;
@@ -10,6 +13,8 @@ int64_t  gVocabCount = 0;
 size_t   m_gMaxBatch = 0;
 
 torch::DeviceType gDType = torch::kCPU;
+
+#define LR   (8e-6)
 
 
 vector<vector<int64_t>> MakeTestData(int count)
@@ -44,8 +49,18 @@ vector<vector<int64_t>> MakeTestData(int count)
     return data;
 }
 
+torch::optim::Adam CreateOptimizer(DecodersOnly& model)
+{
+    torch::optim::AdamOptions opt(LR);
+    opt.betas({ 0.9, 0.98 });
+    opt.eps(1e-9);
+    opt.weight_decay(1e-8);
+ 
+    return torch::optim::Adam(model->parameters(), opt);
+}
 
-void  LoadTrainState(const string& path, DecodersOnly& mode, torch::optim::Adam& optimizer, int& step)
+
+void  LoadTrainState(const string& path, DecodersOnly& model, torch::optim::Adam& optimizer, int& step)
 {
     
     step = 0;
@@ -56,11 +71,11 @@ void  LoadTrainState(const string& path, DecodersOnly& mode, torch::optim::Adam&
     {
         torch::serialize::InputArchive archive;
         archive.load_from(path);
-        mode->load(archive);
-        mode->to(gDType);
-     
+        model->load(archive);
+        model->to(gDType);
+       // optimizer = CreateOptimizer(model);
         optimizer.load(archive);
-
+        
         c10::IValue s = 0;
         archive.read("step", s);
         step = s.toInt();
@@ -69,12 +84,12 @@ void  LoadTrainState(const string& path, DecodersOnly& mode, torch::optim::Adam&
     
 }
 
-void SaveTrainState(const string& path, DecodersOnly& mode, torch::optim::Adam& optimizer, int step)
+void SaveTrainState(const string& path, DecodersOnly& model, torch::optim::Adam& optimizer, int step)
 {
     
     torch::serialize::OutputArchive archive;
 
-    mode->save(archive);
+    model->save(archive);
     optimizer.save(archive);
     archive.write("step", step);
 
@@ -110,16 +125,16 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
  
     auto p = std::filesystem::current_path().string();
     string strCheckpoint = "acpu.model.checkpoint.pt";
+    string  modelTmpPath = "";
     double accuracy = 0.06;
     auto options = torch::nn::CrossEntropyLossOptions().ignore_index(gPad);
     torch::nn::CrossEntropyLoss loss_fn(options);
 
-    torch::optim::AdamOptions opt(5e-5); 
-    opt.betas({ 0.9, 0.98 });   
-    opt.eps(1e-9);             
-    opt.weight_decay(1e-5);    
+     
 
-    torch::optim::Adam optimizer(model->parameters(), opt);
+    torch::optim::Adam optimizer = CreateOptimizer(model);
+    
+   // torch::optim::ReduceLROnPlateauScheduler lr_scheduler(optimizer);
 
     BatchSampler sampler(&dataTrain);
 
@@ -139,9 +154,15 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
         showItem = 20;
         logtrain = p + "/../tmpbin/acuda.train.log";
         strCheckpoint =  "aCUDA.model.checkpoint.pt";
+        modelTmpPath = "Decoder_Only_model3.pt.cuda";
+    }
+    else
+    {
+        modelTmpPath = "Decoder_Only_model3.pt.cpu";
     }
 
     LoadTrainState(strCheckpoint, model, optimizer, step);
+
 
     std::cout << " step: "<< step << std::endl;
 
@@ -168,7 +189,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
             total_loss += loss1;
 
         }
-       
+       // lr_scheduler.step(total_loss);
         if (std::isnan(total_loss))
         {
             cout <<"########### nan break : " << i + 1 << endl;
@@ -193,7 +214,7 @@ void TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
         if (i % (showItem/2) == 0)
         {
             SaveTrainState(strCheckpoint, model, optimizer, i);
-            SaveModel(model, "Decoder_Only_model3.pt.tmp");
+            SaveModel(model, modelTmpPath);
         }
 
     }
@@ -210,7 +231,6 @@ void TestData(DecodersOnly& model, translatDatasetOnly& dataTest)
 
     tests.push_back("春眠不觉晓");
     tests.push_back("床前明月光");
-    tests.push_back("海上生明月");
     tests.push_back("白日依山尽");
     tests.push_back("空山不见人");
 
@@ -226,6 +246,23 @@ void TestData(DecodersOnly& model, translatDatasetOnly& dataTest)
         std::cout << std::endl;
     }
 
+    do 
+    {
+        string line;
+        std::cout << "input: ";
+        getline(cin, line);
+        if (line=="exit" || line == "e")
+        {
+            break;
+        }
+    
+        auto result = model->predict(line, dataTest);
+        std::cout <<"\noutput:\n" << result << std::endl << std::endl;
+
+    } while (true);
+    
+
+  
 }
 
 
