@@ -47,23 +47,23 @@ vector<vector<int64_t>> MakeTestData(int count)
 
 void  LoadTrainState(const string& path, DecodersOnly& mode, torch::optim::Adam& optimizer, int& step)
 {
-    auto p = std::filesystem::current_path().string();
+    
     step = 0;
-    std::ifstream f(p + path);
+    std::ifstream f(path);
     bool exists = f.good();
 
     if (exists)
     {
         torch::serialize::InputArchive archive;
-        archive.load_from(f);
+        archive.load_from(path);
         mode->load(archive);
         mode->to(gDType);
      
         optimizer.load(archive);
 
-        c10::IValue kk = 0;
-        archive.read("step", kk);
-        step = kk.toInt();
+        c10::IValue s = 0;
+        archive.read("step", s);
+        step = s.toInt();
       
     }
     
