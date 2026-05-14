@@ -266,7 +266,7 @@ bool TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
 
     if (b)
     {
-        std::remove(modelTmpPath.c_str());
+        std::remove((GetCurrentPath() + modelTmpPath).c_str());
     }
 
     logFile.close();
