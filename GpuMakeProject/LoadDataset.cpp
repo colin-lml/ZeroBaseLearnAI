@@ -309,7 +309,7 @@ void TestData(DecodersOnly& model, translatDatasetOnly& dataTest)
         }
     
         auto result = model->predict(line, dataTest);
-        std::cout <<"\noutput:\n" << result << std::endl << std::endl;
+        std::cout <<"output:\n" << result << std::endl << std::endl;
 
     } while (true);
     
