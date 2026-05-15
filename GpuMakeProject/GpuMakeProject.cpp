@@ -1,10 +1,18 @@
 ﻿// GpuMakeProject.cpp: 定义应用程序的入口点。
 //
+
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#undef ERROR
+
+
 #include <locale>
 #include "GpuMakeProject.h"
 #include "DecodersOnly.h"
 #include "LoadDataset.h"
 #include <filesystem>
+
+#include <windows.h>
 
 string GetCurrentPath();
 bool TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxtrain, int64_t batchsize);
@@ -16,7 +24,7 @@ void  SaveModel(DecodersOnly& model, const string& path);
 
 #ifdef __TestData__
 
-#define max_train  (1000 * 1)
+#define max_train  (500 * 1)
 #define batchsize2  10
 #define nHeadLen 64   // 单头维度 = 64（优先）
 
@@ -28,11 +36,30 @@ void  SaveModel(DecodersOnly& model, const string& path);
 #endif // __TestData__
 
 
+string MultiByteToMultiByte(const string& str, UINT from, UINT bto)
+{
+	int wide_size = MultiByteToWideChar(from, 0, str.c_str(), -1, NULL, 0);
 
+	std::wstring wideStr(wide_size, 0);
+	MultiByteToWideChar(from, 0, str.c_str(), -1, wideStr.data(), wide_size);
+
+	int utf8_size = WideCharToMultiByte(bto, 0, wideStr.data(), -1, NULL, 0, NULL, NULL);
+
+	std::string multiStr(utf8_size, 0);
+
+	WideCharToMultiByte(bto, 0, wideStr.data(), -1, multiStr.data(), utf8_size, NULL, NULL);
+	multiStr.pop_back();
+
+	return multiStr;
+}
 
 
 int main()
 {
+
+	string str = "1234";
+	string str2 = MultiByteToMultiByte(str, CP_ACP, CP_UTF8);
+	string str3 = MultiByteToMultiByte(str2, CP_UTF8, CP_ACP);
 
 	torch::manual_seed(10);
 	std::locale loc = std::locale();
@@ -73,7 +100,8 @@ int main()
 		std::string modelPath =  "Decoder_Only_model3.pt";
 
 #ifdef __TestData__
-		std::remove(model_path.c_str());
+		
+		//std::remove(modelPath.c_str());
 #endif // DEBUG
 
 		std::ifstream filem(GetCurrentPath() + modelPath);
