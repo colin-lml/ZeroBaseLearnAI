@@ -7,9 +7,13 @@
 #ifndef PCH_H
 #define PCH_H
 
-#include <torch/torch.h>
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#undef ERROR
 
+#include <torch/torch.h>
 #include <iostream>
+using namespace std;
 
 #include <windows.h>
 
@@ -25,6 +29,7 @@
 #include <regex>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 
 #include "XBBPE.h"
 
@@ -35,7 +40,7 @@
 #pragma comment(lib, "torch_cuda.lib")
 
 
-using namespace std;
+
 
 
 // D:\libtorch_gpu2.11.0\debug\include
