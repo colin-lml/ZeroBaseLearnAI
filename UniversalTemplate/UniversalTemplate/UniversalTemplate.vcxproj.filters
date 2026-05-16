@@ -21,9 +21,45 @@
     <ClCompile Include="pch.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DecoderOnly.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="XMultiHeadAttention.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="EmbeddingWithPosition.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="XDecoderLayer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="XFeedforward.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="XBBPE.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DecoderOnly.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="XMultiHeadAttention.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="EmbeddingWithPosition.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="XDecoderLayer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="XFeedforward.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="XBBPE.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

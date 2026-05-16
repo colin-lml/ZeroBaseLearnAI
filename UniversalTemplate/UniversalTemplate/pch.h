@@ -7,6 +7,45 @@
 #ifndef PCH_H
 #define PCH_H
 
-// 添加要在此处预编译的标头
+#include <torch/torch.h>
+
+#include <iostream>
+
+#include <windows.h>
+
+
+#include <random>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <string>
+#include <algorithm>
+#include <regex>
+#include <cstdint>
+#include <cstring>
+
+#include "XBBPE.h"
+
+#pragma comment(lib, "c10.lib")
+#pragma comment(lib, "c10_cuda.lib")
+#pragma comment(lib, "torch.lib")
+#pragma comment(lib, "torch_cpu.lib")
+#pragma comment(lib, "torch_cuda.lib")
+
+
+using namespace std;
+
+
+// D:\libtorch_gpu2.11.0\debug\include
+// D:\libtorch_gpu2.11.0\debug\include\torch\csrc\api\include\
+// D:\libtorch_gpu2.11.0\debug\lib
+
+//#pragma comment(lib, "c10.lib")
+//#pragma comment(lib, "c10.lib")
+//#pragma comment(lib, "c10.lib")
+//#pragma comment(lib, "c10.lib")
+
 
 #endif //PCH_H
