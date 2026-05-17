@@ -1,7 +1,7 @@
 #pragma once
+#define VocabSize   600
 
 #define BBPE_PATH   "xBBPE.bin"
-
 #define MaxKeyCount  (3*6)
 
 
@@ -21,14 +21,28 @@ struct WordIdKey
 		memcpy(idKey, key.data(), min(key.size(), sizeof(idKey)));
 	}
 
+	bool Append(const WordIdKey& k)
+	{
+		bool b = false;
+		if (len + k.len < sizeof(idKey))
+		{
+			memcpy(idKey + len, k.idKey,k.len);
+			len += k.len;
+			b = true;
+		}
+
+		return b;
+	}
+
 	WordIdKey(const string& key)
 	{
 		len = key.size();
 		memcpy(idKey, key.data(), min(key.size(), sizeof(idKey)));
+		
 	}
 
 	uint8_t idKey[MaxKeyCount] ={ 0 };
-	int len = 0;
+	size_t len = 0;
 
 	bool operator == (const WordIdKey& other) const
 	{
@@ -51,6 +65,8 @@ struct std::hash<WordIdKey>
 };
 
 
+typedef vector<WordIdKey> VectorWord;
+typedef vector<VectorWord> Vector2Word;
 
 typedef unordered_map<WordIdKey, int64_t> MapEncoderWordList; /// 
 typedef unordered_map<int64_t, WordIdKey> MapDecoderWordList; /// 
@@ -62,7 +78,7 @@ class XBBPE
 public:
 	XBBPE();
 	~XBBPE();
-
+	void Train(const VectorString& textList, uint32_t vocabSize = VocabSize);
 private:
 	void InitData(void);
 	bool LoadFile(const string& path = BBPE_PATH);
@@ -72,6 +88,13 @@ private:
 	bool IsInWordList(const WordIdKey& key);
 	void AddNewKeyToWordList(const VectorUint8& vKey);
 	void AddNewKeyToWordList(const WordIdKey& key);
+
+	string  ToGBK(const string& strUtf8);
+	string  ToUTF8(const string& strGbk);
+	string MultiByteToMultiByte(const string& str, UINT from, UINT bto);
+
+	void CountPairWord(Vector2Word& v2WordList);
+	void MergeWord(WordIdKey& outMerge, const WordIdKey& a, const WordIdKey& b);
 
 private:
 	MapEncoderWordList m_mapEncoderList;
