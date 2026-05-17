@@ -1,4 +1,4 @@
-
+﻿
 #pragma once
 
 #include <iostream>
@@ -41,8 +41,8 @@ public:
     torch::Tensor forward(torch::Tensor& q, torch::Tensor& k, torch::Tensor& v, torch::Tensor& mask)
     {
         auto q1 = Q->forward(q);
-        auto k1 = Q->forward(k);
-        auto v1 = Q->forward(v);
+        auto k1 = K->forward(k);
+        auto v1 = V->forward(v);
 
         return ScaledDotProductAttention(q1, k1, v1, mask);
     }
@@ -57,7 +57,7 @@ private:
         Q = register_module("q", torch::nn::Linear(linear));
         K = register_module("k", torch::nn::Linear(linear));
         V = register_module("v", torch::nn::Linear(linear));
-        Wo = register_module("Wo", torch::nn::Linear(linear)); // ���ͶӰ
+        Wo = register_module("Wo", torch::nn::Linear(linear)); // 输出投影
 
         //attn_dropout = register_module("attn_dropout", torch::nn::Dropout(dropoutp));
 
@@ -70,7 +70,7 @@ private:
     /// q: [seq,batch, dim]
     torch::Tensor ScaledDotProductAttention(torch::Tensor q, torch::Tensor k, torch::Tensor v, torch::Tensor& mask)
     {
-        /// k==v q���Բ����� k v
+        /// k==v q可以不等于 k v
         auto batch  = q.size(1);
         auto seq    =  q.size(0);
         auto dim    =  q.size(2);
@@ -106,7 +106,22 @@ private:
 
         //attn_score = attn_dropout->forward(attn_score);
 
+        torch::Tensor max_scores = std::get<0>(attn_score.max(-1, true));
+
+        // 2. 数值稳定
+        attn_score = attn_score - max_scores;
+
+        // 3. 防止整行被 mask 导致 softmax 变成 NaN
+        torch::Tensor all_masked = (max_scores == -1e9);
+        attn_score = torch::where(all_masked, torch::zeros_like(attn_score), attn_score);
+
+
         attn_score = torch::softmax(attn_score, -1); /// attn_score: [B, H, S, S]
+        //if (attn_score.sum().item<float>() < -1e8)
+        {
+            //cout << "[3] softmax sum: " << attn_score.sum().item<float>() << endl;
+        }
+       //
 
         auto out = torch::matmul(attn_score, v); // [B, H, S, S] * [B, H, S, Dk]  ->  out: [B, H, S, Dk]
         out = out.transpose(1, 2).contiguous().view({ seq,batch, dim }); //  [B, H, S, Dk] --> [B, S, H, Dk] -> [batch,seq, dim]
@@ -163,11 +178,16 @@ public:
         auto B = x.size(0);
         // cout << "x  " << x.sizes() << endl;
          //cout << "m_posEncode  "  << m_posEncode.sizes() << endl;
-         //cout << "m_posEncode.slice  " << m_posEncode.slice(1, 0, dim).sizes() << endl;
+         
 
         auto pos = torch::arange(seq, x.device()).unsqueeze(0).expand({ B, seq });
        
+       // cout << "x  " << x.sizes() << endl;
+        //cout << "m_posEncode.slice  " << m_posEncode.slice(1, 0, seq).sizes() << endl;
+
          x = x + m_posEncode.slice(1, 0, seq);
+
+    
          //x = x + m_embPosition->forward(pos);
 
          x = emb_dropout->forward(x);
@@ -233,6 +253,7 @@ public:
        
 
         return m_norm2->forward(y2 + y);
+
     }
 
 
@@ -394,8 +415,9 @@ public:
     {
         auto mask = torch::triu(torch::ones({ sz, sz }, torch::kFloat32), 1);
 
-        mask = mask.masked_fill(mask == 1, -std::numeric_limits<float>::infinity());
-        return mask;
+        //mask = mask.masked_fill(mask == 1, -std::numeric_limits<float>::infinity());
+        mask = mask.masked_fill(mask == 1, -1e9);
+        return mask;  //
     }
 
 

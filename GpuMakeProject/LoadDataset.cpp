@@ -209,7 +209,7 @@ bool TrainData(DecodersOnly& model, translatDatasetOnly& dataTrain, int64_t maxt
         float loss1 = 0;
         for (auto& item : *train_data_loader)
         {   
-  
+            optimizer.zero_grad();
             auto output = model->forward(item.data.to(gDType));
           
             output = output.reshape({ -1, output.size(2) });
