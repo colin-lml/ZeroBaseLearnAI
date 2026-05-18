@@ -54,6 +54,8 @@ XBBPE::~XBBPE()
 
 }
 
+
+
 void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
 {
     m_vectorTrainText.clear();
@@ -249,17 +251,14 @@ string XBBPE::MultiByteToMultiByte(const string& str, UINT from, UINT bto)
     return multiStr;
 }
 
-
-
-
-
+int kkkk = 0;
 
 void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
 {
 
     InitData();
 
-    string strReg = R"(\x3F|\x20|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82|\xE3\x80\x80|\xE2\x80\x8B)";
+    string strReg = R"(\x0A|\x3F|\x20|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82|\xE3\x80\x80|\xE2\x80\x8B)";
     auto  special = regex(strReg);
    
     WordIdKey key;
@@ -307,12 +306,12 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
         for (auto& w: ls)
         {
             string kk((char*)w.idKey);
-            cout << ToGBK(kk)<<" ";
+            cout << ToGBK(kk)<<"";
         }
 
-        cout <<  endl;
+        cout  << endl;
     }
-    cout << endl;
+    cout << endl << endl;
     */
 
     bool del = true;
@@ -342,6 +341,8 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, bool del)
     VectorWord  maxlist;
     size_t maxPair = 0;
     WordIdKey maxWord;
+    //kkkk++;
+
 
 
     for (auto& list : v2WordList)
@@ -399,25 +400,34 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, bool del)
         }
           
     }
-
-    v2WordList.erase(std::remove_if(v2WordList.begin(), v2WordList.end(),[](const VectorWord& del)
+  
+    if (del)
     {
-        return del.size() <= 1;
-    }));
-
-
-    /* 
-    for (auto& ls : v2WordList)
-    {
-        for (auto& w : ls)
-        {
-            string kk((char*)w.idKey);
-            cout << ToGBK(kk) << " ";
-        }
-
-        cout << endl;
+        v2WordList.erase(std::remove_if(v2WordList.begin(), v2WordList.end(), [](const VectorWord& del)
+            {
+                return del.size() <= 1;
+            }), v2WordList.end());
     }
-    */
+
+
+    if (kkkk == 1)
+    {
+        cout<< endl <<"-------------------------------->>>>>>>>>>>>>>" << endl;
+        for (auto& ls : v2WordList)
+        {
+            for (auto& w : ls)
+            {
+                string kk((char*)w.idKey);
+                cout << ToGBK(kk) << " ";
+            }
+
+            cout << endl;
+        }
+        cout << endl << "<<<<<<<<<<<<<<<<<<--------------------------------" << endl;
+    }
+     
+
+     
 
     return maxWord;
 }

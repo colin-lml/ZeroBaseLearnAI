@@ -92,9 +92,8 @@ typedef vector<VectorWord> Vector2Word;
 typedef unordered_map<WordIdKey, int64_t> MapEncoderWordList; /// 
 typedef unordered_map<int64_t, WordIdKey> MapDecoderWordList; /// 
 
-typedef map<WordIdKey, int64_t> MapPairWordCount;
-
-typedef vector<pair<size_t, size_t>> VectorPairWordIndex;
+//typedef map<WordIdKey, int64_t> MapPairWordCount;
+//typedef vector<pair<size_t, size_t>> VectorPairWordIndex;
 
 
 string GetOutputPath();

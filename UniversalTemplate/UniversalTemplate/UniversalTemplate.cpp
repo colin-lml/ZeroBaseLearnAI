@@ -14,8 +14,8 @@ int main()
     tgtpad.push_back(7);
 
     torch::Tensor tgt = torch::tensor(tgtpad, torch::kLong);
-    std::cout << "Hello World!\n";
-    cout<<tgt<<endl;
+   // std::cout << "Hello World!\n";
+    ///cout<<tgt<<endl;
 
     XBBPE xbbpe;
 
