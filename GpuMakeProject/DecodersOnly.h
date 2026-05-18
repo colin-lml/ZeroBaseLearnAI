@@ -241,6 +241,23 @@ public:
 
     torch::Tensor forward(torch::Tensor& x, torch::Tensor& mask)
     {
+        /*
+        
+        def forward(self,x): # x(B,T,D)
+        # 残差链接1： norm1 + MultiHeadAttention(多头) + dropout(随机归零)
+        res1_in = x  # 输入
+        attn_output = self.mha(self.norm1(res1_in))  # 残差1 + 多头
+        res1_out = res1_in + attn_output
+
+        # 残差链接2： norm2 + FeedForwardNetwork(前馈缩放) + dropout(随机归零)
+        res2_in = res1_out  # 输入
+        ffn_output = self.ffn(self.norm2(res2_in))  # 残差2 + 前馈缩放
+        res2_out = res2_in + ffn_output  # (B,T,D)
+
+        return res2_out
+        
+        */
+
 
        // auto [attnOutput, attnWeights] = m_attention->forward(q, k, v,{},true, mask);
         auto attnOutput= m_attention->forward(x, x, x, mask);
