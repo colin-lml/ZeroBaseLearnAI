@@ -25,6 +25,7 @@ string GetOutputPath()
 XBBPE::XBBPE()
 {
    
+    /* 
     VectorString corpus =
     {
         "用电电电鳗电鳗会不会被电电死?",
@@ -34,8 +35,8 @@ XBBPE::XBBPE()
         "token 编码电鳗放电测试。",
         "token  to a ab abc abc  abcd abcf.,，。"
     };
-
-    Train(corpus);
+    */
+    
 
     if (!LoadFile())
     {
@@ -44,6 +45,7 @@ XBBPE::XBBPE()
         SaveFile();
     }
 
+   
 }
 
 
@@ -51,6 +53,52 @@ XBBPE::~XBBPE()
 {
 
 }
+
+void XBBPE::LoadDataFileTrain(string paths, uint32_t vocabSize)
+{
+    m_vectorTrainText.clear();
+
+    auto xPath = GetOutputPath() + paths;
+    std::ifstream ifs(xPath);
+    bool bopen = ifs.is_open();
+    std::stringstream ss;
+    ss << ifs.rdbuf();
+    ifs.close();
+
+    std::string line;
+
+    while (true)
+    {
+        while (getline(ss, line) && line.empty());
+        if (!ss)
+        {
+            break;
+        }
+
+        TrainText item;
+
+        std::stringstream data(line);
+        data >> item.type;
+
+        if (getline(ss, line))
+        {
+            item.title = line;
+        }
+
+        while (getline(ss, line))
+        {
+            if (line.empty())
+            {
+                break;
+            }
+            item.content += line + "\n";
+        }
+        m_vectorTrainText.push_back(item);
+    }
+
+
+}
+
 
 bool XBBPE::LoadFile(const string& path)
 {
@@ -81,6 +129,9 @@ bool XBBPE::LoadFile(const string& path)
 void XBBPE::SaveFile(const string& path)
 {
     auto binPath = GetOutputPath() + path;
+
+    remove(binPath.c_str());
+
     ofstream  outfs(binPath, ios::binary);
 
     size_t count = m_mapEncoderList.size();
@@ -196,11 +247,14 @@ string XBBPE::MultiByteToMultiByte(const string& str, UINT from, UINT bto)
 
 void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
 {
-    string strReg = R"(\x3F|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82)";
+
+    InitData();
+
+    string strReg = R"(\x3F|\x20|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82|\xE3\x80\x80|\xE2\x80\x8B)";
     auto  special = regex(strReg);
    
     WordIdKey key;
-    Vector2Word vWordList;
+    Vector2Word v2WordList;
 
     for (auto& slist : textList)
     {
@@ -208,16 +262,16 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
         sregex_token_iterator it(strText.begin(), strText.end(), special, { -1,1 });
         sregex_token_iterator end;
 
-        VectorWord vWordItem;
-
         for (auto seq = it; seq != end; seq++)
         {
+            VectorWord vItem;
+
             string s = *seq;
             if (s.empty())
             {
                 continue;
             }
-
+            //cout << ToGBK(s) << endl;
             for (int i = 0; i < s.size(); i++)
             {
                 int len = GetWordSize(s[i]);
@@ -227,27 +281,60 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
                     word.push_back(s[i + j]);
                 }
                 i += len - 1;
-                vWordItem.push_back({ word });
+                vItem.push_back({ word });
             }
-            ///cout << ToGBK(s) << endl;
-            ///vAllString.push_back(s);
+
+            if (1 < vItem.size())
+            {
+                v2WordList.push_back(vItem);
+            }
         }
-        vWordList.push_back(vWordItem);
+ 
+    }
+   
+     /* 
+    for (auto& ls : v2WordList)
+    {
+        for (auto& w: ls)
+        {
+            string kk((char*)w.idKey);
+            cout << ToGBK(kk)<<" ";
+        }
+
+        cout <<  endl;
+    }
+    cout << endl;
+    */
+
+    bool del = true;
+    while (m_mapEncoderList.size() < vocabSize)
+    {
+        WordIdKey addKey =  MergeMaxPairWord(v2WordList, del);
+        del = false;
+
+       if (addKey.len == 0)
+       {
+           break;
+       }
+
+       string kk((char*)addKey.idKey);
+       cout << ToGBK(kk) << endl;
+       AddNewKeyToWordList(addKey);
     }
 
-
-
+    SaveFile();
 
 }
 
-void XBBPE::MergeWord(WordIdKey& outMerge, const WordIdKey& a, const WordIdKey& b)
+
+WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, bool del)
 {
-    outMerge.Append(a);
-    outMerge.Append(b);
-   
-}
-void XBBPE::CountPairWord(Vector2Word& v2WordList)
-{
+    MapEncoderWordList merge;
+    VectorWord  maxlist;
+    size_t maxPair = 0;
+    WordIdKey maxWord;
+
+
     for (auto& list : v2WordList)
     {
         for (size_t i = 0; i+1 < list.size(); i++)
@@ -255,8 +342,73 @@ void XBBPE::CountPairWord(Vector2Word& v2WordList)
             WordIdKey m;
             m.Append(list[i]);
             m.Append(list[i+1]);
-             
+
+            if (merge.find(m) == merge.end())
+            {
+                merge.emplace(m, 0);
+            }
+            else
+            {
+                merge[m]++;
+            }
+
+            if (maxPair < merge[m])
+            {
+                maxPair = merge[m];
+                maxWord = m;
+               
+            }
         }
     }
 
+
+    for (auto& list : v2WordList)
+    {
+        for (int i = 0; i + 1 < list.size(); i++)
+        {
+            WordIdKey m;
+            if (1 <= i)
+            {
+                m.Append(list[i - 1]);
+                m.Append(list[i]);
+            }
+
+            WordIdKey m2;
+            m2.Append(list[i]);
+            m2.Append(list[i + 1]);
+
+            if (merge[m] == 0 && merge[m2] == 0 && del)
+            {
+                list.erase(list.begin()+i);
+                i--;
+            }
+            else if (maxWord == m2 && merge[m2] == maxPair)
+            {
+                list[i] = maxWord;
+                list.erase(list.begin() + i + 1);
+            }
+        }
+          
+    }
+
+    v2WordList.erase(std::remove_if(v2WordList.begin(), v2WordList.end(),[](const VectorWord& del)
+    {
+        return del.size() <= 1;
+    }));
+
+
+    /* 
+    for (auto& ls : v2WordList)
+    {
+        for (auto& w : ls)
+        {
+            string kk((char*)w.idKey);
+            cout << ToGBK(kk) << " ";
+        }
+
+        cout << endl;
+    }
+    */
+
+    return maxWord;
 }

@@ -31,6 +31,7 @@ using namespace std;
 #include <cstring>
 #include <filesystem>
 
+#include "TrainText.h"
 #include "XBBPE.h"
 
 #pragma comment(lib, "c10.lib")

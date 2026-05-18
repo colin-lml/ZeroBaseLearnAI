@@ -46,7 +46,28 @@ struct WordIdKey
 
 	bool operator == (const WordIdKey& other) const
 	{
-		return len == other.len && memcmp(idKey, other.idKey, MaxKeyCount) == 0;
+		return len == other.len && memcmp(idKey, other.idKey, sizeof(idKey)) == 0;
+	}
+
+	bool operator < (const WordIdKey& other) const
+	{
+		if (len != other.len)
+		{
+			return len < other.len;
+		}
+			
+		return memcmp(idKey, other.idKey, sizeof(idKey)) < 0;
+	}
+	void operator = (const WordIdKey& other)
+	{
+		if (this == &other)
+		{
+			return ;
+		}
+
+		len = other.len;
+		memcpy(idKey, other.idKey, sizeof(idKey));
+
 	}
 };
 
@@ -71,6 +92,11 @@ typedef vector<VectorWord> Vector2Word;
 typedef unordered_map<WordIdKey, int64_t> MapEncoderWordList; /// 
 typedef unordered_map<int64_t, WordIdKey> MapDecoderWordList; /// 
 
+typedef map<WordIdKey, int64_t> MapPairWordCount;
+
+typedef vector<pair<size_t, size_t>> VectorPairWordIndex;
+
+
 string GetOutputPath();
 
 class XBBPE
@@ -78,8 +104,13 @@ class XBBPE
 public:
 	XBBPE();
 	~XBBPE();
-	void Train(const VectorString& textList, uint32_t vocabSize = VocabSize);
+
+	void LoadDataFileTrain(string paths, uint32_t vocabSize = VocabSize);
+
 private:
+
+	void Train(const VectorString& textList, uint32_t vocabSize);
+
 	void InitData(void);
 	bool LoadFile(const string& path = BBPE_PATH);
 	void SaveFile(const string& path = BBPE_PATH);
@@ -93,12 +124,11 @@ private:
 	string  ToUTF8(const string& strGbk);
 	string MultiByteToMultiByte(const string& str, UINT from, UINT bto);
 
-	void CountPairWord(Vector2Word& v2WordList);
-	void MergeWord(WordIdKey& outMerge, const WordIdKey& a, const WordIdKey& b);
-
+	WordIdKey& MergeMaxPairWord(Vector2Word& v2WordList, bool del);
+	
 private:
 	MapEncoderWordList m_mapEncoderList;
 	MapDecoderWordList m_mapDecoderList;
-	
+	VectorTrainText    m_vectorTrainText;
 };
 
