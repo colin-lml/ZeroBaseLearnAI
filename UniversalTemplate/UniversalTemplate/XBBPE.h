@@ -105,7 +105,7 @@ public:
 	XBBPE();
 	~XBBPE();
 
-	void LoadDataFileTrain(string paths, uint32_t vocabSize = VocabSize);
+	void LoadDataFileTrain(const string& paths, uint32_t vocabSize = VocabSize);
 
 private:
 

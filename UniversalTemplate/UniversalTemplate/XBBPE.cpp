@@ -45,7 +45,7 @@ XBBPE::XBBPE()
         SaveFile();
     }
 
-   
+    LoadDataFileTrain("tangshi.data.txt");
 }
 
 
@@ -54,7 +54,7 @@ XBBPE::~XBBPE()
 
 }
 
-void XBBPE::LoadDataFileTrain(string paths, uint32_t vocabSize)
+void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
 {
     m_vectorTrainText.clear();
 
@@ -96,7 +96,18 @@ void XBBPE::LoadDataFileTrain(string paths, uint32_t vocabSize)
         m_vectorTrainText.push_back(item);
     }
 
+    VectorString vstring;
 
+    
+
+    for(auto& v : m_vectorTrainText)
+    {
+        vstring.push_back(v.type);
+        vstring.push_back(v.title);
+        vstring.push_back(v.content);
+    }
+
+    Train(vstring, vocabSize);
 }
 
 
