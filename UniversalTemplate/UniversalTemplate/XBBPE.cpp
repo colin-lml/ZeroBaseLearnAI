@@ -77,8 +77,7 @@ void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
 
         TrainText item;
 
-        std::stringstream data(line);
-        data >> item.type;
+        item.type = line;
 
         if (getline(ss, line))
         {
@@ -96,9 +95,8 @@ void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
         m_vectorTrainText.push_back(item);
     }
 
-    VectorString vstring;
 
-    
+    VectorString vstring;
 
     for(auto& v : m_vectorTrainText)
     {

@@ -142,6 +142,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TrainText.cpp" />
     <ClCompile Include="UniversalTemplate.cpp" />
     <ClCompile Include="XBBPE.cpp" />
     <ClCompile Include="XDecoderLayer.cpp" />
@@ -152,6 +153,7 @@
     <ClInclude Include="DecoderOnly.h" />
     <ClInclude Include="EmbeddingWithPosition.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="TrainText.h" />
     <ClInclude Include="XBBPE.h" />
     <ClInclude Include="XDecoderLayer.h" />
     <ClInclude Include="XFeedforward.h" />
