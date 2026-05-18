@@ -123,7 +123,7 @@ private:
 	string  ToUTF8(const string& strGbk);
 	string MultiByteToMultiByte(const string& str, UINT from, UINT bto);
 
-	WordIdKey& MergeMaxPairWord(Vector2Word& v2WordList, bool del);
+	WordIdKey& MergeMaxPairWord(Vector2Word& v2WordList, VectorWord& vDelWordList, bool del);
 	
 private:
 	MapEncoderWordList m_mapEncoderList;

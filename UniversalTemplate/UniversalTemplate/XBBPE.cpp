@@ -270,6 +270,8 @@ string XBBPE::MultiByteToMultiByte(const string& str, UINT from, UINT bto)
 
 void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
 {
+    vocabSize = vocabSize - 3;
+
     string strReg = R"(\x0A|\x3F|\x20|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82|\xE3\x80\x80|\xE2\x80\x8B)";
     auto  special = regex(strReg);
 
@@ -328,10 +330,11 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
     cout << endl << endl;
     */
 
+    VectorWord vDelWordList;
     bool del = true;
     while (m_mapEncoderList.size() < vocabSize)
     {
-        WordIdKey addKey =  MergeMaxPairWord(v2WordList, del);
+        WordIdKey addKey =  MergeMaxPairWord(v2WordList, vDelWordList,del);
         del = false;
 
        if (addKey.len == 0)
@@ -344,12 +347,27 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
        AddNewKeyToWordList(addKey);
     }
 
+    for (auto& vd : vDelWordList)
+    {
+        if (m_mapEncoderList.size() < vocabSize)
+        {
+             string kk((char*)vd.idKey);
+             cout << ToGBK(kk) << endl;
+            AddNewKeyToWordList(vd);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+
     SaveFile();
 
 }
 
 
-WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, bool del)
+WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, VectorWord& vDelWordList, bool del)
 {
     MapEncoderWordList merge;
     VectorWord  maxlist;
@@ -401,6 +419,7 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, bool del)
 
             if (merge[m] == 0 && merge[m2] == 0 && del)
             {
+                vDelWordList.push_back(list[i]);
                 list.erase(list.begin()+i);
                 i--;
             }
@@ -415,9 +434,16 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, bool del)
   
     if (del)
     {
-        v2WordList.erase(std::remove_if(v2WordList.begin(), v2WordList.end(), [](const VectorWord& del)
+        v2WordList.erase(std::remove_if(v2WordList.begin(), v2WordList.end(), [&](const VectorWord& del)
             {
-                return del.size() <= 1;
+                bool b = del.size() <= 1;
+               
+                if (b && del.size() == 1)
+                {
+                    vDelWordList.push_back(del.at(0));
+                }
+
+                return b;
             }), v2WordList.end());
     }
 
