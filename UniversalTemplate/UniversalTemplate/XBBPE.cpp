@@ -169,6 +169,22 @@ void XBBPE::InitData(void)
         b.push_back(i);
         AddNewKeyToWordList(b);
     }
+
+    std::vector<VectorUint8> filterSyms =
+    {
+        {0xC2, 0xB7},
+        {0xEF, 0xBC, 0x8C},
+        {0xEF, 0xBC, 0x9F},
+        {0xEF, 0xBC, 0x81},
+        {0xE3, 0x80, 0x82},
+        {0xE3, 0x80, 0x80},
+        {0xE2, 0x80, 0x8B}
+    };
+
+    for (auto& f : filterSyms)
+    {
+        AddNewKeyToWordList(f);
+    }
 }
 
 int  XBBPE::GetWordSize(uint8_t ch)
@@ -251,16 +267,14 @@ string XBBPE::MultiByteToMultiByte(const string& str, UINT from, UINT bto)
     return multiStr;
 }
 
-int kkkk = 0;
 
 void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
 {
+    string strReg = R"(\x0A|\x3F|\x20|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82|\xE3\x80\x80|\xE2\x80\x8B)";
+    auto  special = regex(strReg);
 
     InitData();
 
-    string strReg = R"(\x0A|\x3F|\x20|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82|\xE3\x80\x80|\xE2\x80\x8B)";
-    auto  special = regex(strReg);
-   
     WordIdKey key;
     Vector2Word v2WordList;
 
@@ -325,8 +339,8 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
            break;
        }
 
-       string kk((char*)addKey.idKey);
-       cout << ToGBK(kk) << endl;
+      // string kk((char*)addKey.idKey);
+      // cout << ToGBK(kk) << endl;
        AddNewKeyToWordList(addKey);
     }
 
@@ -341,9 +355,7 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, bool del)
     VectorWord  maxlist;
     size_t maxPair = 0;
     WordIdKey maxWord;
-    //kkkk++;
-
-
+    
 
     for (auto& list : v2WordList)
     {
@@ -410,9 +422,9 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, bool del)
     }
 
 
-    if (kkkk == 1)
+    /* 
     {
-        cout<< endl <<"-------------------------------->>>>>>>>>>>>>>" << endl;
+       
         for (auto& ls : v2WordList)
         {
             for (auto& w : ls)
@@ -423,11 +435,9 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, bool del)
 
             cout << endl;
         }
-        cout << endl << "<<<<<<<<<<<<<<<<<<--------------------------------" << endl;
+        
     }
-     
-
-     
+     */
 
     return maxWord;
 }
