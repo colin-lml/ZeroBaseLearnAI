@@ -1,7 +1,18 @@
 #pragma once
 
-class DecoderOnly
+class XDecoderOnlyImpl : public torch::nn::Module
 {
+public:
+	XDecoderOnlyImpl(int64_t numHeads, int64_t numWords);
 
+	torch::Tensor forward(torch::Tensor x);
+
+private:
+	torch::Tensor generate_square_subsequent_mask(int64_t sz);
+
+	EmbeddingWithPosition m_embPos{ nullptr };
+	torch::nn::ModuleList m_decoderLayers{ nullptr };
+	torch::nn::Linear m_fc{ nullptr };
 };
 
+TORCH_MODULE(XDecoderOnly);

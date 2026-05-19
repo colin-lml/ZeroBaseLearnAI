@@ -35,6 +35,12 @@ using namespace std;
 #include "TrainText.h"
 #include "XBBPE.h"
 
+#include "XMultiHeadAttention.h"
+#include "XFeedforward.h"
+#include "EmbeddingWithPosition.h"
+#include "XDecoderLayer.h"
+#include "DecoderOnly.h"
+
 #pragma comment(lib, "c10.lib")
 #pragma comment(lib, "c10_cuda.lib")
 #pragma comment(lib, "torch.lib")
