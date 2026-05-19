@@ -42,10 +42,19 @@ XBBPE::XBBPE()
     {
         InitData();
 
-        SaveFile();
+        LoadDataFileTrain("tangshi.data.txt");
+
     }
 
-    LoadDataFileTrain("tangshi.data.txt");
+    for (auto& item: m_vectorTrainEncoded)
+    {
+        string a =  Decoded(item.type);
+        string a2 = Decoded(item.title);
+        string a3 = Decoded(item.content);
+        cout << a << endl;
+        cout << a2 << endl;
+        cout << a3 << endl;
+    }
 }
 
 
@@ -108,6 +117,17 @@ void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
     }
 
     Train(vstring, vocabSize);
+
+    for (auto& v : m_vectorTrainText)
+    {
+        TrainEncoded item;
+        Encode(v.type, item.type);
+        Encode(v.title, item.title);
+        Encode(v.content, item.content);
+        m_vectorTrainEncoded.push_back(item);
+    }
+
+    SaveFile();
 }
 
 
@@ -120,6 +140,7 @@ bool XBBPE::LoadFile(const string& path)
         return false;
     }
 
+    m_vectorTrainEncoded.clear();
     m_mapEncoderList.clear();
     m_mapDecoderList.clear();
     size_t count = 0;
@@ -133,7 +154,18 @@ bool XBBPE::LoadFile(const string& path)
         m_mapDecoderList.emplace(item.second, item.first);
     }
 
-    
+    count = 0;
+    infs.read((char*)&count, sizeof(size_t));
+
+    for (int i = 0; i < count; i++)
+    {
+        TrainEncoded v;
+        v.read(infs);
+        m_vectorTrainEncoded.push_back(v);
+    }
+
+    infs.close();
+
     return !m_mapEncoderList.empty();
 }
 
@@ -152,6 +184,15 @@ void XBBPE::SaveFile(const string& path)
     for (const auto& pair : m_mapEncoderList)
     {
         outfs.write((const char*)&pair, sizeof(pair));
+    }
+
+
+    count = m_vectorTrainEncoded.size();
+    outfs.write((const char*)&count, sizeof(count));
+
+    for (auto& v : m_vectorTrainEncoded)
+    {
+        v.write(outfs);
     }
 
     outfs.close();
@@ -270,7 +311,8 @@ string XBBPE::MultiByteToMultiByte(const string& str, UINT from, UINT bto)
 
 void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
 {
-    vocabSize = vocabSize - 3;
+
+    vocabSize = vocabSize - 7;
 
     string strReg = R"(\x0A|\x3F|\x20|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82|\xE3\x80\x80|\xE2\x80\x8B)";
     auto  special = regex(strReg);
@@ -316,19 +358,6 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
  
     }
    
-     /* 
-    for (auto& ls : v2WordList)
-    {
-        for (auto& w: ls)
-        {
-            string kk((char*)w.idKey);
-            cout << ToGBK(kk)<<"";
-        }
-
-        cout  << endl;
-    }
-    cout << endl << endl;
-    */
 
     VectorWord vDelWordList;
     bool del = true;
@@ -342,8 +371,8 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
            break;
        }
 
-      // string kk((char*)addKey.idKey);
-      // cout << ToGBK(kk) << endl;
+       //string kk((char*)addKey.idKey);
+       //cout << ToGBK(kk) << endl;
        AddNewKeyToWordList(addKey);
     }
 
@@ -351,8 +380,8 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
     {
         if (m_mapEncoderList.size() < vocabSize)
         {
-             string kk((char*)vd.idKey);
-             cout << ToGBK(kk) << endl;
+            // string kk((char*)vd.idKey);
+            // cout << ToGBK(kk) << endl;
             AddNewKeyToWordList(vd);
         }
         else
@@ -361,10 +390,32 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
         }
     }
 
+    VectorString sp;
+    sp.push_back(PAD);
+    sp.push_back(BOS);
+    sp.push_back(EOS);
 
-    SaveFile();
+    AddSpecialTokens(sp);
 
 }
+
+void XBBPE::AddSpecialTokens(const VectorString& tokens)
+{
+    for (auto& slist : tokens)
+    {
+        auto strutf8 = ToUTF8(slist);
+             
+        for (int i=0; i < strutf8.size(); i++)
+        {
+            VectorUint8 item(strutf8.begin(), strutf8.begin()+1+i);
+            AddNewKeyToWordList(item);
+        }
+
+    }
+
+}
+
+
 
 
 WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, VectorWord& vDelWordList, bool del)
@@ -436,34 +487,152 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, VectorWord& vDelWord
     {
         v2WordList.erase(std::remove_if(v2WordList.begin(), v2WordList.end(), [&](const VectorWord& del)
             {
-                bool b = del.size() <= 1;
-               
-                if (b && del.size() == 1)
-                {
-                    vDelWordList.push_back(del.at(0));
-                }
-
+                bool b = del.size() <= 1;            
                 return b;
             }), v2WordList.end());
     }
 
 
-    /* 
-    {
-       
-        for (auto& ls : v2WordList)
-        {
-            for (auto& w : ls)
-            {
-                string kk((char*)w.idKey);
-                cout << ToGBK(kk) << " ";
-            }
+    return maxWord;
+}
 
-            cout << endl;
+int64_t XBBPE::GetBOS()
+{
+    int64_t id = 0;
+    VectorInt64 ids;
+    Encode(BOS, ids);
+    if (0 < ids.size())
+    {
+        id = ids.at(0);
+    }
+
+    return id;
+}
+int64_t XBBPE::GetEOS()
+{
+    int64_t id = 0;
+    VectorInt64 ids;
+    Encode(EOS, ids);
+    if (0 < ids.size())
+    {
+        id = ids.at(0);
+    }
+
+    return id;
+}
+int64_t XBBPE::GetPAD()
+{
+    int64_t id = 0;
+    VectorInt64 ids;
+    Encode(PAD, ids);
+    if (0 < ids.size())
+    {
+        id = ids.at(0);
+    }
+
+    return id;
+}
+
+
+void XBBPE::Encode(const string& textGbk, VectorInt64& ids)
+{
+    ids.clear();
+    auto  special = regex(R"(<[^>]*>)");
+    auto text = ToUTF8(textGbk);
+    sregex_token_iterator it(text.begin(), text.end(), special, { -1, 0 });
+    sregex_token_iterator end;
+
+    for (auto seq = it; seq != end; ++seq)
+    {
+        string s = *seq;
+        if (s.empty())
+        {
+            continue;
+        }
+        VectorWord vWordList;
+        ToTextVectorWord(s, vWordList);
+
+        for (size_t i = 0; i < vWordList.size(); i++)
+        {
+
+            WordIdKey m(vWordList[i]);
+
+            do
+            {
+                WordIdKey m2 = m;
+                if (i+1 < vWordList.size())
+                {
+                    m2.Append(vWordList[i + 1]);
+                }
+
+                if (!IsInWordList(m2))
+                {
+                    break;
+                }
+                m = m2;
+                i += 1;
+
+            } while (i + 1 < vWordList.size());
+
+            GetWordEncode(m, ids);
+          
         }
         
     }
-     */
 
-    return maxWord;
 }
+
+void XBBPE::ToTextVectorWord(const string& strUtf8, VectorWord& vWordList)
+{
+    vWordList.clear();
+
+    for (size_t i = 0; i < strUtf8.size(); i++)
+    {
+        int len = GetWordSize(strUtf8[i]);
+        VectorUint8 word;
+        for (int j = 0; j < len; j++)
+        {
+            word.push_back(strUtf8[i + j]);
+        }
+        i += len - 1;
+        vWordList.push_back({ word });
+    }
+}
+
+void XBBPE::GetWordEncode(WordIdKey& word, VectorInt64& vList)
+{
+    if (m_mapEncoderList.find(word) != m_mapEncoderList.end())
+    {
+        vList.push_back(m_mapEncoderList.at(word));
+    }
+    else
+    {
+        for (int i = 0; i < word.len; i++)
+        {
+            WordIdKey tm;
+            tm.idKey[0] = word.idKey[i];
+            tm.len = 1;
+            vList.push_back(m_mapEncoderList.at(tm));
+        }     
+    }
+}
+
+string XBBPE::Decoded(const VectorInt64& ids)
+{
+    
+    VectorUint8 vList;
+    for (auto& id : ids)
+    {
+       auto word = m_mapDecoderList.at(id);
+
+       for (int i = 0;i < word.len; i++)
+       {
+           vList.push_back(word.idKey[i]);
+       }
+    }
+
+    string str(vList.begin(), vList.end());
+    str = ToGBK(str);
+    return str;
+}
+

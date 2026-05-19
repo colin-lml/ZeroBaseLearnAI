@@ -2,7 +2,11 @@
 #define VocabSize   600
 
 #define BBPE_PATH   "xBBPE.bin"
-#define MaxKeyCount  (3*6)
+#define MaxKeyCount  (3*8)   // 
+
+#define BOS   "<S>"
+#define EOS   "</S>"  
+#define PAD   "<P>"
 
 
 typedef vector<string> VectorString;
@@ -85,7 +89,7 @@ struct std::hash<WordIdKey>
 	}
 };
 
-
+typedef vector<int64_t> VectorInt64;
 typedef vector<WordIdKey> VectorWord;
 typedef vector<VectorWord> Vector2Word;
 
@@ -105,6 +109,23 @@ public:
 	~XBBPE();
 
 	void LoadDataFileTrain(const string& paths, uint32_t vocabSize = VocabSize);
+	void Encode(const string& text, VectorInt64& ids);
+
+	string Decoded(const VectorInt64& ids);
+	
+	int64_t GetBOS();
+	int64_t GetEOS();
+	int64_t GetPAD();
+
+	int64_t GetWordListCount()
+	{
+		return m_mapEncoderList.size();
+	}
+
+	VectorTrainEncoded& GetTrainData()
+	{
+		return m_vectorTrainEncoded;
+	}
 
 private:
 
@@ -124,10 +145,15 @@ private:
 	string MultiByteToMultiByte(const string& str, UINT from, UINT bto);
 
 	WordIdKey& MergeMaxPairWord(Vector2Word& v2WordList, VectorWord& vDelWordList, bool del);
+	void AddSpecialTokens(const VectorString& tokens);
+	void ToTextVectorWord(const string& strUtf8, VectorWord& vWordList);
+
+	void GetWordEncode(WordIdKey& word, VectorInt64& vList);
 	
 private:
 	MapEncoderWordList m_mapEncoderList;
 	MapDecoderWordList m_mapDecoderList;
 	VectorTrainText    m_vectorTrainText;
+	VectorTrainEncoded m_vectorTrainEncoded;
 };
 
