@@ -1,0 +1,125 @@
+程序
+C  HelloWorld
+#include <stdio.h>
+int main()
+{
+    printf("Hello World!\n");
+    return 0;
+}
+
+
+程序
+C++  HelloWorld
+#include <iostream>
+using namespace std;
+int main()
+{
+    cout << "Hello World!" << endl;
+    return 0;
+}
+
+
+程序
+java
+public class Hello {
+    public static void main(String[] args) {
+        System.out.println("Hello World!");
+    }
+}
+
+程序
+Python
+print("Hello World!")
+
+
+程序
+Go
+package main
+import "fmt"
+func main() {
+    fmt.Println("Hello World!")
+}
+
+
+程序
+JavaScript
+console.log("Hello World!");
+
+程序
+PHP
+<?php
+echo "Hello World!";
+?>
+
+程序
+C# 
+using System;
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Hello World!");
+    }
+}
+
+程序
+csharp
+using System;
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Hello World!");
+    }
+}
+
+
+程序
+Swift
+print("Hello World!")
+
+
+程序
+Kotlin
+fun main() {
+    println("Hello World!")
+}
+
+程序
+Ruby
+puts "Hello World!"
+
+
+程序
+Rust
+fn main() {
+    println!("Hello World!");
+}
+
+
+程序
+HTML
+<h1>Hello World!</h1>
+
+程序
+Dart
+void main() {
+  print("Hello World!");
+}
+
+
+程序
+TypeScript
+console.log("Hello World!");
+
+程序
+LibTorch
+#include <torch/torch.h>
+#include <iostream>
+int main()
+{
+    std::cout << "Hello World! LibTorch" << std::endl;
+    auto t = torch::tensor({1,2,3});
+    std::cout << t << std::endl;
+    return 0;
+}
