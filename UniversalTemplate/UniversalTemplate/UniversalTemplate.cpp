@@ -6,6 +6,7 @@
 
 int main()
 {
+
     std::vector<int64_t> tgtpad;
 
     tgtpad.push_back(0);
@@ -18,7 +19,10 @@ int main()
     ///cout<<tgt<<endl;
 
     XBBPE xbbpe;
+    XDecoderOnly decoderonly(1, 10);
 
+    auto o = decoderonly->forward(tgt);
+    cout << o << endl;
 
     std::cin.get();
 }

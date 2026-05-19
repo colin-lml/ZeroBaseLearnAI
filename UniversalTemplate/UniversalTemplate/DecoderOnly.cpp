@@ -57,3 +57,25 @@ torch::Tensor XDecoderOnlyImpl::generate_square_subsequent_mask(int64_t sz)
     mask = mask.masked_fill(mask == 1, -1e9);
     return mask;  //
 }
+
+void XDecoderOnlyImpl::predict(VectorInt64& input, int64_t eos, int64_t maxSeq)
+{
+    int start = input.size()-1;
+
+    for (int i = 0; i < maxSeq; i++)
+    {
+        torch::Tensor tgt = torch::tensor(input, torch::kLong);
+        auto out = forward(tgt);
+        out = out.squeeze();
+
+        auto nextToken = out.argmax(-1).cpu();
+        std::vector<int64_t> outVector;
+        int64_t key = nextToken[start + i].item<int64_t>();
+        input.push_back(key);
+
+        if (key == eos)
+        {
+            break;
+        }
+    }
+}
