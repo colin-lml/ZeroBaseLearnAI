@@ -46,6 +46,7 @@ XBBPE::XBBPE()
 
     }
 
+    /* 
     for (auto& item: m_vectorTrainEncoded)
     {
         string a =  Decoded(item.type);
@@ -55,6 +56,7 @@ XBBPE::XBBPE()
         cout << a2 << endl;
         cout << a3 << endl;
     }
+    */
 }
 
 
