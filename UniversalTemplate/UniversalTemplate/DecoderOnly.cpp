@@ -5,9 +5,9 @@ const static int64_t gInt64Dim = 64;
 
 const static bool gBoolBias = true;
 
-XDecoderOnlyImpl::XDecoderOnlyImpl(int64_t numHeads, int64_t numWords)
+XDecoderOnlyImpl::XDecoderOnlyImpl(int64_t numHeads, int64_t numWords, int64_t numLayer)
 {
-    m_numLayers = numHeads;
+    m_numLayers = numLayer;
     int64_t dim = gInt64Dim * numHeads;
     auto linear = torch::nn::LinearOptions(dim, numWords).bias(gBoolBias);
 

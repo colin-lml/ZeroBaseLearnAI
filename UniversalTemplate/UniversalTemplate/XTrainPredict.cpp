@@ -28,7 +28,7 @@ XTrainPredict::XTrainPredict()
 void XTrainPredict::TestData()
 {
 
-    XDecoderOnly model(m_numHeads, m_xDataset.GetDictionarySize());
+    XDecoderOnly model(m_numHeads, m_xDataset.GetDictionarySize(), m_numLayers);
 
     int64_t totalParams = 0;
     for (const auto& p : model->parameters())

@@ -23,6 +23,7 @@ private:
 	string m_strTmpModelPath = "";
  	const string m_strModelPath = "XUTModel.pt";
 
+	const int64_t m_numLayers = 2;
 	const int64_t m_numHeads = 4;
 	const double  LR = 5e-4;
 	const int64_t m_maxtrain = 1000 * 10; //3w
