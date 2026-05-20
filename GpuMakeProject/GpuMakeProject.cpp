@@ -92,8 +92,13 @@ int main()
 	opt.vocab_size = gVocabCount;
 
 	DecodersOnly model(opt);
+	int64_t totalParams = 0;
+	for (const auto& p : model->parameters())
+	{
+		totalParams += p.numel();
+	}
 
-	
+	cout<<"model total params: " << totalParams << endl;
 	
 	try
 	{
