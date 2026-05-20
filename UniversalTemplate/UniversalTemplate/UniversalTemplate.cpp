@@ -6,6 +6,7 @@
 
 int main()
 {
+    torch::manual_seed(12);
 
     XTrainPredict xTrainPredict;
 

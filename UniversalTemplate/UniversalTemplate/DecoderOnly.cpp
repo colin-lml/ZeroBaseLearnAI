@@ -3,7 +3,7 @@
 
 const static int64_t gInt64Dim = 64;
 
-const static bool gBoolBias = false;
+const static bool gBoolBias = true;
 
 XDecoderOnlyImpl::XDecoderOnlyImpl(int64_t numHeads, int64_t numWords)
 {

@@ -30,6 +30,14 @@ void XTrainPredict::TestData()
 
     XDecoderOnly model(m_numHeads, m_xDataset.GetDictionarySize());
 
+    int64_t totalParams = 0;
+    for (const auto& p : model->parameters())
+    {
+        totalParams += p.numel();
+    }
+
+    cout << "model total params: " << totalParams << endl;
+
     if (!LoadModel(model))
     {
         if (TrainData(model))
@@ -57,7 +65,7 @@ void XTrainPredict::TestData()
         model->predict(vList, eos, 50);
 
        auto str =  m_xDataset.Decoded(vList);
-       cout <<"input: "<< ch<<"\noutput:\n" << str << endl << endl;
+       cout <<"input: "<< ch<<"\noutput: " << str << endl << endl;
 
     }
 
@@ -76,7 +84,7 @@ void XTrainPredict::TestData()
         model->predict(vList, eos, 50);
 
         auto str = m_xDataset.Decoded(vList);
-        cout << "output:\n" << str << endl << endl;
+        cout << "output: " << str << endl << endl;
 
     } while (true);
 
@@ -94,10 +102,11 @@ bool XTrainPredict::TrainData(XDecoderOnly& model)
     
     LoadTrainingBreakpoint(model, optimizer, step);
 
+   
     LogStream log(m_strLogTrain, step == 0 ? ios::out : ios::app);
     log << "batchsize: " << m_batchsize<<" , LR: " << LR<< " , head: "<< m_numHeads<<" , dim: "<< (m_numHeads* 64) << std::endl;
     log << "ÑµÁ·Ä£ÐÍ,  step: " << step << std::endl;
-   
+
     XBatchSampler sampler(*m_xDataset.size());
     auto datasetTrain = m_xDataset.map(torch::data::transforms::Stack<>());
     auto trainDataLoader = torch::data::make_data_loader(std::move(datasetTrain), std::move(sampler), torch::data::DataLoaderOptions().batch_size(m_batchsize));
