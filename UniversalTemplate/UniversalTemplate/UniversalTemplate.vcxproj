@@ -136,6 +136,7 @@
   <ItemGroup>
     <ClCompile Include="DecoderOnly.cpp" />
     <ClCompile Include="EmbeddingWithPosition.cpp" />
+    <ClCompile Include="LogStream.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -145,19 +146,24 @@
     <ClCompile Include="TrainText.cpp" />
     <ClCompile Include="UniversalTemplate.cpp" />
     <ClCompile Include="XBBPE.cpp" />
+    <ClCompile Include="XBDataset.cpp" />
     <ClCompile Include="XDecoderLayer.cpp" />
     <ClCompile Include="XFeedforward.cpp" />
     <ClCompile Include="XMultiHeadAttention.cpp" />
+    <ClCompile Include="XTrainPredict.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DecoderOnly.h" />
     <ClInclude Include="EmbeddingWithPosition.h" />
+    <ClInclude Include="LogStream.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="TrainText.h" />
     <ClInclude Include="XBBPE.h" />
+    <ClInclude Include="XBDataset.h" />
     <ClInclude Include="XDecoderLayer.h" />
     <ClInclude Include="XFeedforward.h" />
     <ClInclude Include="XMultiHeadAttention.h" />
+    <ClInclude Include="XTrainPredict.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

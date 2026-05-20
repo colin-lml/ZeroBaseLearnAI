@@ -117,7 +117,7 @@ public:
 	int64_t GetEOS();
 	int64_t GetPAD();
 
-	int64_t GetWordListCount()
+	int64_t GetDictionaryCount()
 	{
 		return m_mapEncoderList.size();
 	}
