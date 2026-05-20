@@ -7,7 +7,7 @@ const static bool gBoolBias = false;
 
 XDecoderOnlyImpl::XDecoderOnlyImpl(int64_t numHeads, int64_t numWords)
 {
-
+    m_numLayers = numHeads;
     int64_t dim = gInt64Dim * numHeads;
     auto linear = torch::nn::LinearOptions(dim, numWords).bias(gBoolBias);
 
@@ -15,7 +15,7 @@ XDecoderOnlyImpl::XDecoderOnlyImpl(int64_t numHeads, int64_t numWords)
     m_embPos = register_module("embPos", EmbeddingWithPosition(dim, numWords));
     m_decoderLayers = register_module("decoderLayers", torch::nn::ModuleList());
 
-    for (int i = 0; i < numHeads; i++)
+    for (int i = 0; i < m_numLayers; i++)
     {
         m_decoderLayers->push_back(XDecoderLayer(dim, numHeads, dim * 4, gBoolBias));
     }

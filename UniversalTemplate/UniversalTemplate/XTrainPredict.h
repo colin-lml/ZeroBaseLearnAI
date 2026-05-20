@@ -25,7 +25,7 @@ private:
 
 	const int64_t m_numHeads = 2;
 	const double  LR = 2e-4;
-	const int64_t m_maxtrain = 1000 * 30; //3w
+	const int64_t m_maxtrain = 1000 * 10; //3w
 	const int64_t m_batchsize = 50;
 };
 

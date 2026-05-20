@@ -4,7 +4,7 @@
 XDecoderLayerImpl::XDecoderLayerImpl(int64_t dim, int64_t head, int64_t feedforward, bool bias)
 {
     torch::nn::LayerNormOptions normOpt({ dim });
-    m_attention = register_module("multiAttention", XMultiHeadAttention(dim, head, bias));
+    m_attention = register_module("multiAttention", XMultiHeadAttention(dim, head, false));
     m_feedforward = register_module("feedforward", XFeedforward(dim, feedforward, bias));
     m_norm1 = register_module("norm1", torch::nn::LayerNorm(normOpt));
     m_norm2 = register_module("norm2", torch::nn::LayerNorm(normOpt));

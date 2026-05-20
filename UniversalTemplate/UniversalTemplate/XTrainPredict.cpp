@@ -37,7 +37,48 @@ void XTrainPredict::TestData()
             SaveModel(model, m_strModelPath);
         }
     }
+    std::cout << "测试:" << std::endl;
+    model->eval();
+    std::vector<std::string> tests;
 
+    tests.push_back("春眠不觉晓");
+    tests.push_back("床前明月光");
+    tests.push_back("白日依山尽");
+    tests.push_back("空山不见人");
+
+    VectorInt64 vList;
+    int64_t eos = m_xDataset.GetEOS();
+    int64_t bos = m_xDataset.GetBOS();
+
+    for (auto& ch : tests)
+    {
+        m_xDataset.Encode(ch, vList);
+        vList.insert(vList.begin(), bos);
+        model->predict(vList, eos, 50);
+
+       auto str =  m_xDataset.Decoded(vList);
+       cout <<"input: "<< ch<<"\noutput:\n" << str << endl << endl;
+
+    }
+
+    do
+    {
+        string line;
+        std::cout << "input: ";
+        getline(cin, line);
+        if (line == "exit" || line == "e")
+        {
+            break;
+        }
+
+        m_xDataset.Encode(line, vList);
+        vList.insert(vList.begin(), bos);
+        model->predict(vList, eos, 50);
+
+        auto str = m_xDataset.Decoded(vList);
+        cout << "output:\n" << str << endl << endl;
+
+    } while (true);
 
 }
 
@@ -97,6 +138,7 @@ bool XTrainPredict::TrainData(XDecoderOnly& model)
 
         if (totalLoss < accuracy)
         {
+            log << i << " / " << m_maxtrain << " ,totalLoss: " << totalLoss << ", singleLoss: " << sinLoss << std::endl;
             break;
         }
 

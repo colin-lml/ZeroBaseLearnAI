@@ -13,6 +13,8 @@ private:
 	EmbeddingWithPosition m_embPos{ nullptr };
 	torch::nn::ModuleList m_decoderLayers{ nullptr };
 	torch::nn::Linear m_fc{ nullptr };
+	int64_t m_numLayers;
+
 };
 
 TORCH_MODULE(XDecoderOnly);

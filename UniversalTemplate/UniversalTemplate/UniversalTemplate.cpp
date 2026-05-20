@@ -11,5 +11,5 @@ int main()
 
     xTrainPredict.TestData();
 
-    std::cin.get();
+   // std::cin.get();
 }
