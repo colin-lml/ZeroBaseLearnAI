@@ -43,7 +43,8 @@ XBBPE::XBBPE()
         InitData();
 
         LoadDataFileTrain("tangshi.data.txt");
-
+        //  LoadDataFileTrain("HelloWorld.txt");
+        
     }
 
     /* 
@@ -316,7 +317,7 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
 
     vocabSize = vocabSize - 7;
 
-    string strReg = R"(\x0A|\x3F|\x20|\x21|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82|\xE3\x80\x80|\xE2\x80\x8B)";
+    string strReg = R"(\x0A|\x3F|\x20|\x21|\x22|\x2C|\x2E|\xC2\xB7|\xEF\xBC\x8C|\xEF\xBC\x9F|\xEF\xBC\x81|\xE3\x80\x82|\xE3\x80\x80|\xE2\x80\x8B)";
     auto  special = regex(strReg);
 
     InitData();
@@ -366,9 +367,25 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
     while (m_mapEncoderList.size() < vocabSize)
     {
         WordIdKey addKey =  MergeMaxPairWord(v2WordList, vSingleWordList,del);
+
+        if (del)
+        {
+            for (auto& vd : vSingleWordList)
+            {
+                if (m_mapEncoderList.size() < vocabSize)
+                {
+                    AddNewKeyToWordList(vd);
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
         del = false;
 
-       if (addKey.len == 0)
+       if (addKey.len == 0 || vocabSize <= m_mapEncoderList.size()  )
        {
            break;
        }
@@ -378,19 +395,7 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
        AddNewKeyToWordList(addKey);
     }
 
-    for (auto& vd : vSingleWordList)
-    {
-        if (m_mapEncoderList.size() < vocabSize)
-        {
-            //string kk((char*)vd.idKey);
-            //cout << ToGBK(kk) << endl;
-            AddNewKeyToWordList(vd);
-        }
-        else
-        {
-            break;
-        }
-    }
+   
 
     VectorString sp;
     sp.push_back(PAD);
@@ -496,15 +501,15 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, VectorWord& vSingleW
     {
         for (auto& key : single)
         {
-            if (0 < key.second && 0 < key.first.len)
+            if (0 < key.second && 3 <= key.first.len)
             {
                 vSingleWordList.push_back(key.first);
             }
         }
         
-        v2WordList.erase(std::remove_if(v2WordList.begin(), v2WordList.end(), [&](const VectorWord& del)
+        v2WordList.erase(std::remove_if(v2WordList.begin(), v2WordList.end(), [&](const VectorWord& vw)
             {
-                bool b = del.size() <= 1;            
+                bool b = vw.size() <= 1;
                 return b;
             }), v2WordList.end());
     }

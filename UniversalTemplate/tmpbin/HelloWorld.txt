@@ -1,4 +1,4 @@
-绋嬪簭
+程序
 C  HelloWorld
 #include <stdio.h>
 int main()
@@ -8,7 +8,7 @@ int main()
 }
 
 
-绋嬪簭
+程序
 C++  HelloWorld
 #include <iostream>
 using namespace std;
@@ -19,7 +19,7 @@ int main()
 }
 
 
-绋嬪簭
+程序
 java
 public class Hello {
     public static void main(String[] args) {
@@ -27,12 +27,12 @@ public class Hello {
     }
 }
 
-绋嬪簭
+程序
 Python
 print("Hello World!")
 
 
-绋嬪簭
+程序
 Go
 package main
 import "fmt"
@@ -41,17 +41,17 @@ func main() {
 }
 
 
-绋嬪簭
+程序
 JavaScript
 console.log("Hello World!");
 
-绋嬪簭
+程序
 PHP
 <?php
 echo "Hello World!";
 ?>
 
-绋嬪簭
+程序
 C# 
 using System;
 class Program
@@ -62,7 +62,7 @@ class Program
     }
 }
 
-绋嬪簭
+程序
 csharp
 using System;
 class Program
@@ -74,45 +74,45 @@ class Program
 }
 
 
-绋嬪簭
+程序
 Swift
 print("Hello World!")
 
 
-绋嬪簭
+程序
 Kotlin
 fun main() {
     println("Hello World!")
 }
 
-绋嬪簭
+程序
 Ruby
 puts "Hello World!"
 
 
-绋嬪簭
+程序
 Rust
 fn main() {
     println!("Hello World!");
 }
 
 
-绋嬪簭
+程序
 HTML
 <h1>Hello World!</h1>
 
-绋嬪簭
+程序
 Dart
 void main() {
   print("Hello World!");
 }
 
 
-绋嬪簭
+程序
 TypeScript
 console.log("Hello World!");
 
-绋嬪簭
+程序
 LibTorch
 #include <torch/torch.h>
 #include <iostream>

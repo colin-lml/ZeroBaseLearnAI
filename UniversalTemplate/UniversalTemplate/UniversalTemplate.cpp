@@ -22,7 +22,7 @@ int main()
     XDecoderOnly decoderonly(1, 10);
 
     auto o = decoderonly->forward(tgt);
-    cout << o << endl;
+    //cout << o << endl;
 
     std::cin.get();
 }
