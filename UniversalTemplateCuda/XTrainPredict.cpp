@@ -86,7 +86,7 @@ void XTrainPredict::TestData()
         line = "³ÌÐò\n"+ line;
         m_xDataset.Encode(line, vList);
         vList.insert(vList.begin(), bos);
-        model->predict(m_device, vList, eos, 50);
+        model->predict(m_device, vList, eos, 200);
 
         auto str = m_xDataset.Decoded(vList);
         cout  << str << endl << endl;
