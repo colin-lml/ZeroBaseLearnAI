@@ -44,29 +44,11 @@ using namespace std;
 #include "XTrainPredict.h"
 #include "LogStream.h"
 
-#pragma comment(lib, "c10.lib")
-#pragma comment(lib, "c10_cuda.lib")
-#pragma comment(lib, "torch.lib")
-#pragma comment(lib, "torch_cpu.lib")
-#pragma comment(lib, "torch_cuda.lib")
-
-
-#pragma comment(lib, "caffe2_nvrtc.lib")
-#pragma comment(lib, "cpuinfo.lib")
-#pragma comment(lib, "dnnl.lib")
-#pragma comment(lib, "fmtd.lib")
-#pragma comment(lib, "kineto.lib")
-#pragma comment(lib, "libittnotify.lib")
-#pragma comment(lib, "libprotobuf-lited.lib")
-#pragma comment(lib, "libprotobufd.lib")
-#pragma comment(lib, "libprotocd.lib")
-#pragma comment(lib, "microkernels-prod.lib")
-#pragma comment(lib, "pthreadpool.lib")
-#pragma comment(lib, "sleef.lib")
-#pragma comment(lib, "XNNPACK.lib")
 
 
 
+//D:\libtorch_gpu2.11.0\debug\lib\ * .lib
+//PATH = D:\libtorch_gpu2.11.0\debug\lib; % PATH%
 
 // D:\libtorch_gpu2.11.0\debug\include
 // D:\libtorch_gpu2.11.0\debug\include\torch\csrc\api\include\

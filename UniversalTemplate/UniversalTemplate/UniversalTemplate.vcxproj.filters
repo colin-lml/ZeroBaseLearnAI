@@ -18,72 +18,72 @@
     <ClCompile Include="UniversalTemplate.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\DecoderOnly.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="DecoderOnly.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\EmbeddingWithPosition.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="XMultiHeadAttention.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\LogStream.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="EmbeddingWithPosition.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\pch.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="XDecoderLayer.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\TrainText.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="XFeedforward.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\XBBPE.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="XBBPE.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\XBDataset.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="TrainText.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\XDecoderLayer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="XBDataset.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\XFeedforward.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="XTrainPredict.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\XMultiHeadAttention.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="LogStream.cpp">
+    <ClCompile Include="..\..\UniversalTemplateCuda\XTrainPredict.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\DecoderOnly.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="DecoderOnly.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\EmbeddingWithPosition.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="XMultiHeadAttention.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\LogStream.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="EmbeddingWithPosition.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="XDecoderLayer.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\TrainText.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="XFeedforward.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\XBBPE.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="XBBPE.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\XBDataset.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="TrainText.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\XFeedforward.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="XBDataset.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\XDecoderLayer.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="XTrainPredict.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\XTrainPredict.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="LogStream.h">
+    <ClInclude Include="..\..\UniversalTemplateCuda\XMultiHeadAttention.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

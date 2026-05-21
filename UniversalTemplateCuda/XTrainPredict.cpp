@@ -62,10 +62,10 @@ void XTrainPredict::TestData()
     {
         m_xDataset.Encode(ch, vList);
         vList.insert(vList.begin(), bos);
-        model->predict(vList, eos, 50);
+        model->predict(m_device,vList, eos, 50);
 
        auto str =  m_xDataset.Decoded(vList);
-       cout <<"input: "<< ch<<"\noutput: " << str << endl << endl;
+       cout <<"input: "<< ch<<"\n" << str << endl << endl;
 
     }
 
@@ -81,10 +81,10 @@ void XTrainPredict::TestData()
 
         m_xDataset.Encode(line, vList);
         vList.insert(vList.begin(), bos);
-        model->predict(vList, eos, 50);
+        model->predict(m_device, vList, eos, 50);
 
         auto str = m_xDataset.Decoded(vList);
-        cout << "output: " << str << endl << endl;
+        cout  << str << endl << endl;
 
     } while (true);
 

@@ -4,6 +4,7 @@
 #include "pch.h"
 
 
+
 int main()
 {
     torch::manual_seed(12);
@@ -14,3 +15,4 @@ int main()
 
    // std::cin.get();
 }
+

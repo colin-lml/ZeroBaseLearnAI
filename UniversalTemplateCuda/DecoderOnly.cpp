@@ -25,6 +25,7 @@ XDecoderOnlyImpl::XDecoderOnlyImpl(int64_t numHeads, int64_t numWords, int64_t n
 
 torch::Tensor XDecoderOnlyImpl::forward(torch::Tensor x)
 {
+    
     if (x.dim() == 1)
     {
         x.unsqueeze_(0);
@@ -58,13 +59,13 @@ torch::Tensor XDecoderOnlyImpl::generate_square_subsequent_mask(int64_t sz)
     return mask;  //
 }
 
-void XDecoderOnlyImpl::predict(VectorInt64& input, int64_t eos, int64_t maxSeq)
+void XDecoderOnlyImpl::predict(torch::DeviceType xdevice, VectorInt64& input, int64_t eos, int64_t maxSeq)
 {
     int start = input.size()-1;
 
     for (int i = 0; i < maxSeq; i++)
     {
-        torch::Tensor tgt = torch::tensor(input, torch::kLong);
+        torch::Tensor tgt = torch::tensor(input, torch::kLong).to(xdevice);
         auto out = forward(tgt);
         out = out.squeeze();
 
@@ -79,3 +80,4 @@ void XDecoderOnlyImpl::predict(VectorInt64& input, int64_t eos, int64_t maxSeq)
         }
     }
 }
+

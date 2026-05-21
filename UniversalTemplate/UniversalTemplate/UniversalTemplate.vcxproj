@@ -106,15 +106,18 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>D:\libtorch_gpu2.11.0\debug\include;D:\libtorch_gpu2.11.0\debug\include\torch\csrc\api\include\</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>D:\libtorch_gpu2.11.0\debug\include;D:\libtorch_gpu2.11.0\debug\include\torch\csrc\api\include\;..\..\UniversalTemplateCuda\;D:\lml-core\ZeroBaseLearnAI\UniversalTemplateCuda\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\libtorch_gpu2.11.0\debug\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>D:\libtorch_gpu2.11.0\debug\lib\*.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -134,36 +137,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DecoderOnly.cpp" />
-    <ClCompile Include="EmbeddingWithPosition.cpp" />
-    <ClCompile Include="LogStream.cpp" />
-    <ClCompile Include="pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="TrainText.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\DecoderOnly.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\EmbeddingWithPosition.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\LogStream.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\pch.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\TrainText.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\XBBPE.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\XBDataset.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\XDecoderLayer.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\XFeedforward.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\XMultiHeadAttention.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\XTrainPredict.cpp" />
     <ClCompile Include="UniversalTemplate.cpp" />
-    <ClCompile Include="XBBPE.cpp" />
-    <ClCompile Include="XBDataset.cpp" />
-    <ClCompile Include="XDecoderLayer.cpp" />
-    <ClCompile Include="XFeedforward.cpp" />
-    <ClCompile Include="XMultiHeadAttention.cpp" />
-    <ClCompile Include="XTrainPredict.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DecoderOnly.h" />
-    <ClInclude Include="EmbeddingWithPosition.h" />
-    <ClInclude Include="LogStream.h" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="TrainText.h" />
-    <ClInclude Include="XBBPE.h" />
-    <ClInclude Include="XBDataset.h" />
-    <ClInclude Include="XDecoderLayer.h" />
-    <ClInclude Include="XFeedforward.h" />
-    <ClInclude Include="XMultiHeadAttention.h" />
-    <ClInclude Include="XTrainPredict.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\DecoderOnly.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\EmbeddingWithPosition.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\LogStream.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\pch.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\TrainText.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\XBBPE.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\XBDataset.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\XDecoderLayer.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\XFeedforward.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\XMultiHeadAttention.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\XTrainPredict.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

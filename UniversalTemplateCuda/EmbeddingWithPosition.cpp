@@ -13,7 +13,7 @@ torch::Tensor EmbeddingWithPositionImpl::forward(torch::Tensor x)
     auto S = x.size(1);
     auto D = m_embWord->options.embedding_dim();
     x = m_embWord->forward(x) * std::sqrt(D);
-    auto p = PositionEncoding(S, D);
+    auto p = PositionEncoding(S, D).to(x.device());
     x = x + p;
     return x;
 }
