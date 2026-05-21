@@ -1,5 +1,5 @@
 ³ÌÐò
-C  HelloWorld
+C
 #include <stdio.h>
 int main()
 {
@@ -9,7 +9,7 @@ int main()
 
 
 ³ÌÐò
-C++  HelloWorld
+C++
 #include <iostream>
 using namespace std;
 int main()
