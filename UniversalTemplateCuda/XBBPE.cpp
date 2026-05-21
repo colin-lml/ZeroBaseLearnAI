@@ -88,7 +88,7 @@ void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
 
         TrainText item;
 
-        item.type = line + "\n";
+        item.type = line;
 
         if (getline(ss, line))
         {

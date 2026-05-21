@@ -54,10 +54,10 @@ void XTrainPredict::TestData()
     model->eval();
     std::vector<std::string> tests;
 
-    tests.push_back("程序\nC");
-    tests.push_back("程序\nC++");
-    tests.push_back("程序\njava");
-    tests.push_back("程序\nPython");
+    tests.push_back("程序C");
+    tests.push_back("程序C++");
+    tests.push_back("程序java");
+    tests.push_back("程序Python");
 
     VectorInt64 vList;
     int64_t eos = m_xDataset.GetEOS();
@@ -83,7 +83,7 @@ void XTrainPredict::TestData()
         {
             break;
         }
-        line = "程序\n"+ line;
+        line = line;
         m_xDataset.Encode(line, vList);
         vList.insert(vList.begin(), bos);
         model->predict(m_device, vList, eos, 200);
@@ -99,7 +99,7 @@ bool XTrainPredict::TrainData(XDecoderOnly& model)
 {
 
     bool b= true;
-    double accuracy = 0.06;
+    double accuracy = 0.01;
     auto options = torch::nn::CrossEntropyLossOptions().ignore_index(m_xDataset.GetPAD());
     torch::nn::CrossEntropyLoss lossFnCEL(options);
     torch::optim::Adam optimizer = CreateOptimizer(model);
