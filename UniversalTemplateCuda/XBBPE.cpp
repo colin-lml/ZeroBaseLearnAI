@@ -47,13 +47,13 @@ XBBPE::XBBPE()
         
     }
 
-    /* 
+     
     for (auto& item: m_vectorTrainEncoded)
     {
         string a =  Decoded(item);
         cout << a << endl;
     }
-    */
+    
 }
 
 
@@ -159,11 +159,11 @@ bool XBBPE::LoadFile(const string& path)
 
     for (int i = 0; i < count; i++)
     {
-        count = 0;
-        infs.read((char*)&count, sizeof(size_t));
+        size_t len = 0;
+        infs.read((char*)&len, sizeof(size_t));
         VectorInt64 item;
-        item.resize(count);
-        infs.read((char*)item.data(), count * sizeof(int64_t));
+        item.resize(len);
+        infs.read((char*)item.data(), len * sizeof(int64_t));
         m_vectorTrainEncoded.push_back(item);
     }
 
