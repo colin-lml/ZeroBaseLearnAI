@@ -42,18 +42,19 @@ XBBPE::XBBPE()
     {
         InitData();
 
-        LoadDataFileTrain("tangshi.data.txt");
-        //  LoadDataFileTrain("HelloWorld.txt");
+        //LoadDataFileTrain("tangshi.data.txt");
+          LoadDataFileTrain("HelloWorld.txt");
         
     }
 
-     
+    /* 
     for (auto& item: m_vectorTrainEncoded)
     {
         string a =  Decoded(item);
         cout << a << endl;
     }
-    
+    */
+
 }
 
 

@@ -54,10 +54,10 @@ void XTrainPredict::TestData()
     model->eval();
     std::vector<std::string> tests;
 
-    tests.push_back("春眠不觉晓");
-    tests.push_back("床前明月光");
-    tests.push_back("白日依山尽");
-    tests.push_back("空山不见人");
+    tests.push_back("程序\nC");
+    tests.push_back("程序\nC++");
+    tests.push_back("程序\njava");
+    tests.push_back("程序\nPython");
 
     VectorInt64 vList;
     int64_t eos = m_xDataset.GetEOS();
@@ -83,7 +83,7 @@ void XTrainPredict::TestData()
         {
             break;
         }
-
+        line = "程序\n"+ line;
         m_xDataset.Encode(line, vList);
         vList.insert(vList.begin(), bos);
         model->predict(m_device, vList, eos, 50);
