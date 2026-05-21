@@ -27,6 +27,7 @@ public class Hello {
     }
 }
 
+
 程序
 Python
 print("Hello World!")
@@ -51,6 +52,7 @@ PHP
 echo "Hello World!";
 ?>
 
+
 程序
 C# 
 using System;
@@ -61,6 +63,8 @@ class Program
         Console.WriteLine("Hello World!");
     }
 }
+
+
 
 程序
 csharp
@@ -111,6 +115,8 @@ void main() {
 程序
 TypeScript
 console.log("Hello World!");
+
+
 
 程序
 LibTorch
