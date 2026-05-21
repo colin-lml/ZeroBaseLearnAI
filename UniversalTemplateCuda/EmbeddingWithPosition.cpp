@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "EmbeddingWithPosition.h"
 
-EmbeddingWithPositionImpl::EmbeddingWithPositionImpl(int64_t dim, int64_t numWord)
+EmbeddingWithPositionImpl::EmbeddingWithPositionImpl(int64_t dim, int64_t numWord, int64_t pad)
 {
-	m_embWord = register_module("embWord", torch::nn::Embedding(torch::nn::EmbeddingOptions(numWord, dim)));
+	m_embWord = register_module("embWord", torch::nn::Embedding(torch::nn::EmbeddingOptions(numWord, dim).padding_idx(pad)));
 }
 
  //// x [bath, seq]

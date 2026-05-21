@@ -4,7 +4,7 @@
 LogStream::LogStream(const string& path, ios_base::openmode type)
 {
 	auto logPath = GetOutputPath() + path;
-    m_ofs.open(logPath.c_str());
+    m_ofs.open(logPath.c_str(), type);
 }
 
 string LogStream::GetLogTime()

@@ -3,7 +3,7 @@
 class EmbeddingWithPositionImpl: public torch::nn::Module
 {
 public:
-	EmbeddingWithPositionImpl(int64_t dim, int64_t wordSize);
+	EmbeddingWithPositionImpl(int64_t dim, int64_t wordSize, int64_t pad);
 
 	torch::Tensor forward(torch::Tensor x);
 

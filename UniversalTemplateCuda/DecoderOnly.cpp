@@ -5,14 +5,15 @@ const static int64_t gInt64Dim = 64;
 
 const static bool gBoolBias = true;
 
-XDecoderOnlyImpl::XDecoderOnlyImpl(int64_t numHeads, int64_t numWords, int64_t numLayer)
+XDecoderOnlyImpl::XDecoderOnlyImpl(int64_t numHeads, int64_t numWords, int64_t numLayer, int64_t pad)
 {
+    m_pad = pad;
     m_numLayers = numLayer;
     int64_t dim = gInt64Dim * numHeads;
     auto linear = torch::nn::LinearOptions(dim, numWords).bias(gBoolBias);
 
     m_fc = register_module("fc", torch::nn::Linear(linear));
-    m_embPos = register_module("embPos", EmbeddingWithPosition(dim, numWords));
+    m_embPos = register_module("embPos", EmbeddingWithPosition(dim, numWords, m_pad));
     m_decoderLayers = register_module("decoderLayers", torch::nn::ModuleList());
 
     for (int i = 0; i < m_numLayers; i++)
@@ -35,8 +36,8 @@ torch::Tensor XDecoderOnlyImpl::forward(torch::Tensor x)
     int64_t S = x.size(1);
 
     auto src_mask = generate_square_subsequent_mask(S).to(x.device());
-    torch::Tensor paddingMask = {};
-    //auto paddingMask = (x == gPad).to(torch::kBool).to(x.device());
+   
+    auto paddingMask = (x == m_pad).to(torch::kBool).to(x.device());
 
     x = m_embPos->forward(x);
 

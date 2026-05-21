@@ -3,7 +3,7 @@
 class XDecoderOnlyImpl : public torch::nn::Module
 {
 public:
-	XDecoderOnlyImpl(int64_t numHeads, int64_t numWords, int64_t numLayer);
+	XDecoderOnlyImpl(int64_t numHeads, int64_t numWords, int64_t numLayer, int64_t pad);
 
 	torch::Tensor forward(torch::Tensor x);
 	void predict(torch::DeviceType xdevice, VectorInt64& input, int64_t eos, int64_t maxSeq = 100);
@@ -14,7 +14,7 @@ private:
 	torch::nn::ModuleList m_decoderLayers{ nullptr };
 	torch::nn::Linear m_fc{ nullptr };
 	int64_t m_numLayers;
-
+	int64_t m_pad;
 };
 
 TORCH_MODULE(XDecoderOnly);
