@@ -41,6 +41,7 @@ void XTrainPredict::TestData()
 
   
     cout << "model total params: " << totalParams << endl;
+    cout << "num word: " << numword << endl;
 
     if (!LoadModel(model))
     {
@@ -108,7 +109,8 @@ bool XTrainPredict::TrainData(XDecoderOnly& model)
     LoadTrainingBreakpoint(model, optimizer, step);
 
     LogStream log(m_strLogTrain, step == 0 ? ios::out : ios::app);
-    log << "batchsize: " << m_batchsize<<" , LR: " << LR<< " , head: "<< m_numHeads<<" , layer: " << m_numLayers << " , dim: " << (m_numHeads * 64) << std::endl;
+    log << "batchsize: " << m_batchsize<< " ,num data: " << *m_xDataset.size() << std::endl;
+    log <<  "head: "<< m_numHeads<<" , layer: " << m_numLayers << " , dim: " << (m_numHeads * 64)<< ", LR: " << LR<<  std::endl;
     log << "ÑµÁ·Ä£ÐÍ,  step: " << step << std::endl;
 
     XBatchSampler sampler(*m_xDataset.size());

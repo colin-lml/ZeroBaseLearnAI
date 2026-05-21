@@ -1,5 +1,7 @@
 #pragma once
 
+typedef vector<int64_t> VectorInt64;
+
 struct TrainText
 {
 	string type;
@@ -9,14 +11,17 @@ struct TrainText
 
 struct TrainEncoded
 {
-	vector<int64_t> type;
-	vector<int64_t> title;
-	vector<int64_t> content;
+	VectorInt64 type;
+	VectorInt64 title;
+	VectorInt64 content;
 
-	void write(ofstream& ofs);
-	void read(ifstream& ifs);
+	VectorInt64& GetAllData();
+
+private:
+	VectorInt64 dataList;
+
 };
 
 
 typedef vector<TrainText>  VectorTrainText;
-typedef vector<TrainEncoded>  VectorTrainEncoded;
+typedef vector<VectorInt64>  VectorTrainEncoded;

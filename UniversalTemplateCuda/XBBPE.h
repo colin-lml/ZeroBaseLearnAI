@@ -1,5 +1,5 @@
 #pragma once
-#define VocabSize   600
+#define VocabSize   800
 
 #define BBPE_PATH   "xBBPE.bin"
 #define MaxKeyCount  (3*8)   // 

@@ -16,7 +16,7 @@ void  UpdateBatchMax(std::vector<size_t>& vIndex)
 
     for (auto& v : vIndex)
     {
-        gMaxBatch = max(gMaxBatch, gTrainEncoded.at(v).content.size());
+        gMaxBatch = max(gMaxBatch, gTrainEncoded.at(v).size());
     }
 
 }
@@ -45,7 +45,7 @@ torch::optional<size_t> XBDataset::size() const
 torch::data::Example<torch::Tensor, torch::Tensor>  XBDataset::get(size_t index)
 {
 
-    auto item = m_vData.at(index).content;
+    auto item = m_vData.at(index);
     int  len = gMaxBatch - item.size();
     item.insert(item.begin(), m_iBos);
     item.push_back(m_iEos);

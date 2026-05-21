@@ -19,7 +19,6 @@ using namespace std;
 
 
 #include <random>
-#include <iostream>
 #include <fstream>
 #include <vector>
 #include <map>
@@ -30,6 +29,7 @@ using namespace std;
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
+
 
 #include "TrainText.h"
 #include "XBBPE.h"

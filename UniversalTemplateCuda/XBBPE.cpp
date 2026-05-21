@@ -47,17 +47,13 @@ XBBPE::XBBPE()
         
     }
 
-    /* 
+    
     for (auto& item: m_vectorTrainEncoded)
     {
-        string a =  Decoded(item.type);
-        string a2 = Decoded(item.title);
-        string a3 = Decoded(item.content);
+        string a =  Decoded(item);
         cout << a << endl;
-        cout << a2 << endl;
-        cout << a3 << endl;
     }
-    */
+    
 }
 
 
@@ -91,11 +87,11 @@ void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
 
         TrainText item;
 
-        item.type = line;
+        item.type = line + "\n";
 
         if (getline(ss, line))
         {
-            item.title = line;
+            item.title = line + "\n";
         }
 
         while (getline(ss, line))
@@ -127,7 +123,8 @@ void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
         Encode(v.type, item.type);
         Encode(v.title, item.title);
         Encode(v.content, item.content);
-        m_vectorTrainEncoded.push_back(item);
+
+        m_vectorTrainEncoded.push_back(item.GetAllData());
     }
 
     SaveFile();
@@ -162,9 +159,12 @@ bool XBBPE::LoadFile(const string& path)
 
     for (int i = 0; i < count; i++)
     {
-        TrainEncoded v;
-        v.read(infs);
-        m_vectorTrainEncoded.push_back(v);
+        count = 0;
+        infs.read((char*)&count, sizeof(size_t));
+        VectorInt64 item;
+        item.resize(count);
+        infs.read((char*)item.data(), count * sizeof(int64_t));
+        m_vectorTrainEncoded.push_back(item);
     }
 
     infs.close();
@@ -195,7 +195,9 @@ void XBBPE::SaveFile(const string& path)
 
     for (auto& v : m_vectorTrainEncoded)
     {
-        v.write(outfs);
+        count = v.size();
+        outfs.write((const char*)&count, sizeof(count));
+        outfs.write((const char*)v.data(), count * sizeof(int64_t));
     }
 
     outfs.close();
