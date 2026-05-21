@@ -47,13 +47,13 @@ XBBPE::XBBPE()
         
     }
 
-    
+    /* 
     for (auto& item: m_vectorTrainEncoded)
     {
         string a =  Decoded(item);
         cout << a << endl;
     }
-    
+    */
 }
 
 
