@@ -66,8 +66,6 @@ torch::Tensor XMultiHeadAttentionImpl::ScaledDotProductAttention(torch::Tensor& 
 
     if (mask.defined())
     {
-        ///std::cout << "attn_score\n" << attn_score.sizes() << std::endl;
-        //std::cout << "mask\n" << mask.sizes() << std::endl;
         attn_score += mask;
     }
 
@@ -76,30 +74,11 @@ torch::Tensor XMultiHeadAttentionImpl::ScaledDotProductAttention(torch::Tensor& 
         attn_score.masked_fill_(paddingMask, -1e9);
     }
 
-    //
-#if 0
-    //attn_score = attn_dropout->forward(attn_score);
-
-    torch::Tensor max_scores = std::get<0>(attn_score.max(-1, true));
-
-    // 2. 数值稳定
-    attn_score = attn_score - max_scores;
-
-    // 3. 防止整行被 mask 导致 softmax 变成 NaN
-    torch::Tensor all_masked = (max_scores == -1e9);
-    attn_score = torch::where(all_masked, torch::zeros_like(attn_score), attn_score);
-#endif
-
     attn_score = torch::softmax(attn_score, -1); /// attn_score: [B, H, S, S]
-    //if (attn_score.sum().item<float>() < -1e8)
-    {
-        //cout << "[3] softmax sum: " << attn_score.sum().item<float>() << endl;
-    }
-    //
 
     auto out = torch::matmul(attn_score, v); // [B, H, S, S] * [B, H, S, D]  ->  out: [B, H, S, D]
     out = out.transpose(1, 2).contiguous().view({ seq,batch, dim2}); //  [B, H, S, D] --> [B, S, H, D] -> [batch,seq, dim]
-    //cout <<"out\n" << out.squeeze() << endl;
-    
+ 
+   
     return out;
 }
