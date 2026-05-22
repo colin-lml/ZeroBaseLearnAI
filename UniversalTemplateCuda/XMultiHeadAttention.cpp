@@ -12,7 +12,7 @@ XMultiHeadAttentionImpl::XMultiHeadAttentionImpl(int64_t dim, int64_t head, bool
     V = register_module("v", torch::nn::Linear(linear));
     W = register_module("W", torch::nn::Linear(linear)); // Êä³öÍ¶Ó°
 
-    m_dbNormFact = 1.0 / sqrt(dim);
+   
     m_i64Dim = dim;
     m_i64Head = head;
 }
@@ -47,6 +47,8 @@ torch::Tensor XMultiHeadAttentionImpl::ScaledDotProductAttention(torch::Tensor& 
     auto H = m_i64Head;
     auto D = m_i64Dim / m_i64Head;
 
+    static double sqrtdim = 1.0 / sqrt(dim);
+
     q = q.view({ seq, batch,   H, D }); // [s, b,  h, d]
     k = k.view({ seq2, batch2, H, D });
     v = v.view({ seq2, batch2, H, D });
@@ -60,23 +62,23 @@ torch::Tensor XMultiHeadAttentionImpl::ScaledDotProductAttention(torch::Tensor& 
     //cout << "q\n" << q.sizes() << endl;
     //cout << "kt\n" << kt.sizes() << endl;
 
-    auto attn_score = torch::matmul(q, kt);
+    auto attnScore = torch::matmul(q, kt);
 
-    attn_score = attn_score * m_dbNormFact;
+    attnScore = attnScore * sqrtdim;
 
     if (mask.defined())
     {
-        attn_score += mask;
+        attnScore += mask;
     }
 
     if (paddingMask.defined())
     {
-        attn_score.masked_fill_(paddingMask, -1e9);
+        attnScore.masked_fill_(paddingMask, -1e9);
     }
 
-    attn_score = torch::softmax(attn_score, -1); /// attn_score: [B, H, S, S]
+    attnScore = torch::softmax(attnScore, -1); /// attn_score: [B, H, S, S]
 
-    auto out = torch::matmul(attn_score, v); // [B, H, S, S] * [B, H, S, D]  ->  out: [B, H, S, D]
+    auto out = torch::matmul(attnScore, v); // [B, H, S, S] * [B, H, S, D]  ->  out: [B, H, S, D]
     out = out.transpose(1, 2).contiguous().view({ seq,batch, dim2}); //  [B, H, S, D] --> [B, S, H, D] -> [batch,seq, dim]
  
    

@@ -1,5 +1,30 @@
 #pragma once
 
+struct RMSNormImpl : torch::nn::Module 
+{
+    int dim;
+    double eps;
+    torch::Tensor weight{}, bias{};
+
+    RMSNormImpl(int hidden_dim, double epsilon = 1e-6)
+        : dim(hidden_dim), eps(epsilon) 
+    {
+        weight = register_parameter("weight", torch::ones({ dim }));
+        bias = register_parameter("bias", torch::zeros({ dim }));
+    }
+
+    torch::Tensor forward(torch::Tensor x) 
+    {
+        auto rms = x.pow(2).mean(-1, true).add(eps).sqrt();
+        auto res = x / rms;
+        return res * weight + bias;
+    }
+};
+TORCH_MODULE(RMSNorm);
+
+
+
+
 class XDecoderLayerImpl : public torch::nn::Module
 {
 public:

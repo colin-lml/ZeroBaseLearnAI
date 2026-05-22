@@ -18,7 +18,7 @@ private:
 
     int64_t m_i64Dim;
     int64_t m_i64Head;
-    double m_dbNormFact = 0;
+ 
 };
 
 TORCH_MODULE(XMultiHeadAttention);
