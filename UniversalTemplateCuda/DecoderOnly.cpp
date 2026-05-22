@@ -37,7 +37,7 @@ torch::Tensor XDecoderOnlyImpl::forward(torch::Tensor x)
 
     auto src_mask = generate_square_subsequent_mask(S).to(x.device());
    
-    auto paddingMask = (x == m_pad).to(torch::kBool).to(x.device());
+    auto paddingMask = (x == m_pad).to(torch::kBool).view({ B ,1,1,S}).to(x.device());
 
     x = m_embPos->forward(x);
 

@@ -71,6 +71,12 @@ torch::Tensor XMultiHeadAttentionImpl::ScaledDotProductAttention(torch::Tensor& 
         attn_score += mask;
     }
 
+    if (paddingMask.defined())
+    {
+        attn_score.masked_fill_(paddingMask, -1e9);
+    }
+
+    //
 #if 0
     //attn_score = attn_dropout->forward(attn_score);
 
