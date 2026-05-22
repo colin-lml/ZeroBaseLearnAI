@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TrainText.h"
 
+/* 
 VectorInt64& TrainEncoded::GetAllData()
 {
 	if (dataList.size() == 0)
@@ -12,3 +13,4 @@ VectorInt64& TrainEncoded::GetAllData()
 
 	return dataList;
 }
+*/

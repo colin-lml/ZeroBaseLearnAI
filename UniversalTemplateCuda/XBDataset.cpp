@@ -25,6 +25,13 @@ void  UpdateBatchMax(std::vector<size_t>& vIndex)
 
 XBDataset::XBDataset() : m_vData(m_bbpe.GetTrainData())
 {
+
+    m_vData.erase(remove_if(m_vData.begin(), m_vData.end(), [](const VectorInt64& c)
+        {
+            return c.size() <= 1;
+
+        }), m_vData.end());
+
      m_iBos = m_bbpe.GetBOS();
      m_iEos = m_bbpe.GetEOS();
      m_iPad = m_bbpe.GetPAD();

@@ -42,8 +42,8 @@ XBBPE::XBBPE()
     {
         InitData();
 
-        //LoadDataFileTrain("tangshi.data.txt");
-          LoadDataFileTrain("HelloWorld.txt");
+        LoadDataFileTrain("tangshi.data.txt");
+        //  LoadDataFileTrain("HelloWorld.txt");
         
     }
 
@@ -85,25 +85,19 @@ void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
         {
             break;
         }
-
-        TrainText item;
-
-        item.type = line;
-
-        if (getline(ss, line))
-        {
-            item.title = line + "\n";
-        }
-
+       
+        m_vectorTrainText.push_back(line);
+  
         while (getline(ss, line))
         {
             if (line.empty())
             {
                 break;
             }
-            item.content += line + "\n";
+         
+            m_vectorTrainText.push_back(line);
         }
-        m_vectorTrainText.push_back(item);
+        m_vectorTrainText[m_vectorTrainText.size() - 1] += "\n";
     }
 
 
@@ -111,21 +105,16 @@ void XBBPE::LoadDataFileTrain(const string& paths, uint32_t vocabSize)
 
     for(auto& v : m_vectorTrainText)
     {
-        vstring.push_back(v.type);
-        vstring.push_back(v.title);
-        vstring.push_back(v.content);
+        vstring.push_back(v);
     }
 
     Train(vstring, vocabSize);
 
     for (auto& v : m_vectorTrainText)
     {
-        TrainEncoded item;
-        Encode(v.type, item.type);
-        Encode(v.title, item.title);
-        Encode(v.content, item.content);
-
-        m_vectorTrainEncoded.push_back(item.GetAllData());
+        VectorInt64 item;
+        Encode(v, item);
+        m_vectorTrainEncoded.push_back(item);
     }
 
     SaveFile();

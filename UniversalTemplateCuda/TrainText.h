@@ -2,6 +2,7 @@
 
 typedef vector<int64_t> VectorInt64;
 
+/* 
 struct TrainText
 {
 	string type;
@@ -21,7 +22,7 @@ private:
 	VectorInt64 dataList;
 
 };
+*/
 
-
-typedef vector<TrainText>  VectorTrainText;
+typedef vector<string>  VectorTrainText;
 typedef vector<VectorInt64>  VectorTrainEncoded;

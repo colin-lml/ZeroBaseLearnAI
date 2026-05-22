@@ -54,10 +54,9 @@ void XTrainPredict::TestData()
     model->eval();
     std::vector<std::string> tests;
 
-    tests.push_back("程序C");
-    tests.push_back("程序C++");
-    tests.push_back("程序java");
-    tests.push_back("程序Python");
+    tests.push_back("春眠不觉晓");
+    tests.push_back("墙角数枝梅");
+    tests.push_back("床前明月光");
 
     VectorInt64 vList;
     int64_t eos = m_xDataset.GetEOS();

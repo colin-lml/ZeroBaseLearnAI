@@ -55,8 +55,8 @@ torch::Tensor XDecoderOnlyImpl::generate_square_subsequent_mask(int64_t sz)
 {
     auto mask = torch::triu(torch::ones({ sz, sz }, torch::kFloat32), 1);
 
-    //mask = mask.masked_fill(mask == 1, -std::numeric_limits<float>::infinity());
-    mask = mask.masked_fill(mask == 1, -1e9);
+    mask = mask.masked_fill(mask == 1, -std::numeric_limits<float>::infinity());
+    //mask = mask.masked_fill(mask == 1, -1e9);
     return mask;  //
 }
 
