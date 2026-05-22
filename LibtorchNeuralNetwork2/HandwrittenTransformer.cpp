@@ -296,8 +296,18 @@ void TrainData2(MyTransformer& model)
 	torch::nn::CrossEntropyLoss loss_fn(options);
 
 	torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(1e-3));
+
+	int64_t total_params = 0;
+	for (const auto& p : model->parameters())
+	{
+
+		int64_t numel = p.numel();
+		total_params += numel;
+	}
+
+
 	model->train();
-	std::cout << "训练模型" << std::endl;
+	std::cout << "训练模型 "<< total_params << std::endl;
 
 	for (int i = 0; i < max_train; i++)
 	{
@@ -345,7 +355,7 @@ void HandwrittenTransformerMain()
 {
 	torch::manual_seed(6);
 	std::string model_path = "MyTransformer_model2.pt";
-	MyTransformer model(dim_model,2, dim_feed,1,1);
+	MyTransformer model(dim_model,2, dim_feed,2,2);
 
 	std::ifstream filem(model_path);
 	bool bmodel = filem.is_open();
