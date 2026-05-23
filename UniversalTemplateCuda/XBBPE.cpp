@@ -25,7 +25,7 @@ string GetOutputPath()
 XBBPE::XBBPE()
 {
    
-     
+     /* 
     VectorString corpus =
     {
         "用电电电鳗电鳗会不会被电电死?",
@@ -37,7 +37,7 @@ XBBPE::XBBPE()
     };
 
     Train(corpus, 1000);
-    
+    */
     
 
     if (!LoadFile())
