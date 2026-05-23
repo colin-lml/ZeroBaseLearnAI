@@ -96,6 +96,9 @@ typedef vector<VectorWord> Vector2Word;
 typedef unordered_map<WordIdKey, int64_t> MapEncoderWordList; /// 
 typedef unordered_map<int64_t, WordIdKey> MapDecoderWordList; /// 
 
+typedef map<int64_t, WordIdKey> MapSingleWord;
+
+
 //typedef map<WordIdKey, int64_t> MapPairWordCount;
 //typedef vector<pair<size_t, size_t>> VectorPairWordIndex;
 
@@ -144,7 +147,7 @@ private:
 	string  ToUTF8(const string& strGbk);
 	string MultiByteToMultiByte(const string& str, UINT from, UINT bto);
 
-	WordIdKey& MergeMaxPairWord(Vector2Word& v2WordList, VectorWord& vSingleWordList, bool del);
+	WordIdKey& MergeMaxPairWord(Vector2Word& v2WordList, MapSingleWord& vSingleWordList, bool del);
 	void AddSpecialTokens(const VectorString& tokens);
 	void ToTextVectorWord(const string& strUtf8, VectorWord& vWordList);
 

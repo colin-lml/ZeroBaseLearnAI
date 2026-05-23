@@ -25,7 +25,7 @@ string GetOutputPath()
 XBBPE::XBBPE()
 {
    
-    /* 
+     
     VectorString corpus =
     {
         "用电电电鳗电鳗会不会被电电死?",
@@ -35,7 +35,9 @@ XBBPE::XBBPE()
         "token 编码电鳗放电测试。",
         "token  to a ab abc abc  abcd abcf.,，。"
     };
-    */
+
+    Train(corpus, 1000);
+    
     
 
     if (!LoadFile())
@@ -354,7 +356,8 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
     }
    
 
-    VectorWord vSingleWordList;
+    MapSingleWord vSingleWordList;
+
     bool del = true;
     while (m_mapEncoderList.size() < vocabSize)
     {
@@ -362,11 +365,13 @@ void XBBPE::Train(const VectorString& textList, uint32_t vocabSize)
 
         if (del)
         {
-            for (auto& vd : vSingleWordList)
+            for (auto it = vSingleWordList.rbegin(); it != vSingleWordList.rend(); ++it)
             {
                 if (m_mapEncoderList.size() < vocabSize)
                 {
-                    AddNewKeyToWordList(vd);
+                    AddNewKeyToWordList(it->second);
+                    //string kk((char*)it->second.idKey);
+                    //cout << ToGBK(kk) << endl;
                 }
                 else
                 {
@@ -415,7 +420,8 @@ void XBBPE::AddSpecialTokens(const VectorString& tokens)
 }
 
 
-WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, VectorWord& vSingleWordList, bool del)
+
+WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, MapSingleWord& vSingleWordList, bool del)
 {
     MapEncoderWordList single;
     MapEncoderWordList merge;
@@ -491,12 +497,17 @@ WordIdKey& XBBPE::MergeMaxPairWord(Vector2Word& v2WordList, VectorWord& vSingleW
   
     if (del)
     {
+        int64_t baseMax = single.size()*10;
+        int64_t index = 0;
         for (auto& key : single)
         {
-            if (0 < key.second && 3 <= key.first.len)
+            if (3 <= key.first.len)
             {
-                vSingleWordList.push_back(key.first);
+                int64_t keyId = key.second * baseMax + index;
+                index++;
+                vSingleWordList.emplace(keyId, key.first);
             }
+                
         }
         
         v2WordList.erase(std::remove_if(v2WordList.begin(), v2WordList.end(), [&](const VectorWord& vw)
