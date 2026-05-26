@@ -14,7 +14,7 @@ XDecoderLayerImpl::XDecoderLayerImpl(int64_t dim, int64_t head, int64_t feedforw
 // x [seq, batch, dim]
 torch::Tensor XDecoderLayerImpl::forward(torch::Tensor& x, const torch::Tensor& mask, const torch::Tensor& paddingMask)
 {
-
+    
     auto attnOutput = m_attention->forward(x, x, x, mask,  paddingMask);
 
     auto y = m_norm1->forward(attnOutput + x);
