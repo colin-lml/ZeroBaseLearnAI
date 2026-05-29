@@ -73,7 +73,8 @@ torch::Tensor ApplyRotaryEmb(torch::Tensor x, const torch::Tensor& freqs_cis)
     torch::Tensor x_mul = x * freqs_cis;
 
     torch::Tensor y = torch::view_as_real(x_mul);
-    y = y.view({ S,D});
+    cout <<"uuu\n" << y.flatten(1) << endl;;
+    y = y.flatten(1);
 
     return y.to(orig_dtype);
 }
