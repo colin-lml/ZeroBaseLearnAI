@@ -54,6 +54,9 @@
     <ClCompile Include="..\..\UniversalTemplateCuda\XRotaryEmbedding.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\UniversalTemplateCuda\XRMSNorm.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\UniversalTemplateCuda\DecoderOnly.h">
@@ -90,6 +93,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\..\UniversalTemplateCuda\XRotaryEmbedding.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\UniversalTemplateCuda\XRMSNorm.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

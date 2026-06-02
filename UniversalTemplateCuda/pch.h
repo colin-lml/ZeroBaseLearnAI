@@ -44,7 +44,7 @@ using namespace std;
 #include "XTrainPredict.h"
 #include "LogStream.h"
 #include "XRotaryEmbedding.h"
-
+#include "XRMSNorm.h"
 
 
 //D:\libtorch_gpu2.11.0\debug\lib\ * .lib

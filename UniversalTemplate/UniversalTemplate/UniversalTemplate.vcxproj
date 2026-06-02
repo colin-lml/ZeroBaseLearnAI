@@ -147,6 +147,7 @@
     <ClCompile Include="..\..\UniversalTemplateCuda\XDecoderLayer.cpp" />
     <ClCompile Include="..\..\UniversalTemplateCuda\XFeedforward.cpp" />
     <ClCompile Include="..\..\UniversalTemplateCuda\XMultiHeadAttention.cpp" />
+    <ClCompile Include="..\..\UniversalTemplateCuda\XRMSNorm.cpp" />
     <ClCompile Include="..\..\UniversalTemplateCuda\XRotaryEmbedding.cpp" />
     <ClCompile Include="..\..\UniversalTemplateCuda\XTrainPredict.cpp" />
     <ClCompile Include="UniversalTemplate.cpp" />
@@ -162,6 +163,7 @@
     <ClInclude Include="..\..\UniversalTemplateCuda\XDecoderLayer.h" />
     <ClInclude Include="..\..\UniversalTemplateCuda\XFeedforward.h" />
     <ClInclude Include="..\..\UniversalTemplateCuda\XMultiHeadAttention.h" />
+    <ClInclude Include="..\..\UniversalTemplateCuda\XRMSNorm.h" />
     <ClInclude Include="..\..\UniversalTemplateCuda\XRotaryEmbedding.h" />
     <ClInclude Include="..\..\UniversalTemplateCuda\XTrainPredict.h" />
   </ItemGroup>
