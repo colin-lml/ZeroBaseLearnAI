@@ -43,7 +43,7 @@ using namespace std;
 #include "XBDataset.h"
 #include "XTrainPredict.h"
 #include "LogStream.h"
-
+#include "XRotaryEmbedding.h"
 
 
 
