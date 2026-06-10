@@ -5,6 +5,23 @@ import random
 import time
 
 
+def print_agent(agent, env, action_meaning, disaster=[], end=[]):
+    for i in range(env.nrow):
+        for j in range(env.ncol):
+            if (i * env.ncol + j) in disaster:
+                print('****', end=' ')
+            elif (i * env.ncol + j) in end:
+                print('EEEE', end=' ')
+            else:
+                a = agent.best_action(i * env.ncol + j)
+                pi_str = ''
+                for k in range(len(action_meaning)):
+                    pi_str += action_meaning[k] if a[k] > 0 else 'o'
+                print(pi_str, end=' ')
+        print()
+
+
+
 class CliffWalkingEnv:
     def __init__(self, ncol, nrow):
         self.nrow = nrow
@@ -71,6 +88,15 @@ class DynaQ:
             (s, a), (r, s_) = random.choice(list(self.model.items()))
             self.q_learning(s, a, r, s_)
 
+    def best_action(self, state):  # 用于打印策略
+        Q_max = np.max(self.Q_table[state])
+        a = [0 for _ in range(self.n_action)]
+        for i in range(self.n_action):
+            if self.Q_table[state, i] == Q_max:
+                a[i] = 1
+        return a
+        
+
 def DynaQ_CliffWalking(n_planning):
     ncol = 12
     nrow = 4
@@ -105,23 +131,15 @@ def DynaQ_CliffWalking(n_planning):
                         '%.3f' % np.mean(return_list[-10:])
                     })
                 pbar.update(1)
+
+
+    action_meaning = ['^', 'v', '<', '>']
+    print('Q-learning算法最终收敛得到的策略为：')
+    print_agent(agent, env, action_meaning, list(range(37, 47)), [47])
+
     return return_list
 
 
-def print_agent(agent, env, action_meaning, disaster=[], end=[]):
-    for i in range(env.nrow):
-        for j in range(env.ncol):
-            if (i * env.ncol + j) in disaster:
-                print('****', end=' ')
-            elif (i * env.ncol + j) in end:
-                print('EEEE', end=' ')
-            else:
-                a = agent.best_action(i * env.ncol + j)
-                pi_str = ''
-                for k in range(len(action_meaning)):
-                    pi_str += action_meaning[k] if a[k] > 0 else 'o'
-                print(pi_str, end=' ')
-        print()
 
 
 np.random.seed(0)
