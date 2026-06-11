@@ -3,7 +3,7 @@
 class CliffWalkingEnv
 {
 public:
-	CliffWalkingEnv();
+	CliffWalkingEnv(int r,int c);
 
 private:
 	int m_nRow;
