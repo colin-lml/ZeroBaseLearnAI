@@ -2,11 +2,16 @@
 //
 
 #include "pch.h"
-#include <iostream>
+
+
 
 int main()
 {
-    
+
+    PolicyIteration policy;
+    policy.Evaluation();
+
+    cin.get();
 }
 
 

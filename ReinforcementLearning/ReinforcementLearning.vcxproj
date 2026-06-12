@@ -138,11 +138,13 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="PolicyIteration.cpp" />
     <ClCompile Include="ReinforcementLearning.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CliffWalkingEnv.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="PolicyIteration.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

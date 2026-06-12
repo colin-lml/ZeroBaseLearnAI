@@ -8,5 +8,16 @@
 #define PCH_H
 
 // 添加要在此处预编译的标头
+#include <iostream>
+#include <vector>
+#include <tuple>
+using namespace std;
+
+#include "CliffWalkingEnv.h"
+#include "PolicyIteration.h"
+
+#define ROW 3
+#define COL 6
+#define MaxAction  4
 
 #endif //PCH_H

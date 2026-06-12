@@ -24,12 +24,18 @@
     <ClCompile Include="CliffWalkingEnv.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="PolicyIteration.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="CliffWalkingEnv.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PolicyIteration.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
