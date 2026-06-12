@@ -10,6 +10,7 @@ int main()
 
     PolicyIteration policy;
     policy.Evaluation();
+    policy.Improvement();
 
     cin.get();
 }

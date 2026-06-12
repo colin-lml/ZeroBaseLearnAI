@@ -3,7 +3,7 @@
 
 PolicyIteration::PolicyIteration():m_objEnv(ROW, COL)
 {
-	ActionList item(1, { 0.25,0.25,0.25,0.25 });
+
 	int m = m_objEnv.GetTableSize();
 
 	m_vecV.resize(m, 0);
@@ -15,34 +15,66 @@ void PolicyIteration::Evaluation()
 {
 	int S = m_objEnv.GetTableSize();
 	const auto& P = m_objEnv.GetTransitionMatrix();
-
+	int64_t count = 0;
 	while (true)
 	{
 		double maxDiff = 0;
 		vector<double> newValue(S, 0);
-
+		
 		for (int s = 0; s < S; s++)
 		{
-			vector<double> qsaList;
 			int a = 0;
-			for (auto item : P[s])
+			for (auto& item : P[s])
 			{
-				auto p = get<0>(item);
-				auto nextidx = get<1>(item);
-				auto reward = get<2>(item);
-				auto done = get<3>(item);
-				double qsa = p * (reward + m_dbGamma * m_vecV[nextidx] * (1 - done));
-				p = GetTuple(a, m_2dPI[s]);
-				
-				qsaList.push_back(qsa * p);
+				auto qsa = WeightedSum(item);
+				auto p = GetTuple(a, m_2dPI[s]);
+				newValue[s] += qsa * p;
 				a++;
 			}
-			
 
+			maxDiff = max(maxDiff, abs(newValue[s] - m_vecV[s]));
 
 		}
+
+		m_vecV = newValue;
+
+		if (maxDiff < m_dbTheta)
+		{
+			break;
+		}
+		count++;
 	}
+
+	cout << "策略评估进行 " << count << " 轮后完成" << endl;
+
+
+}
+double PolicyIteration::WeightedSum(const StateInfo& item)
+{
+	auto p = GetTuple(0, item);
+	auto nextidx = GetTuple(1, item);
+	auto reward = GetTuple(2, item);
+	auto done = GetTuple(3, item);
+	auto qsa = p * (reward + m_dbGamma * m_vecV[nextidx] * (1 - done));
 	
+	return qsa;
+}
+void PolicyIteration::Improvement()
+{
+	int S = m_objEnv.GetTableSize();
+	const auto& P = m_objEnv.GetTransitionMatrix();
 
+	for (int s = 0; s < S; s++)
+	{
+		vector<double> qsaList;
+		for (auto& item : P[s])
+		{
+			auto qsa = WeightedSum(item);
+			qsaList.push_back(qsa);
+		}
 
+		double maxq = *std::max_element(qsaList.begin(), qsaList.end());
+		int cntq = count(qsaList.begin(), qsaList.end(), maxq);
+		
+	}
 }

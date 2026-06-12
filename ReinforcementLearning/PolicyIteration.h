@@ -6,8 +6,12 @@ class PolicyIteration
 public:
 	PolicyIteration();
 	void Evaluation();
-
+	void Improvement();
 private:
+
+	double WeightedSum(const StateInfo& item);
+
+
 	CliffWalkingEnv m_objEnv;
 
 	vector<double> m_vecV;
