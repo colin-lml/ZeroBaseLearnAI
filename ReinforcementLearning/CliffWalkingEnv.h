@@ -9,6 +9,7 @@ using MovePos = vector<pair<int, int>>;
 
 
 double GetTuple(const size_t index, const StateInfo& info);
+void  SetTuple(const size_t index, double d, StateInfo& info);
 
 class CliffWalkingEnv
 {

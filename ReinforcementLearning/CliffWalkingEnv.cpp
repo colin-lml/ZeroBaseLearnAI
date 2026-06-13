@@ -26,6 +26,28 @@ double GetTuple(const size_t  index, const StateInfo& info)
 	return d;
 }
 
+void  SetTuple(const size_t index, double d, StateInfo& info)
+{
+	switch (index)
+	{
+	case 0:
+		get<0>(info) = d;
+		break;
+	case 1:
+		get<1>(info) = d;
+		break;
+	case 2:
+		get<2>(info) = d;
+		break;
+	case 3:
+		get<3>(info) = d;
+		break;
+	default:
+		break;
+	}
+}
+
+
 CliffWalkingEnv::CliffWalkingEnv(int r, int c)
 {
 	m_nCol = c;
@@ -34,8 +56,8 @@ CliffWalkingEnv::CliffWalkingEnv(int r, int c)
 	m_2dTransitionMatrix.resize(r*c, ActionList(MaxAction));
 	MovePos move;
 	///pair<int, int>:  x,y 
-	move.push_back({0, 1});      // 上   ^ 
-	move.push_back({0, -1});     // 下    v
+	move.push_back({0, -1});      // 上   ^ 
+	move.push_back({0, 1});     // 下    v
 	move.push_back({-1, 0});     // 左  < 
 	move.push_back({1 , 0});     // 右  >
 

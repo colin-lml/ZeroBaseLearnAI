@@ -5,10 +5,13 @@ class PolicyIteration
 {
 public:
 	PolicyIteration();
+
+	void Iteration();
+	
+private:
 	void Evaluation();
 	void Improvement();
-private:
-
+	void PrintPi();
 	double WeightedSum(const StateInfo& item);
 
 

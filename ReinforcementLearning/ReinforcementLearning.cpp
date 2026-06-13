@@ -9,9 +9,8 @@ int main()
 {
 
     PolicyIteration policy;
-    policy.Evaluation();
-    policy.Improvement();
-
+    policy.Iteration();
+  
     cin.get();
 }
 
