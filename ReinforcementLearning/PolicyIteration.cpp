@@ -125,6 +125,10 @@ void PolicyIteration::PrintPi()
 			{
 				cout << " ****  ";
 			}
+			else if (idx  == C - 1)
+			{
+				cout << " EEEE  ";
+			}
 			else
 			{
 				cout << setw(4) << fixed << setprecision(2) << m_vecV[idx] << "  ";
