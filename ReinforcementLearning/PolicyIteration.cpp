@@ -45,9 +45,6 @@ void PolicyIteration::Evaluation()
 		count++;
 	}
 
-	cout << "策略评估进行 " << count << " 轮后完成" << endl;
-
-
 }
 double PolicyIteration::WeightedSum(const StateInfo& item)
 {
@@ -118,6 +115,29 @@ void PolicyIteration::PrintPi()
 
 	auto R = m_objEnv.GetRow();
 	auto C= m_objEnv.GetCol();
+
+	for (int r = 0; r < R; r++)
+	{
+		for (size_t c = 0; c < C; c++)
+		{
+			int idx = r * C + c;
+			if (0 < idx && idx < C - 1)
+			{
+				cout << " ****  ";
+			}
+			else
+			{
+				cout << setw(4) << fixed << setprecision(2) << m_vecV[idx] << "  ";
+			}
+			
+		}
+
+		cout << endl;
+	}
+
+	cout << endl;
+
+
 	for (int r=0;r<R;r++)
 	{
 		for (size_t c = 0; c < C; c++)
