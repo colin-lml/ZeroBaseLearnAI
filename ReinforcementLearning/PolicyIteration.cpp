@@ -11,7 +11,7 @@ PolicyIteration::PolicyIteration():m_objEnv(ROW, COL)
 
 }
 
-void PolicyIteration::Evaluation()
+void PolicyIteration::PolicyEvaluation()
 {
 	int S = m_objEnv.GetTableSize();
 	const auto& P = m_objEnv.GetTransitionMatrix();
@@ -56,7 +56,7 @@ double PolicyIteration::WeightedSum(const StateInfo& item)
 	
 	return qsa;
 }
-void PolicyIteration::Improvement()
+void PolicyIteration::PolicyImprovement()
 {
 	int S = m_objEnv.GetTableSize();
 	const auto& P = m_objEnv.GetTransitionMatrix();
@@ -92,9 +92,9 @@ void PolicyIteration::Iteration()
 {
 	while (true)
 	{
-		Evaluation();
+		PolicyEvaluation();
 		auto oldpi = m_2dPI;
-		Improvement();
+		PolicyImprovement();
 		if (oldpi == m_2dPI)
 		{
 			break;
@@ -172,8 +172,6 @@ void PolicyIteration::PrintPi()
 			}
 
 			
-			
-
 		}
 		cout << endl;
 	}
