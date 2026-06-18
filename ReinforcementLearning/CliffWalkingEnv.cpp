@@ -52,6 +52,7 @@ CliffWalkingEnv::CliffWalkingEnv(int r, int c)
 {
 	m_nCol = c;
 	m_nRow = r;
+	
 
 }
 
@@ -106,4 +107,38 @@ void  CliffWalkingEnv::CreateTransitionMatrix()
 
 		}
 	}
+}
+
+StateInfo CliffWalkingEnv::Step(int action)
+{
+	MovePos move;
+	///pair<int, int>:  x,y 
+	move.push_back({ 0, -1 });      // ио   ^ 
+	move.push_back({ 0, 1 });     // об    v
+	move.push_back({ -1, 0 });     // вС  < 
+	move.push_back({ 1 , 0 });     // ср  >
+	
+	m_ny = min(m_nCol - 1, max(0, m_ny + move[action].first));
+	m_nx = min(m_nRow - 1, max(0, m_nx + move[action].second));
+	int idx = m_nx * m_nCol + m_ny;
+	double done = 0;
+	double reward = -1;
+	if (0 < idx && idx < m_nCol)
+	{
+		reward = -100;
+		done = 1;
+		if (idx == (m_nCol - 1))
+		{
+			reward = 1;
+		}
+		
+	}
+
+	return { 1, idx, reward, done };
+}
+
+void CliffWalkingEnv::Reset()
+{
+	 m_nx = 0;
+	 m_ny = 0;
 }

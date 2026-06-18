@@ -14,7 +14,7 @@ void  SetTuple(const size_t index, double d, StateInfo& info);
 class CliffWalkingEnv
 {
 public:
-	CliffWalkingEnv(int r,int c);
+	CliffWalkingEnv(int r= ROW,int c= COL);
 
 	int GetRow()
 	{
@@ -34,9 +34,13 @@ public:
 		return m_2dTransitionMatrix;
 	}
 	void  CreateTransitionMatrix();
+	StateInfo Step(int action);
+	void Reset();
 private:
 	int m_nRow;
 	int m_nCol;
 	Vec2D m_2dTransitionMatrix;
+	int m_nx = 0;
+	int m_ny = 0;
 };
 

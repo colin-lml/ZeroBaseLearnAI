@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "PolicyIteration.h"
 
-PolicyIteration::PolicyIteration():m_objEnv(ROW, COL)
+PolicyIteration::PolicyIteration()
 {
 	m_objEnv.CreateTransitionMatrix();
 

@@ -14,12 +14,14 @@
 #include <iomanip>
 using namespace std;
 
+#define ROW 3
+#define COL 6
+#define MaxAction  4
+
 #include "CliffWalkingEnv.h"
 #include "PolicyIteration.h"
 #include "TemporalDifference.h"
 
-#define ROW 3
-#define COL 6
-#define MaxAction  4
+
 
 #endif //PCH_H
