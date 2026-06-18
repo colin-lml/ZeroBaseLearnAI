@@ -7,7 +7,7 @@ public:
 	PolicyIteration();
 
 	void Iteration();
-	
+	void ValueIteration2();
 private:
 	void PolicyEvaluation();
 	void PolicyImprovement();

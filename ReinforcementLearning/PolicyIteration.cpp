@@ -3,6 +3,7 @@
 
 PolicyIteration::PolicyIteration():m_objEnv(ROW, COL)
 {
+	m_objEnv.CreateTransitionMatrix();
 
 	int m = m_objEnv.GetTableSize();
 
@@ -103,6 +104,54 @@ void PolicyIteration::Iteration()
 
 	PrintPi();
 }
+
+void PolicyIteration::ValueIteration2()
+{
+	cout << "价值迭代算法" << endl;
+
+	int S = m_objEnv.GetTableSize();
+	m_vecV.resize(S, 0);
+	m_2dPI.resize(S, { 0,0,0,0 });
+
+	const auto& P = m_objEnv.GetTransitionMatrix();
+	int64_t count = 0;
+	while (true)
+	{
+		double maxDiff = 0;
+		vector<double> newValue(S, 0);
+
+		for (int s = 0; s < S; s++)
+		{
+			vector<double> listQsa;
+			int a = 0;
+			for (auto& item : P[s])
+			{
+				auto qsa = WeightedSum(item);
+				listQsa.push_back(qsa);				
+			}
+
+			newValue[s] = *std::max_element(listQsa.begin(), listQsa.end());
+			maxDiff = max(maxDiff, abs(newValue[s] - m_vecV[s]));
+
+		}
+
+		m_vecV = newValue;
+
+		if (maxDiff < m_dbTheta)
+		{
+			break;
+		}
+		count++;
+	}
+
+	PolicyImprovement();
+
+	PrintPi();
+
+}
+
+
+
 
 void PolicyIteration::PrintPi()
 {

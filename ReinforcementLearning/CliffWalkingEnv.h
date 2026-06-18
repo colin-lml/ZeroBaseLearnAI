@@ -33,7 +33,7 @@ public:
 	{
 		return m_2dTransitionMatrix;
 	}
-
+	void  CreateTransitionMatrix();
 private:
 	int m_nRow;
 	int m_nCol;

@@ -16,6 +16,7 @@ using namespace std;
 
 #include "CliffWalkingEnv.h"
 #include "PolicyIteration.h"
+#include "TemporalDifference.h"
 
 #define ROW 3
 #define COL 6

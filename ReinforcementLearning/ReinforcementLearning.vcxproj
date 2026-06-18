@@ -140,11 +140,13 @@
     </ClCompile>
     <ClCompile Include="PolicyIteration.cpp" />
     <ClCompile Include="ReinforcementLearning.cpp" />
+    <ClCompile Include="TemporalDifference.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CliffWalkingEnv.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="PolicyIteration.h" />
+    <ClInclude Include="TemporalDifference.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -53,13 +53,17 @@ CliffWalkingEnv::CliffWalkingEnv(int r, int c)
 	m_nCol = c;
 	m_nRow = r;
 
-	m_2dTransitionMatrix.resize(r*c, ActionList(MaxAction));
+}
+
+void  CliffWalkingEnv::CreateTransitionMatrix()
+{
+	m_2dTransitionMatrix.resize(m_nRow * m_nCol, ActionList(MaxAction));
 	MovePos move;
 	///pair<int, int>:  x,y 
-	move.push_back({0, -1});      // 上   ^ 
-	move.push_back({0, 1});     // 下    v
-	move.push_back({-1, 0});     // 左  < 
-	move.push_back({1 , 0});     // 右  >
+	move.push_back({ 0, -1 });      // 上   ^ 
+	move.push_back({ 0, 1 });     // 下    v
+	move.push_back({ -1, 0 });     // 左  < 
+	move.push_back({ 1 , 0 });     // 右  >
 
 
 	for (int i = 0; i < m_nRow; i++)
@@ -69,13 +73,13 @@ CliffWalkingEnv::CliffWalkingEnv(int r, int c)
 			for (int k = 0; k < MaxAction; k++)
 			{
 				int idx = i * m_nCol + j;
-				int x = min(m_nCol-1, max(0, j + move[k].first));
+				int x = min(m_nCol - 1, max(0, j + move[k].first));
 				int y = min(m_nRow - 1, max(0, i + move[k].second));
 				int nextidx = y * m_nCol + x;
 				double done = 0;
 				double reward = -1;
 
-				if (i==0 && 0 < j)
+				if (i == 0 && 0 < j)
 				{
 					reward = 0;
 					done = 1;
@@ -97,29 +101,9 @@ CliffWalkingEnv::CliffWalkingEnv(int r, int c)
 
 				}
 
-				m_2dTransitionMatrix[idx][k] = {1,nextidx,reward,done};
+				m_2dTransitionMatrix[idx][k] = { 1,nextidx,reward,done };
 			}
-			
+
 		}
 	}
-
-/* 
-	for (int i = 0; i < m_nRow; i++)
-	{
-		for (int j = 0; j < m_nCol; j++)
-		{
-			int idx = i * m_nCol + j;
-			cout <<"x: " <<i<<" y: " << j <<": "<<endl;
-			for (auto& item : m_2dTransitionMatrix[idx])
-			{
-				cout << get<1>(item) << "," << get<2>(item) << "," << get<3>(item) ;
-				cout << endl;
-			}
-			cout << endl;
-		}
-
-		cout << endl;
-		cout << endl;
-	}
-*/
 }
