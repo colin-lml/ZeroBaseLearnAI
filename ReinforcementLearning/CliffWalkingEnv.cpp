@@ -137,8 +137,9 @@ StateInfo CliffWalkingEnv::Step(int action)
 	return { 1, idx, reward, done };
 }
 
-void CliffWalkingEnv::Reset()
+int CliffWalkingEnv::Reset()
 {
 	 m_nx = 0;
 	 m_ny = 0;
+	 return 0;
 }

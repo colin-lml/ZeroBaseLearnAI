@@ -7,10 +7,15 @@
 
 int main()
 {
+   
 
     PolicyIteration policy;
-    policy.Iteration();
-    policy.ValueIteration2();
+   // policy.Iteration();
+   // policy.ValueIteration2();
+
+    TemporalDifference td;
+    td.SarsaIteration();
+
 
     cin.get();
 }

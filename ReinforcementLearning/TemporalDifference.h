@@ -1,9 +1,28 @@
 #pragma once
+
+using VectorDouble2D = std::vector<std::vector<double>>;
+
+
 class TemporalDifference
 {
 public:
+	TemporalDifference();
+	void SarsaIteration(int maxCount = 500);
 
 private:
+	int TakeAction(int s1);
+	void Update(int s0, int a0, double r, int s1, int a1);
+
 	CliffWalkingEnv m_objEnv;
+	VectorDouble2D m_2dQtable;
+
+	const double m_dbAlpha = 0.1;
+	const double m_dbGamma = 0.9;
+	const double m_dbEpsilon = 0.1;
+
+	std::random_device m_rd;
+	std::mt19937 m_gen;
+	std::uniform_real_distribution<double> m_rand01;
+	std::uniform_int_distribution<int> m_rand04;
 };
 

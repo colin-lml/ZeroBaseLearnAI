@@ -35,7 +35,7 @@ public:
 	}
 	void  CreateTransitionMatrix();
 	StateInfo Step(int action);
-	void Reset();
+	int Reset();
 private:
 	int m_nRow;
 	int m_nCol;

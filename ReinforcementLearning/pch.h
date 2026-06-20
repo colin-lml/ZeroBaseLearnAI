@@ -12,6 +12,7 @@
 #include <vector>
 #include <tuple>
 #include <iomanip>
+#include <random>
 using namespace std;
 
 #define ROW 3
