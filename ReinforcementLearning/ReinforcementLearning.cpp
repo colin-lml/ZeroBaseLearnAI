@@ -14,8 +14,8 @@ int main()
    // policy.ValueIteration2();
 
     TemporalDifference td;
-    td.SarsaIteration();
-
+    //td.SarsaIteration();
+    td.QLearningIteration();
 
     cin.get();
 }
