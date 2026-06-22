@@ -132,7 +132,7 @@ void FreeModel::MonteCarloMethods(int maxCount)
 			auto a1 = TakeAction(s1);
 			if (b && s1 == s && a == a1)
 			{
-				continue;
+				//continue;
 			}
 
 			MonteCarlo item;
@@ -292,10 +292,12 @@ void FreeModel::PrintPi()
 			int idx = r * C + c;
 			if (0 < idx && idx < C - 1)
 			{
+				vecValue[idx] = -100;
 				cout << " ****  ";
 			}
 			else if (idx == C - 1)
 			{
+				vecValue[idx] = 1;
 				cout << " EEEE  ";
 			}
 			else
@@ -326,15 +328,25 @@ void FreeModel::PrintPi()
 
 	for (int r = 0; r < R; r++)
 	{
-		for (size_t c = 0; c < C; c++)
+		for (int c = 0; c < C; c++)
 		{
 			int idx = r * C + c;
-
+			int a = 0;
+			double d = -999;
 			for (int i = 0; i < MaxAction; i++)
 			{
-				aout  m_nx = min(C - 1, max(0, c + move[i].first));
-				m_ny = min(R - 1, max(0, r + move[i].second));
+				auto  x = min(C - 1, max(0, c + move[i].first));
+				auto  y = min(R - 1, max(0, r + move[i].second));
+				auto xid = y * C + x;
+
+				if (d < vecValue[xid])
+				{
+					d = vecValue[xid];
+					a = i;
+				}				
 			}
+		
+			SetTuple(a,1, m_2dPI[idx]);
 		}
 	}
 

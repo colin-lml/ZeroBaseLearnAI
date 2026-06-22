@@ -14,8 +14,8 @@ int main()
    // policy.ValueIteration2();
 
     FreeModel td;
-   // td.MonteCarloMethods();
-     td.SarsaIteration();
+    td.MonteCarloMethods();
+    //td.SarsaIteration();
     //td.NStepSarsaIteration();
     //td.QLearningIteration();
     
