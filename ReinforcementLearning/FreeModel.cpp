@@ -247,7 +247,7 @@ void FreeModel::QLearningIteration(int maxCount)
 	cout << "\nSQ-learning Ëã·¨" << endl;
 	auto S = m_objEnv.GetTableSize();
 	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
-	m_2dPI.resize(S, { 0,0,0,0 });
+	
 
 	for (size_t i = 0; i < maxCount; i++)
 	{
@@ -283,7 +283,7 @@ void FreeModel::PrintPi()
 	auto R = m_objEnv.GetRow();
 	auto C = m_objEnv.GetCol();
 	vector<double> vecValue(R*C, 0);
-
+	m_2dPI.resize(R * C, { 0,0,0,0 });
 
 	for (int r = 0; r < R; r++)
 	{
@@ -347,6 +347,7 @@ void FreeModel::PrintPi()
 			}
 		
 			SetTuple(a,1, m_2dPI[idx]);
+
 		}
 	}
 
@@ -382,8 +383,8 @@ void FreeModel::PrintPi()
 				cout << "  ";
 			}
 
-
 		}
 		cout << endl;
 	}
+
 }

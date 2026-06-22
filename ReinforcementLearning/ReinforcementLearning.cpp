@@ -15,9 +15,9 @@ int main()
 
     FreeModel td;
     td.MonteCarloMethods();
-    //td.SarsaIteration();
-    //td.NStepSarsaIteration();
-    //td.QLearningIteration();
+    td.SarsaIteration();
+    td.NStepSarsaIteration();
+    td.QLearningIteration();
     
     cin.get();
 }
