@@ -332,7 +332,8 @@ void FreeModel::PrintPi()
 
 			for (int i = 0; i < MaxAction; i++)
 			{
-
+				aout  m_nx = min(C - 1, max(0, c + move[i].first));
+				m_ny = min(R - 1, max(0, r + move[i].second));
 			}
 		}
 	}
