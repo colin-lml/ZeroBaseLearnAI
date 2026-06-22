@@ -13,6 +13,9 @@
 #include <tuple>
 #include <iomanip>
 #include <random>
+#include <set>
+#include <algorithm>
+
 using namespace std;
 
 #define ROW 3

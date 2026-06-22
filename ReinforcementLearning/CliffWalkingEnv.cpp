@@ -117,10 +117,28 @@ StateInfo CliffWalkingEnv::Step(int action)
 	move.push_back({ 0, 1 });     // об    v
 	move.push_back({ -1, 0 });     // вС  < 
 	move.push_back({ 1 , 0 });     // ср  >
+
+#if 0
+	if (m_ny + move[action].first < 0)
+	{
+		m_ny += 1;
+	}
+	else if ((m_nCol - 1) <= m_ny + move[action].first)
+	{
+
+	}
+	else
+	{
+
+	}
+#else 
+
+	m_nx = min(m_nCol - 1, max(0, m_nx + move[action].first));
+	m_ny = min(m_nRow - 1, max(0, m_ny + move[action].second));
 	
-	m_ny = min(m_nCol - 1, max(0, m_ny + move[action].first));
-	m_nx = min(m_nRow - 1, max(0, m_nx + move[action].second));
-	int idx = m_nx * m_nCol + m_ny;
+#endif
+
+	int idx = m_ny * m_nCol + m_nx;
 	double done = 0;
 	double reward = -1;
 	if (0 < idx && idx < m_nCol)
@@ -131,7 +149,6 @@ StateInfo CliffWalkingEnv::Step(int action)
 		{
 			reward = 1;
 		}
-		
 	}
 
 	return { 1, idx, reward, done };

@@ -7,9 +7,12 @@ class FreeModel
 {
 public:
 	FreeModel();
-	void NStepSarsaIteration(int nStep=3,int maxCount = 500);
+	void MonteCarloMethods(int maxCount = 1500);
 	void SarsaIteration(int maxCount = 500);
+	void NStepSarsaIteration(int nStep=3,int maxCount = 500);
+	
 	void QLearningIteration(int maxCount = 500);
+	
 private:
 	int TakeAction(int s1);
 	void UpdateSarsa(int s0, int a0, double r, int s1, int a1);

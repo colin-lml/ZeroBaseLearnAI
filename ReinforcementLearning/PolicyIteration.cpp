@@ -14,6 +14,8 @@ PolicyIteration::PolicyIteration()
 
 void PolicyIteration::PolicyEvaluation()
 {
+	cout  << "策略迭代算法" << endl;
+
 	int S = m_objEnv.GetTableSize();
 	const auto& P = m_objEnv.GetTransitionMatrix();
 	int64_t count = 0;
@@ -107,7 +109,7 @@ void PolicyIteration::Iteration()
 
 void PolicyIteration::ValueIteration2()
 {
-	cout << "价值迭代算法" << endl;
+	cout<< endl << "价值迭代算法" << endl;
 
 	int S = m_objEnv.GetTableSize();
 	m_vecV.resize(S, 0);

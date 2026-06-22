@@ -14,9 +14,11 @@ int main()
    // policy.ValueIteration2();
 
     FreeModel td;
-    //td.SarsaIteration();
+   // td.MonteCarloMethods();
+     td.SarsaIteration();
+    //td.NStepSarsaIteration();
     //td.QLearningIteration();
-    td.NStepSarsaIteration();
+    
     cin.get();
 }
 

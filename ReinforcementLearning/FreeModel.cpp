@@ -29,6 +29,10 @@ int FreeModel::TakeAction(int s0)
 
 }
 
+
+
+
+
 void FreeModel::UpdateSarsa(int s0, int a0, double r, int s1, int a1)
 {
 	double td = r + m_dbGamma * m_2dQtable[s1][a1] - m_2dQtable[s0][a0];
@@ -86,9 +90,97 @@ void FreeModel::UpdateOffPolicy(int s0, int a0, double r, int s1, int a1)
 	m_2dQtable[s0][a0] += m_dbAlpha * td;
 }
 
+/// <summary>
+/// 蒙特卡洛
+/// </summary>
+/// <param name="maxCount"></param>
+
+typedef struct _MonteCarlo
+{
+	int s;
+	int a;
+	double r;
+	bool done;
+
+}MonteCarlo;
+
+ 
+void FreeModel::MonteCarloMethods(int maxCount)
+{
+	cout << "\n蒙特卡洛方法" << endl;
+	
+	VectorDouble2D v2dCount;
+	auto S = m_objEnv.GetTableSize();
+	v2dCount.resize(S, std::vector<double>(MaxAction, 0.0));
+	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
+	m_2dPI.resize(S, { 0,0,0,0 });
+	for (size_t i = 0; i < maxCount; i++)
+	{
+		vector<MonteCarlo> trajectory;
+
+		auto s = m_objEnv.Reset();
+		auto a = TakeAction(s);
+		bool b = true;
+		while (b)
+		{
+
+			auto info = m_objEnv.Step(a);  // { 1, idx, reward, done };
+			
+			b = GetTuple(3, info) == 0;
+			auto s1 = GetTuple(1, info);
+			auto r = GetTuple(2, info);
+			auto a1 = TakeAction(s1);
+			if (b && s1 == s && a == a1)
+			{
+				continue;
+			}
+
+			MonteCarlo item;
+			item.s = s;
+			item.a = a;
+			item.r = r;
+			item.done = !b;
+			//trajectory.push_back(item);
+			trajectory.emplace_back(item);
+			a = a1;
+			s = s1;
+		}
+
+		double G = 0.0;
+		set<tuple<int, int>> visited;
+
+		for (int n = trajectory.size()-1; 0<= n; n--)
+		{
+			G = trajectory[n].r + m_dbGamma * G;
+			int s = trajectory[n].s;
+			int a = trajectory[n].a;
+			
+
+#if 0
+			v2dCount[s][a] += 1;
+			m_2dQtable[s][a] += (G - m_2dQtable[s][a]) / v2dCount[s][a];
+			
+#else
+			auto key = make_tuple(s, a);
+			if (visited.find(key) == visited.end())
+			{
+				visited.insert(key);
+				v2dCount[s][a] += 1;
+				m_2dQtable[s][a] += (G - m_2dQtable[s][a]) / v2dCount[s][a];
+			}
+#endif
+			
+
+		}
+
+	}
+
+	PrintPi();
+}
 
 void FreeModel::SarsaIteration(int maxCount)
 {
+	cout << "\nSarsa算法" << endl;
 	auto S = m_objEnv.GetTableSize();
 	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
 	m_2dPI.resize(S, { 0,0,0,0 });
@@ -117,6 +209,7 @@ void FreeModel::SarsaIteration(int maxCount)
 
 void FreeModel::NStepSarsaIteration(int nStep, int maxCount)
 {
+	cout << "\n多步 Sarsa 算法" << endl;
 
 	auto S = m_objEnv.GetTableSize();
 	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
@@ -151,7 +244,7 @@ void FreeModel::NStepSarsaIteration(int nStep, int maxCount)
 
 void FreeModel::QLearningIteration(int maxCount)
 {
-
+	cout << "\nSQ-learning 算法" << endl;
 	auto S = m_objEnv.GetTableSize();
 	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
 	m_2dPI.resize(S, { 0,0,0,0 });
@@ -189,6 +282,8 @@ void FreeModel::PrintPi()
 
 	auto R = m_objEnv.GetRow();
 	auto C = m_objEnv.GetCol();
+	vector<double> vecValue(R*C, 0);
+
 
 	for (int r = 0; r < R; r++)
 	{
@@ -205,21 +300,11 @@ void FreeModel::PrintPi()
 			}
 			else
 			{
-
 				const auto& row = m_2dQtable[idx];
 				auto maxIdx = std::max_element(row.begin(), row.end());
 				auto v = *maxIdx;
-
-				for (size_t i = 0; i < row.size(); i++)
-				{
-					double d = 0;
-					if (v == row[i])
-					{
-						d = 1;
-					}
-					
-					SetTuple(i, d, m_2dPI[idx]);
-				}
+				vecValue[idx] = v;
+				
 
 
 				cout << setw(4) << fixed << setprecision(2) << v << "  ";
@@ -231,6 +316,28 @@ void FreeModel::PrintPi()
 	}
 
 	cout << endl;
+	
+	MovePos move;
+	///pair<int, int>:  x,y 
+	move.push_back({ 0, -1 });      // 上   ^ 
+	move.push_back({ 0, 1 });     // 下    v
+	move.push_back({ -1, 0 });     // 左  < 
+	move.push_back({ 1 , 0 });     // 右  >
+
+	for (int r = 0; r < R; r++)
+	{
+		for (size_t c = 0; c < C; c++)
+		{
+			int idx = r * C + c;
+
+			for (int i = 0; i < MaxAction; i++)
+			{
+
+			}
+		}
+	}
+
+	
 
 
 	for (int r = 0; r < R; r++)
