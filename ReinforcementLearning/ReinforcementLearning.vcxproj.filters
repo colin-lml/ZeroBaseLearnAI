@@ -27,7 +27,7 @@
     <ClCompile Include="PolicyIteration.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="TemporalDifference.cpp">
+    <ClCompile Include="FreeModel.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,7 +41,7 @@
     <ClInclude Include="PolicyIteration.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="TemporalDifference.h">
+    <ClInclude Include="FreeModel.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

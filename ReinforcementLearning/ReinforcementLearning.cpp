@@ -13,10 +13,10 @@ int main()
    // policy.Iteration();
    // policy.ValueIteration2();
 
-    TemporalDifference td;
+    FreeModel td;
     //td.SarsaIteration();
-    td.QLearningIteration();
-
+    //td.QLearningIteration();
+    td.NStepSarsaIteration();
     cin.get();
 }
 

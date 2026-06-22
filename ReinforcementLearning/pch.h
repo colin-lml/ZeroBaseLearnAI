@@ -21,7 +21,7 @@ using namespace std;
 
 #include "CliffWalkingEnv.h"
 #include "PolicyIteration.h"
-#include "TemporalDifference.h"
+#include "FreeModel.h"
 
 
 
