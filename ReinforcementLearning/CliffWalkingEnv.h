@@ -11,6 +11,9 @@ using MovePos = vector<pair<int, int>>;
 double GetTuple(const size_t index, const StateInfo& info);
 void  SetTuple(const size_t index, double d, StateInfo& info);
 
+pair<int, int> GetActionNextPos(int x, int y, int action);
+int GetActionNextPos(int idx, int action);
+
 class CliffWalkingEnv
 {
 public:
@@ -36,6 +39,7 @@ public:
 	void  CreateTransitionMatrix();
 	StateInfo Step(int action);
 	int Reset();
+
 private:
 	int m_nRow;
 	int m_nCol;

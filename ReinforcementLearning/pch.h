@@ -18,7 +18,7 @@
 
 using namespace std;
 
-#define ROW 3
+#define ROW 4
 #define COL 6
 #define MaxAction  4
 

@@ -5,7 +5,7 @@ FreeModel::FreeModel():m_gen(m_rd()), m_rand01(0.0,1), m_rand04(0, MaxAction-1)
 {
 	auto S = m_objEnv.GetTableSize();
 	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));	
-	m_2dPI.resize(S, { 0,0,0,0 });
+	
 }
 
 
@@ -113,7 +113,7 @@ void FreeModel::MonteCarloMethods(int maxCount)
 	auto S = m_objEnv.GetTableSize();
 	v2dCount.resize(S, std::vector<double>(MaxAction, 0.0));
 	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
-	m_2dPI.resize(S, { 0,0,0,0 });
+	
 	for (size_t i = 0; i < maxCount; i++)
 	{
 		vector<MonteCarlo> trajectory;
@@ -123,18 +123,14 @@ void FreeModel::MonteCarloMethods(int maxCount)
 		bool b = true;
 		while (b)
 		{
-
+	
 			auto info = m_objEnv.Step(a);  // { 1, idx, reward, done };
 			
 			b = GetTuple(3, info) == 0;
 			auto s1 = GetTuple(1, info);
 			auto r = GetTuple(2, info);
 			auto a1 = TakeAction(s1);
-			if (b && s1 == s && a == a1)
-			{
-				//continue;
-			}
-
+			
 			MonteCarlo item;
 			item.s = s;
 			item.a = a;
@@ -183,8 +179,7 @@ void FreeModel::SarsaIteration(int maxCount)
 	cout << "\nSarsaËã·¨" << endl;
 	auto S = m_objEnv.GetTableSize();
 	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
-	m_2dPI.resize(S, { 0,0,0,0 });
-
+	
 	for (size_t i = 0; i < maxCount; i++)
 	{
 		auto s = m_objEnv.Reset();
@@ -192,6 +187,7 @@ void FreeModel::SarsaIteration(int maxCount)
 		bool b = true;
 		while (b)
 		{
+			int a2;
 			auto info = m_objEnv.Step(a);  // { 1, idx, reward, done };
 			b = GetTuple(3, info) == 0;
 			auto s1 = GetTuple(1, info);
@@ -213,8 +209,7 @@ void FreeModel::NStepSarsaIteration(int nStep, int maxCount)
 
 	auto S = m_objEnv.GetTableSize();
 	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
-	m_2dPI.resize(S, { 0,0,0,0 });
-
+	
 	m_vNStepStates.clear();
 	m_vNStepActions.clear();
 	m_vNStepRewards.clear();
@@ -256,6 +251,7 @@ void FreeModel::QLearningIteration(int maxCount)
 		bool b = true;
 		while (b)
 		{
+			
 			auto info = m_objEnv.Step(a);  // { 1, idx, reward, done };
 			b = GetTuple(3, info) == 0;
 			auto s1 = GetTuple(1, info);
@@ -283,7 +279,8 @@ void FreeModel::PrintPi()
 	auto R = m_objEnv.GetRow();
 	auto C = m_objEnv.GetCol();
 	vector<double> vecValue(R*C, 0);
-	m_2dPI.resize(R * C, { 0,0,0,0 });
+	ActionList m2dPI;
+	m2dPI.resize(R * C, { 0,0,0,0 });
 
 	for (int r = 0; r < R; r++)
 	{
@@ -297,7 +294,7 @@ void FreeModel::PrintPi()
 			}
 			else if (idx == C - 1)
 			{
-				vecValue[idx] = 1;
+				vecValue[idx] = 100;
 				cout << " EEEE  ";
 			}
 			else
@@ -305,10 +302,7 @@ void FreeModel::PrintPi()
 				const auto& row = m_2dQtable[idx];
 				auto maxIdx = std::max_element(row.begin(), row.end());
 				auto v = *maxIdx;
-				vecValue[idx] = v;
-				
-
-
+				vecValue[idx] = v;				
 				cout << setw(4) << fixed << setprecision(2) << v << "  ";
 			}
 
@@ -319,46 +313,15 @@ void FreeModel::PrintPi()
 
 	cout << endl;
 	
-	MovePos move;
-	///pair<int, int>:  x,y 
-	move.push_back({ 0, -1 });      // ÉÏ   ^ 
-	move.push_back({ 0, 1 });     // ÏÂ    v
-	move.push_back({ -1, 0 });     // ×ó  < 
-	move.push_back({ 1 , 0 });     // ÓÒ  >
+
 
 	for (int r = 0; r < R; r++)
 	{
 		for (int c = 0; c < C; c++)
 		{
 			int idx = r * C + c;
-			int a = 0;
-			double d = -999;
-			for (int i = 0; i < MaxAction; i++)
-			{
-				auto  x = min(C - 1, max(0, c + move[i].first));
-				auto  y = min(R - 1, max(0, r + move[i].second));
-				auto xid = y * C + x;
 
-				if (d < vecValue[xid])
-				{
-					d = vecValue[xid];
-					a = i;
-				}				
-			}
-		
-			SetTuple(a,1, m_2dPI[idx]);
-
-		}
-	}
-
-	
-
-
-	for (int r = 0; r < R; r++)
-	{
-		for (size_t c = 0; c < C; c++)
-		{
-			int idx = r * C + c;
+			UpdatePi(idx, m2dPI,vecValue);
 			if (0 < idx && idx < C - 1)
 			{
 				cout << " **** ";
@@ -371,7 +334,7 @@ void FreeModel::PrintPi()
 			{
 				for (int i = 0; i < MaxAction; i++)
 				{
-					if (0 < GetTuple(i, m_2dPI[idx]))
+					if (0 < GetTuple(i, m2dPI[idx]))
 					{
 						cout << action[i];
 					}
@@ -383,8 +346,39 @@ void FreeModel::PrintPi()
 				cout << "  ";
 			}
 
+
 		}
+
 		cout << endl;
+	}
+
+	
+}
+
+
+void FreeModel::UpdatePi(int idx, ActionList& m2dPI, const vector<double>& vecValue)
+{
+
+	double d = -999;
+	for (int i=0;i<MaxAction;i++)
+	{
+		auto idx1 = GetActionNextPos(idx,i);
+		if (idx1 != idx)
+		{
+			d = max(vecValue[idx1], d);
+		}
+		
+	}
+
+	
+	for (int i = 0; i < MaxAction; i++)
+	{
+		auto idx1 = GetActionNextPos(idx, i);
+
+		if (vecValue[idx1] == d)
+		{
+			SetTuple(i, 1, m2dPI[idx]);
+		}
 	}
 
 }

@@ -109,35 +109,41 @@ void  CliffWalkingEnv::CreateTransitionMatrix()
 	}
 }
 
-StateInfo CliffWalkingEnv::Step(int action)
+int GetActionNextPos(int idx, int action)
 {
+	int x = idx % COL;
+	int y = idx / COL;
+	auto p = GetActionNextPos(x,y, action);
+	
+	idx = p.second * COL + p.first;
+	return idx;
+}
+
+
+pair<int, int> GetActionNextPos(int x,int y,int action)
+{
+	
 	MovePos move;
 	///pair<int, int>:  x,y 
 	move.push_back({ 0, -1 });      // ио   ^ 
 	move.push_back({ 0, 1 });     // об    v
 	move.push_back({ -1, 0 });     // вС  < 
 	move.push_back({ 1 , 0 });     // ср  >
-
-#if 0
-	if (m_ny + move[action].first < 0)
-	{
-		m_ny += 1;
-	}
-	else if ((m_nCol - 1) <= m_ny + move[action].first)
-	{
-
-	}
-	else
-	{
-
-	}
-#else 
-
-	m_nx = min(m_nCol - 1, max(0, m_nx + move[action].first));
-	m_ny = min(m_nRow - 1, max(0, m_ny + move[action].second));
 	
-#endif
+	x = min(COL - 1, max(0, x + move[action].first));
+	y = min(ROW - 1, max(0, y + move[action].second));
 
+	return {x,y};
+}
+
+
+StateInfo CliffWalkingEnv::Step(int action)
+{
+
+	auto p = GetActionNextPos(m_nx, m_ny, action);
+	m_nx = p.first;
+	m_ny = p.second;
+	
 	int idx = m_ny * m_nCol + m_nx;
 	double done = 0;
 	double reward = -1;

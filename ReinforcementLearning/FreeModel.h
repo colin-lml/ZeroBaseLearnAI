@@ -9,7 +9,7 @@ public:
 	FreeModel();
 	void MonteCarloMethods(int maxCount = 1500);
 	void SarsaIteration(int maxCount = 500);
-	void NStepSarsaIteration(int nStep=3,int maxCount = 500);	
+	void NStepSarsaIteration(int nStep=10,int maxCount = 1000);	
 	void QLearningIteration(int maxCount = 500);
 	
 private:
@@ -18,10 +18,10 @@ private:
 	void UpdateNStepSarsa(const int nStep,int s0, int a0, double r, int s1, int a1, bool done);
 	void UpdateOffPolicy(int s0, int a0, double r, int s1, int a1);
 	void PrintPi();
+	void UpdatePi(int idx, ActionList& m2dPI,const vector<double>& vecValue);
 	CliffWalkingEnv m_objEnv;
 	VectorDouble2D m_2dQtable;
 
-	ActionList m_2dPI;
 
 	const double m_dbAlpha = 0.1;
 	const double m_dbGamma = 0.9;
