@@ -2,6 +2,13 @@
 
 
 
+using DynaQModelKey = pair<int, int>;
+using DynaQModelValue = tuple<double,int, int>;
+using  DynaQModelMap = map<DynaQModelKey, DynaQModelValue>;
+
+using DynaQModelItem = pair<const DynaQModelKey, DynaQModelValue>;
+using VectDynaQModel = vector<DynaQModelItem>;
+
 using StateInfo = tuple<double, double, double, double>;
 using ActionList = vector<StateInfo>;
 using Vec2D = vector<ActionList>;

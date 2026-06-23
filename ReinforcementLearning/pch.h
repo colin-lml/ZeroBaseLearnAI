@@ -14,12 +14,13 @@
 #include <iomanip>
 #include <random>
 #include <set>
+#include <map>
 #include <algorithm>
 
 using namespace std;
 
 #define ROW 4
-#define COL 6
+#define COL 8
 #define MaxAction  4
 
 #include "CliffWalkingEnv.h"

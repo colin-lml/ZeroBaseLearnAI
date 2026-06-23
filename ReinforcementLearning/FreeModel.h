@@ -11,12 +11,13 @@ public:
 	void SarsaIteration(int maxCount = 500);
 	void NStepSarsaIteration(int nStep=10,int maxCount = 1000);	
 	void QLearningIteration(int maxCount = 500);
-	
+	void DynaQIteration(int maxCount = 500);
 private:
 	int TakeAction(int s1);
 	void UpdateSarsa(int s0, int a0, double r, int s1, int a1);
 	void UpdateNStepSarsa(const int nStep,int s0, int a0, double r, int s1, int a1, bool done);
-	void UpdateOffPolicy(int s0, int a0, double r, int s1, int a1);
+	void UpdateOffPolicyQLearning(int s0, int a0, double r, int s1, int a1);
+	void UpdateDynaQ(int s0, int a0, double r, int s1, int a1);
 	void PrintPi();
 	void UpdatePi(int idx, ActionList& m2dPI,const vector<double>& vecValue);
 	CliffWalkingEnv m_objEnv;
@@ -34,6 +35,8 @@ private:
 	vector<int> m_vNStepStates;
 	vector<int> m_vNStepActions;
 	vector<double> m_vNStepRewards;
+	const int  m_nPlanning = 4;
+	DynaQModelMap m_mapDynaQModel;
 
 };
 

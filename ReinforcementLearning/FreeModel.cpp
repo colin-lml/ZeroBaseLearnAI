@@ -31,8 +31,6 @@ int FreeModel::TakeAction(int s0)
 
 
 
-
-
 void FreeModel::UpdateSarsa(int s0, int a0, double r, int s1, int a1)
 {
 	double td = r + m_dbGamma * m_2dQtable[s1][a1] - m_2dQtable[s0][a0];
@@ -80,7 +78,7 @@ void FreeModel::UpdateNStepSarsa(const int nStep,int s0, int a0, double r, int s
 }
 
 
-void FreeModel::UpdateOffPolicy(int s0, int a0, double r, int s1, int a1)
+void FreeModel::UpdateOffPolicyQLearning(int s0, int a0, double r, int s1, int a1)
 {
 	const auto& row = m_2dQtable[s1];
 	auto maxIdx = std::max_element(row.begin(), row.end());
@@ -89,6 +87,29 @@ void FreeModel::UpdateOffPolicy(int s0, int a0, double r, int s1, int a1)
 	double td = r + m_dbGamma * max - m_2dQtable[s0][a0];
 	m_2dQtable[s0][a0] += m_dbAlpha * td;
 }
+
+
+void FreeModel::UpdateDynaQ(int s0, int a0, double r, int s1, int a1)
+{
+	UpdateOffPolicyQLearning(s0, a0, r, s1, a1);
+	
+	m_mapDynaQModel.emplace(make_pair(s0,a0), make_tuple( r, s1, a1 ));
+	VectDynaQModel vectDynaQModel(m_mapDynaQModel.begin(), m_mapDynaQModel.end());
+
+
+	for (int i = 0; i < m_nPlanning && 2 < vectDynaQModel.size(); i++)
+	{
+		uniform_int_distribution<int> sample(0, (int)m_mapDynaQModel.size() - 1);
+		auto idx  = sample(m_gen);
+
+		const auto& item = vectDynaQModel[idx];
+		auto v = item.second;
+		UpdateOffPolicyQLearning(item.first.first, item.first.second, get<0>(v), get<1>(v), get<2>(v));
+
+	}
+
+}
+
 
 /// <summary>
 /// 蒙特卡洛
@@ -239,12 +260,12 @@ void FreeModel::NStepSarsaIteration(int nStep, int maxCount)
 
 void FreeModel::QLearningIteration(int maxCount)
 {
-	cout << "\nSQ-learning 算法" << endl;
+	cout << "\nQ-learning 算法" << endl;
 	auto S = m_objEnv.GetTableSize();
 	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
 	
 
-	for (size_t i = 0; i < maxCount; i++)
+	for (int i = 0; i < maxCount; i++)
 	{
 		auto s = m_objEnv.Reset();
 		auto a = TakeAction(s);
@@ -257,7 +278,7 @@ void FreeModel::QLearningIteration(int maxCount)
 			auto s1 = GetTuple(1, info);
 			auto r = GetTuple(2, info);
 			auto a1 = TakeAction(s1);
-			UpdateOffPolicy(s, a, r, s1, a1);
+			UpdateOffPolicyQLearning(s, a, r, s1, a1);
 			a = a1;
 			s = s1;
 		}
@@ -265,6 +286,38 @@ void FreeModel::QLearningIteration(int maxCount)
 
 	PrintPi();
 }
+
+
+void FreeModel::DynaQIteration(int maxCount)
+{
+	cout << "\nDyna-Q 算法" << endl;
+	auto S = m_objEnv.GetTableSize();
+	m_2dQtable.resize(S, std::vector<double>(MaxAction, 0.0));
+	m_mapDynaQModel.clear();
+
+	for (int i = 0; i < maxCount; i++)
+	{
+		auto s = m_objEnv.Reset();
+		auto a = TakeAction(s);
+		bool b = true;
+		while (b)
+		{
+
+			auto info = m_objEnv.Step(a);  // { 1, idx, reward, done };
+			b = GetTuple(3, info) == 0;
+			auto s1 = GetTuple(1, info);
+			auto r = GetTuple(2, info);
+			auto a1 = TakeAction(s1);
+			UpdateDynaQ(s, a, r, s1, a1);
+			a = a1;
+			s = s1;
+		}
+	}
+
+
+	PrintPi();
+}
+
 
 
 void FreeModel::PrintPi()
