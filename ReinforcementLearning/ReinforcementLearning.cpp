@@ -10,14 +10,14 @@ int main()
    
 
     PolicyIteration policy;
-    //policy.Iteration();
-    //policy.ValueIteration2();
+    policy.Iteration();
+    policy.ValueIteration2();
 
     FreeModel td;
-    //td.MonteCarloMethods();
-    //td.SarsaIteration();
-    //td.NStepSarsaIteration();
-    //td.QLearningIteration();
+    td.MonteCarloMethods();
+    td.SarsaIteration();
+    td.NStepSarsaIteration();
+    td.QLearningIteration();
     td.DynaQIteration();
     
     cin.get();
