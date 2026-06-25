@@ -7,7 +7,7 @@ public:
     static constexpr int OBS_DIM = 4;
     static constexpr int ACT_DIM = 2;
     static constexpr int MAX_EP_STEPS = 500;
-    static constexpr double M_PI = 3.14159265358979323846;
+    static constexpr double M_PI2 = 3.14159265358979323846;
     // 物理参数（与Gymnasium CartPole-v1 完全对齐）
     const double gravity = 9.8;
     const double mass_cart = 1.0;
@@ -19,7 +19,7 @@ public:
 
     // 终止阈值
     const double x_threshold = 2.4;
-    const double theta_threshold = 12.0 * M_PI / 180.0;
+    const double theta_threshold = 12.0 * M_PI2 / 180.0;
 
     // 状态 [x, x_dot, theta, theta_dot]
     std::vector<double> state;
