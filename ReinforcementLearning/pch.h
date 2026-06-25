@@ -16,7 +16,7 @@
 #include <set>
 #include <map>
 #include <algorithm>
-
+#include <cmath>
 using namespace std;
 
 #define ROW 4
@@ -26,7 +26,7 @@ using namespace std;
 #include "CliffWalkingEnv.h"
 #include "PolicyIteration.h"
 #include "FreeModel.h"
-
+#include "CartPoleEnv.h"
 
 
 #endif //PCH_H
