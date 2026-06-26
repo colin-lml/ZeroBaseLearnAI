@@ -226,41 +226,12 @@ int main()
     //td.MonteCarloMethods();
     //td.SarsaIteration();
     //td.NStepSarsaIteration();
-      td.QLearningIteration();
+    //td.QLearningIteration();
     //td.DynaQIteration();
 
+      DeepQNetwork dqn;
+      dqn.PlayCartPole();
 
-
-    CartPoleEnv env2;
-
-    // 跑10个回合
-    for (int ep = 0; ep < 10; ++ep)
-    {
-        auto obs = env2.reset();
-        bool terminated = false;
-        bool truncated = false;
-        int step = 0;
-        double total_r = 0.0;
-        int64_t idx = 0;
-
-        while (!terminated && !truncated && step < CartPoleEnv::MAX_EP_STEPS)
-        {
-            // 随机动作 0 / 1
-            std::uniform_int_distribution<int> act_dist(0, 1);
-            int a = act_dist(env2.rng);
-            
-            auto [next_obs, r, term, trunc] = env2.step(a);
-            total_r += r;
-            terminated = term;
-            truncated = trunc;
-            obs = next_obs;
-            step++;
-        }
-
-        std::cout << "Episode " << ep
-            << " steps: " << step
-            << " total reward: " << total_r << "\n";
-    }
 
 
     

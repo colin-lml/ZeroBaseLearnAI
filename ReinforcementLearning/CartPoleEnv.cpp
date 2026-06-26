@@ -22,7 +22,7 @@ std::vector<double> CartPoleEnv::reset()
     return state;
 }
 
-std::tuple<std::vector<double>, double, bool, bool> CartPoleEnv::step(int action)
+CartPoleState CartPoleEnv::step(int action)
 {
     double x = state[0];
     double x_dot = state[1];

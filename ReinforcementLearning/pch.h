@@ -33,6 +33,6 @@ using namespace std;
 #include "PolicyIteration.h"
 #include "FreeModel.h"
 #include "CartPoleEnv.h"
-
+#include "DeepQNetwork.h"
 
 #endif //PCH_H

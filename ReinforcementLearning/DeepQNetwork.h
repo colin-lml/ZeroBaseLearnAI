@@ -1,0 +1,116 @@
+#pragma once
+
+using  CartPoleStateList  = vector<CartPoleState>;
+
+using  VectorDouble = std::vector<double>;
+
+/// <summary>
+///QwItem:  state, action, reward, next_state, done
+/// </summary>
+using  QwItem = std::tuple<VectorDouble,int, double, VectorDouble, bool>;
+using  QwList = vector<QwItem>;
+
+QwList& GetCartPoleDataList();
+void AddCartPoleDataList(const QwItem& item);
+
+class ReplayBuffer : public torch::data::Dataset<ReplayBuffer>
+{
+public:
+
+	torch::optional<size_t> size() const
+	{
+		return GetCartPoleDataList().size();
+	}
+
+	torch::data::Example<torch::Tensor, torch::Tensor>  get(size_t index) override
+	{
+		return {};
+	}
+
+};
+
+
+
+class QnetImpl : public torch::nn::Module
+{
+public:
+	QnetImpl()
+	{
+		m_fc1 = register_module("fc1", torch::nn::Linear(inputN, hiddenN));
+		m_fc2 = register_module("fc2", torch::nn::Linear(hiddenN, outN));
+	}
+
+	torch::Tensor forward(torch::Tensor x)
+	{
+		x = torch::relu(m_fc1->forward(x));
+		return m_fc2->forward(x);
+	}
+
+	torch::nn::Linear m_fc1{ nullptr };
+	torch::nn::Linear m_fc2{ nullptr };
+	const int64_t inputN=4;
+	const int64_t hiddenN=64;
+	const int64_t outN=2;
+
+};
+
+TORCH_MODULE(Qnet);
+
+class XRandom
+{
+public:
+	XRandom(int64_t x = -1)
+	{
+		std::random_device rd;
+		if (x < 0)
+		{
+			m_gen.seed(rd());
+		}
+		else
+		{
+			m_gen.seed(x);
+		}
+		
+	}
+
+	int RandInt(int min, int max)
+	{
+		std::uniform_int_distribution<int> rand(min, max);
+		return rand(m_gen);
+	}
+
+	double RandDouble(double min, double max)
+	{
+		std::uniform_real_distribution<double> rand(min, max);
+		return rand(m_gen);
+	}
+private:
+	
+	std::mt19937 m_gen;
+};
+
+
+class DeepQNetwork
+{
+public:
+	void PlayCartPole(int maxCount = 500);
+private:
+
+	void TrainData(int maxCount);
+	int TakeAction(VectorDouble s0);
+	void TrainQnet();
+
+	const double m_dbAlpha = 0.1;
+	const double m_dbGamma = 0.9;
+	const double m_dbEpsilon = 0.1;
+
+	XRandom m_xRandomData;
+
+	Qnet m_Qnet;
+	Qnet m_TargetQnet;
+	CartPoleEnv m_CartPoleEnv;
+
+
+	const int m_nMinimalsize = 500;
+};
+

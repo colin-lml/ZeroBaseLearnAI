@@ -1,5 +1,8 @@
 #pragma once
 
+using  CartPoleState = std::tuple<std::vector<double>, double, bool, bool>;
+
+
 class CartPoleEnv
 {
 public:
@@ -32,7 +35,7 @@ public:
 
     // 执行一步动作
     // 返回：(观测, 奖励, terminated, truncated)
-    std::tuple<std::vector<double>, double, bool, bool> step(int action);
+    CartPoleState step(int action);
 
     // 打印观测信息
     void print_obs(const std::vector<double>& obs) const;
