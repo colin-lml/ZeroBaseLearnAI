@@ -13,8 +13,13 @@ void AddCartPoleDataList(const QwItem& item)
 	gCartPoleDataList.emplace_back(item);
 }
 
+
+
 void DeepQNetwork::PlayCartPole(int maxCount)
 {
+	torch::manual_seed(12);
+
+
 	TrainData(maxCount);
 }
 
@@ -33,10 +38,40 @@ int DeepQNetwork::TakeAction(VectorDouble s0)
 	return a;
 }
 
+torch::optim::Adam DeepQNetwork::CreateOptimizer(Qnet& model)
+{
+	const double  LR = 2e-3;
+	torch::optim::AdamOptions opt(LR);
+	opt.betas({ 0.9, 0.98 });
+	opt.eps(1e-9);
+	opt.weight_decay(0);
+
+	return torch::optim::Adam(model->parameters(), opt);
+}
+
+void DeepQNetwork::SyncTargetNet()
+{
+	string binPath = "tmpNetParameters.pt";
+	{
+		torch::serialize::OutputArchive archive;
+		m_Qnet->save(archive);
+		archive.save_to(binPath);
+	}
+
+	{
+		torch::serialize::InputArchive archive;
+		archive.load_from(binPath);
+		m_TargetQnet->load(archive);
+	}
+
+}
 
 
 void DeepQNetwork::TrainData(int maxCount)
 {
+	auto adam = CreateOptimizer(m_Qnet);
+	SyncTargetNet();
+
 	for (int i = 0; i < maxCount; i++)
 	{
 		auto s = m_CartPoleEnv.reset();
@@ -54,7 +89,7 @@ void DeepQNetwork::TrainData(int maxCount)
 
 			if (m_nMinimalsize < GetCartPoleDataList().size())
 			{
-				TrainQnet();
+				TrainQnet(adam);
 			}
 
 			s = s1;
@@ -64,7 +99,15 @@ void DeepQNetwork::TrainData(int maxCount)
 	}
 }
 
-void DeepQNetwork::TrainQnet()
+void DeepQNetwork::TrainQnet(torch::optim::Adam& adam)
 {
+	ReplayBuffer dataTrain; 
+	auto samples = dataTrain.sample(m_batchsize);
+
+	for (auto& item : samples)
+	{
+
+	}
+
 
 }

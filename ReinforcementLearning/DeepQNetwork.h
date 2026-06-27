@@ -13,20 +13,75 @@ using  QwList = vector<QwItem>;
 QwList& GetCartPoleDataList();
 void AddCartPoleDataList(const QwItem& item);
 
-class ReplayBuffer : public torch::data::Dataset<ReplayBuffer>
+class XRandom
+{
+public:
+	XRandom(int64_t x = -1)
+	{
+		std::random_device rd;
+		if (x < 0)
+		{
+			m_gen.seed(rd());
+		}
+		else
+		{
+			m_gen.seed(x);
+		}
+
+	}
+
+	int RandInt(int min, int max)
+	{
+		std::uniform_int_distribution<int> rand(min, max);
+		return rand(m_gen);
+	}
+
+	double RandDouble(double min, double max)
+	{
+		std::uniform_real_distribution<double> rand(min, max);
+		return rand(m_gen);
+	}
+	
+
+private:
+
+	std::mt19937 m_gen;
+};
+
+
+class ReplayBuffer
 {
 public:
 
-	torch::optional<size_t> size() const
+	size_t size() const
 	{
 		return GetCartPoleDataList().size();
 	}
 
-	torch::data::Example<torch::Tensor, torch::Tensor>  get(size_t index) override
+	QwList sample(size_t batchsize)
 	{
-		return {};
+		QwList output;
+		std::mt19937 rng(std::random_device{}());
+
+		int count = size();
+
+		output.reserve(count);
+
+		auto& datas = GetCartPoleDataList();
+		std::sample(datas.begin(), datas.end(), std::back_inserter(output), count, rng);
+		std::vector<QwList> batch;
+		for (size_t i = 0; i < output.size(); i += batchsize)
+		{
+			auto end = std::min(i + batchsize, output.size());
+			std::vector<QwList> item(output.begin() + i, output.begin() + end);
+			batch.insert(batch.end(),batch.begin(), batch.end());
+		}
+
+	
+		return output;
 	}
 
+	XRandom m_xRandomData;
 };
 
 
@@ -56,38 +111,6 @@ public:
 
 TORCH_MODULE(Qnet);
 
-class XRandom
-{
-public:
-	XRandom(int64_t x = -1)
-	{
-		std::random_device rd;
-		if (x < 0)
-		{
-			m_gen.seed(rd());
-		}
-		else
-		{
-			m_gen.seed(x);
-		}
-		
-	}
-
-	int RandInt(int min, int max)
-	{
-		std::uniform_int_distribution<int> rand(min, max);
-		return rand(m_gen);
-	}
-
-	double RandDouble(double min, double max)
-	{
-		std::uniform_real_distribution<double> rand(min, max);
-		return rand(m_gen);
-	}
-private:
-	
-	std::mt19937 m_gen;
-};
 
 
 class DeepQNetwork
@@ -98,7 +121,10 @@ private:
 
 	void TrainData(int maxCount);
 	int TakeAction(VectorDouble s0);
-	void TrainQnet();
+	void TrainQnet(torch::optim::Adam& adam);
+
+	void SyncTargetNet();
+	torch::optim::Adam CreateOptimizer(Qnet& model);
 
 	const double m_dbAlpha = 0.1;
 	const double m_dbGamma = 0.9;
@@ -112,5 +138,6 @@ private:
 
 
 	const int m_nMinimalsize = 500;
+	const int64_t m_batchsize = 100;
 };
 

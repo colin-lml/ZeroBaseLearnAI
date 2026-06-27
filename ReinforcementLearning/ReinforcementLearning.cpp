@@ -3,6 +3,7 @@
 
 #include "pch.h"
 
+#if 0
 
 static std::random_device rd;
 static std::mt19937 gen(rd());
@@ -209,7 +210,7 @@ private:
     std::uniform_real_distribution<float> reset_dist_;
 };
 
-
+#endif
 
 
 
