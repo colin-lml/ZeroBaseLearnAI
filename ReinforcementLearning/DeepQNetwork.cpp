@@ -102,10 +102,25 @@ void DeepQNetwork::TrainData(int maxCount)
 void DeepQNetwork::TrainQnet(torch::optim::Adam& adam)
 {
 	ReplayBuffer dataTrain; 
-	auto samples = dataTrain.sample(m_batchsize);
+	auto samples = dataTrain.sample();
 
 	for (auto& item : samples)
 	{
+		// state, action, reward, next_state, done
+		auto [s0, a,r,s1,done] = item;
+		auto x = torch::tensor( s0 , torch::kFloat).unsqueeze(0);
+		cout << x.sizes() << endl;
+		auto q = m_Qnet->forward(x);
+		auto idx = torch::tensor({{a}}, torch::kLong);
+		//cout <<"q1: " << q << endl;
+		q = q.gather(1, idx);
+		//cout<<"q2:" << q << endl;
+		x = torch::tensor(s1, torch::kFloat).unsqueeze(0);
+		auto q1 = m_TargetQnet->forward(x);
+		//cout <<"q1: " << q1 << endl;
+		auto[qv,_] = q1.max(1);
+		q1 = qv.view({ -1,1 });
+		//cout << "q2: " << q1 << endl;
 
 	}
 

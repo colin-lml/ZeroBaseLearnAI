@@ -10,6 +10,8 @@ using  VectorDouble = std::vector<double>;
 using  QwItem = std::tuple<VectorDouble,int, double, VectorDouble, bool>;
 using  QwList = vector<QwItem>;
 
+
+
 QwList& GetCartPoleDataList();
 void AddCartPoleDataList(const QwItem& item);
 
@@ -58,7 +60,7 @@ public:
 		return GetCartPoleDataList().size();
 	}
 
-	QwList sample(size_t batchsize)
+	QwList sample()
 	{
 		QwList output;
 		std::mt19937 rng(std::random_device{}());
@@ -69,19 +71,21 @@ public:
 
 		auto& datas = GetCartPoleDataList();
 		std::sample(datas.begin(), datas.end(), std::back_inserter(output), count, rng);
-		std::vector<QwList> batch;
-		for (size_t i = 0; i < output.size(); i += batchsize)
+		
+		//std::vector<QwList> batch;
+
+		//for (size_t i = 0; i < output.size(); i += batchsize)
 		{
-			auto end = std::min(i + batchsize, output.size());
-			std::vector<QwList> item(output.begin() + i, output.begin() + end);
-			batch.insert(batch.end(),batch.begin(), batch.end());
+			//auto end = std::min(i + batchsize, output.size());
+			//std::vector<QwList> item(output.begin() + i, output.begin() + end);
+			//batch.insert(batch.end(), item.begin(), item.end());
 		}
 
 	
 		return output;
 	}
 
-	XRandom m_xRandomData;
+	
 };
 
 
