@@ -95,15 +95,7 @@ public:
 		return batch;
 	}
 
-	torch::Tensor& VectorDoubleTensor(const VectorDouble& item)
-	{
-		auto S0 = torch::empty({ 1, 4 }, torch::kFloat32);
-		auto* pS0 = S0.data_ptr<float>();
-		std::copy(item.begin(), item.end(), pS0);
-
-		return S0;
-	}
-
+	
 	QwItemTensor QwListToTensor(const QwList& item)
 	{
 		int64_t n = item.size();

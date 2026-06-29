@@ -23,6 +23,16 @@ void DeepQNetwork::PlayCartPole(int maxCount)
 	TrainData(maxCount);
 }
 
+torch::Tensor VectorDoubleTensor(const VectorDouble& item)
+{
+	auto S0 = torch::empty({ 1, 4 }, torch::kFloat32);
+	auto* pS0 = S0.data_ptr<float>();
+	std::copy(item.begin(), item.end(), pS0);
+
+	return S0;
+}
+
+
 int DeepQNetwork::TakeAction(VectorDouble s0)
 {
 	int a = 0;
@@ -32,10 +42,11 @@ int DeepQNetwork::TakeAction(VectorDouble s0)
 	}
 	else
 	{
-		ReplayBuffer d;
-		auto s = d.VectorDoubleTensor(s0);
+		
+		auto s = VectorDoubleTensor(s0);
+		
 		auto q = m_Qnet->forward(s);
-		a = m_xRandomData.RandInt(0, 1);
+		a = q.squeeze().argmax().item<int>();
 	}
 
 	return a;
@@ -99,7 +110,11 @@ void DeepQNetwork::TrainData(int maxCount)
 			s = s1;
 
 		}
-
+		if (m_nMinimalsize < GetCartPoleDataList().size())
+		{
+			cout << "train i: " << i << " , rewardCount: " << rewardCount << endl;
+		}
+		
 	}
 
 	SyncTargetNet();
@@ -113,18 +128,22 @@ void DeepQNetwork::TestData(int maxCount)
 
 	m_Qnet->eval();
 	m_TargetQnet->eval();
-	auto s = m_CartPoleEnv.reset();
+
+	auto s0 = m_CartPoleEnv.reset();
 	auto done = false;
 	int64_t rewardCount = 0;
-	while (!done)
+	int64_t step = 0;
+	while (!done && step < 500)
 	{
-		auto a = TakeAction(s);
+		auto a = TakeAction(s0);
 		//{ state, reward, terminated, truncated };
-		auto [s1, r, b, t] = m_CartPoleEnv.step(a);
-		done = b;
+		auto [s1, r, d, _] = m_CartPoleEnv.step(a);
+		done = d;
+		s0 = s1;
 		rewardCount += r;
+		step++;
 	}
-
+	cout << "rewardCount: " << rewardCount << endl;
 
 }
 
@@ -160,7 +179,7 @@ void DeepQNetwork::TrainQnet(torch::optim::Adam& adam)
 		if (count % 10 == 0)
 		{
 			SyncTargetNet();
-			cout << "dqnloss: " << dqnloss.item<double>() << endl;
+			//cout << "dqnloss: " << dqnloss.item<double>() << endl;
 		}
 		count++;
 
