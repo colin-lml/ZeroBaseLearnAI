@@ -9,7 +9,8 @@ using  VectorDouble = std::vector<double>;
 /// </summary>
 using  QwItem = std::tuple<VectorDouble,int, double, VectorDouble, bool>;
 using  QwList = vector<QwItem>;
-
+using  QwList2D = vector<QwList>;
+using  QwItemTensor = std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>;
 
 
 QwList& GetCartPoleDataList();
@@ -60,8 +61,9 @@ public:
 		return GetCartPoleDataList().size();
 	}
 
-	QwList sample()
+	QwList2D sample(int batchsize, int max=10)
 	{
+		QwList2D batch;
 		QwList output;
 		std::mt19937 rng(std::random_device{}());
 
@@ -71,19 +73,65 @@ public:
 
 		auto& datas = GetCartPoleDataList();
 		std::sample(datas.begin(), datas.end(), std::back_inserter(output), count, rng);
-		
-		//std::vector<QwList> batch;
 
-		//for (size_t i = 0; i < output.size(); i += batchsize)
+		
+		for (size_t i = 0; i < output.size(); i += batchsize)
 		{
-			//auto end = std::min(i + batchsize, output.size());
-			//std::vector<QwList> item(output.begin() + i, output.begin() + end);
-			//batch.insert(batch.end(), item.begin(), item.end());
+			auto end = std::min(i + batchsize, output.size());
+			QwList listItem;
+			for (int k = i; k < end; k++) 
+			{
+				listItem.push_back(std::move(output[k]));
+			}
+
+			batch.push_back(std::move(listItem));
+			if ((max* batchsize) < i)
+			{
+				break;
+			}
 		}
 
-	
-		return output;
+
+		return batch;
 	}
+
+	torch::Tensor& VectorDoubleTensor(const VectorDouble& item)
+	{
+		auto S0 = torch::empty({ 1, 4 }, torch::kFloat32);
+		auto* pS0 = S0.data_ptr<float>();
+		std::copy(item.begin(), item.end(), pS0);
+
+		return S0;
+	}
+
+	QwItemTensor QwListToTensor(const QwList& item)
+	{
+		int64_t n = item.size();
+
+		auto S0 = torch::empty({ n, 4 }, torch::kFloat32);
+		auto A = torch::empty({ n, 1 }, torch::kInt);
+		auto R = torch::empty({ n, 1 }, torch::kFloat32);
+		auto S1 = torch::empty({ n, 4 }, torch::kFloat32);
+		auto Done = torch::empty({ n, 1 }, torch::kInt);
+		auto* pS0 = S0.data_ptr<float>();
+		auto* pS1 = S1.data_ptr<float>();
+
+		for (int64_t i = 0; i < n; ++i)
+		{
+			auto [s,a,r,s1,d] = item[i];
+			std::copy(s.begin(), s.end(), pS0 + i * 4);
+			A[i][0] = a;
+			R[i][0] = r;
+			std::copy(s1.begin(), s1.end(), pS1 + i * 4);
+			Done[i][0] = d;
+			//cout << s[0]<<" " << s[1] << " " << s[2] <<" " << s[3] << endl;
+		}
+
+		return { S0,A,R,S1, Done };
+		
+	}
+
+private:
 
 	
 };
@@ -122,7 +170,7 @@ class DeepQNetwork
 public:
 	void PlayCartPole(int maxCount = 500);
 private:
-
+	void TestData(int maxCount);
 	void TrainData(int maxCount);
 	int TakeAction(VectorDouble s0);
 	void TrainQnet(torch::optim::Adam& adam);
@@ -141,7 +189,7 @@ private:
 	CartPoleEnv m_CartPoleEnv;
 
 
-	const int m_nMinimalsize = 500;
+	const int m_nMinimalsize = 800;
 	const int64_t m_batchsize = 100;
 };
 

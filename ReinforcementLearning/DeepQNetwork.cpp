@@ -32,6 +32,9 @@ int DeepQNetwork::TakeAction(VectorDouble s0)
 	}
 	else
 	{
+		ReplayBuffer d;
+		auto s = d.VectorDoubleTensor(s0);
+		auto q = m_Qnet->forward(s);
 		a = m_xRandomData.RandInt(0, 1);
 	}
 
@@ -69,6 +72,7 @@ void DeepQNetwork::SyncTargetNet()
 
 void DeepQNetwork::TrainData(int maxCount)
 {
+	cout <<"TrainData....." << endl;
 	auto adam = CreateOptimizer(m_Qnet);
 	SyncTargetNet();
 
@@ -97,32 +101,69 @@ void DeepQNetwork::TrainData(int maxCount)
 		}
 
 	}
+
+	SyncTargetNet();
+
+
+
 }
+void DeepQNetwork::TestData(int maxCount)
+{
+	cout << "TestData ....." << endl;
+
+	m_Qnet->eval();
+	m_TargetQnet->eval();
+	auto s = m_CartPoleEnv.reset();
+	auto done = false;
+	int64_t rewardCount = 0;
+	while (!done)
+	{
+		auto a = TakeAction(s);
+		//{ state, reward, terminated, truncated };
+		auto [s1, r, b, t] = m_CartPoleEnv.step(a);
+		done = b;
+		rewardCount += r;
+	}
+
+
+}
+
+
+
 
 void DeepQNetwork::TrainQnet(torch::optim::Adam& adam)
 {
 	ReplayBuffer dataTrain; 
-	auto samples = dataTrain.sample();
+	static int count = 1;
+
+	auto samples = dataTrain.sample(m_batchsize);
 
 	for (auto& item : samples)
 	{
-		// state, action, reward, next_state, done
-		auto [s0, a,r,s1,done] = item;
-		auto x = torch::tensor( s0 , torch::kFloat).unsqueeze(0);
-		cout << x.sizes() << endl;
-		auto q = m_Qnet->forward(x);
-		auto idx = torch::tensor({{a}}, torch::kLong);
-		//cout <<"q1: " << q << endl;
-		q = q.gather(1, idx);
-		//cout<<"q2:" << q << endl;
-		x = torch::tensor(s1, torch::kFloat).unsqueeze(0);
-		auto q1 = m_TargetQnet->forward(x);
-		//cout <<"q1: " << q1 << endl;
-		auto[qv,_] = q1.max(1);
+		auto [s0, a, r, s1, done] = dataTrain.QwListToTensor(item);
+		//cout << s0 << endl;
+		auto q = m_Qnet->forward(s0);
+		q = q.gather(1, a);
+
+		auto q1 = m_TargetQnet->forward(s1);
+
+		auto [qv, _] = q1.max(1);
 		q1 = qv.view({ -1,1 });
-		//cout << "q2: " << q1 << endl;
+		auto qtargets = r + m_dbGamma * q1 * (1 - done);
+
+		auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
+		auto dqnloss = mseloss->forward(q, qtargets);
+		adam.zero_grad();
+		dqnloss.backward();
+		adam.step();
+
+		if (count % 10 == 0)
+		{
+			SyncTargetNet();
+			cout << "dqnloss: " << dqnloss.item<double>() << endl;
+		}
+		count++;
 
 	}
-
 
 }
