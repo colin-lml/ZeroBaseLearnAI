@@ -92,7 +92,8 @@ void DeepQNetwork::TrainData(int maxCount)
 		auto s = m_CartPoleEnv.reset();
 		auto done = false;
 		int64_t rewardCount = 0;
-		while (!done)
+
+		while (!done && rewardCount < 470)
 		{
 			auto a = TakeAction(s);
 			//{ state, reward, terminated, truncated };
@@ -110,7 +111,7 @@ void DeepQNetwork::TrainData(int maxCount)
 			s = s1;
 
 		}
-		if (m_nMinimalsize < GetCartPoleDataList().size())
+		//if (m_nMinimalsize < GetCartPoleDataList().size())
 		{
 			cout << "train i: " << i << " , rewardCount: " << rewardCount << endl;
 		}
@@ -118,8 +119,7 @@ void DeepQNetwork::TrainData(int maxCount)
 	}
 
 	SyncTargetNet();
-
-
+	TestData(maxCount);
 
 }
 void DeepQNetwork::TestData(int maxCount)
@@ -160,28 +160,33 @@ void DeepQNetwork::TrainQnet(torch::optim::Adam& adam)
 	for (auto& item : samples)
 	{
 		auto [s0, a, r, s1, done] = dataTrain.QwListToTensor(item);
-		//cout << s0 << endl;
-		auto q = m_Qnet->forward(s0);
-		q = q.gather(1, a);
-
-		auto q1 = m_TargetQnet->forward(s1);
-
-		auto [qv, _] = q1.max(1);
-		q1 = qv.view({ -1,1 });
-		auto qtargets = r + m_dbGamma * q1 * (1 - done);
-
-		auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
-		auto dqnloss = mseloss->forward(q, qtargets);
-		adam.zero_grad();
-		dqnloss.backward();
-		adam.step();
-
-		if (count % 10 == 0)
+		bool run = true;
+		//while (run)
 		{
-			SyncTargetNet();
-			//cout << "dqnloss: " << dqnloss.item<double>() << endl;
+			//cout << s0 << endl;
+			auto q = m_Qnet->forward(s0);
+			q = q.gather(1, a);
+
+			auto q1 = m_TargetQnet->forward(s1);
+
+			auto [qv, _] = q1.max(1);
+			q1 = qv.view({ -1,1 });
+			auto qtargets = r + m_dbGamma * q1 * (1 - done);
+
+			auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
+			auto dqnloss = mseloss->forward(q, qtargets);
+			adam.zero_grad();
+			dqnloss.backward();
+			adam.step();
+			auto loss  = dqnloss.item<double>();
+			if (count % 10 == 0)
+			{
+				SyncTargetNet();
+				//cout << "dqnloss: " << loss << endl;
+			}
+			count++;
+			
 		}
-		count++;
 
 	}
 

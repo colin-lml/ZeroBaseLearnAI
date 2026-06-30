@@ -61,7 +61,7 @@ public:
 		return GetCartPoleDataList().size();
 	}
 
-	QwList2D sample(int batchsize, int max=10)
+	QwList2D sample(int batchsize, int max=2)
 	{
 		QwList2D batch;
 		QwList output;
@@ -73,22 +73,24 @@ public:
 
 		auto& datas = GetCartPoleDataList();
 		std::sample(datas.begin(), datas.end(), std::back_inserter(output), count, rng);
-
+		datas = output;
 		
-		for (size_t i = 0; i < output.size(); i += batchsize)
+		for (size_t i = 0; i < datas.size(); i += batchsize)
 		{
 			auto end = std::min(i + batchsize, output.size());
 			QwList listItem;
 			for (int k = i; k < end; k++) 
 			{
-				listItem.push_back(std::move(output[k]));
+				listItem.push_back(std::move(datas[k]));
 			}
 
 			batch.push_back(std::move(listItem));
-			if ((max* batchsize) < i)
-			{
-				break;
-			}
+
+			datas.erase(remove_if(datas.begin(), datas.end(), [](const QwItem& item) 
+				{
+					return get<0>(item).size() == 0;
+				}), datas.end());
+			break;
 		}
 
 
@@ -147,9 +149,9 @@ public:
 
 	torch::nn::Linear m_fc1{ nullptr };
 	torch::nn::Linear m_fc2{ nullptr };
-	const int64_t inputN=4;
-	const int64_t hiddenN=64;
-	const int64_t outN=2;
+	const int64_t inputN = 4;
+	const int64_t hiddenN = 128;
+	const int64_t outN = 2;
 
 };
 
@@ -160,7 +162,7 @@ TORCH_MODULE(Qnet);
 class DeepQNetwork
 {
 public:
-	void PlayCartPole(int maxCount = 500);
+	void PlayCartPole(int maxCount = 1000);
 private:
 	void TestData(int maxCount);
 	void TrainData(int maxCount);
@@ -172,7 +174,7 @@ private:
 
 	const double m_dbAlpha = 0.1;
 	const double m_dbGamma = 0.9;
-	const double m_dbEpsilon = 0.1;
+	const double m_dbEpsilon = 0.05;
 
 	XRandom m_xRandomData;
 
@@ -181,7 +183,7 @@ private:
 	CartPoleEnv m_CartPoleEnv;
 
 
-	const int m_nMinimalsize = 800;
-	const int64_t m_batchsize = 100;
+	const int m_nMinimalsize = 500;
+	const int64_t m_batchsize = 64;
 };
 
