@@ -61,40 +61,21 @@ public:
 		return GetCartPoleDataList().size();
 	}
 
-	QwList2D sample(int batchsize, int max=2)
+	QwList sample(int batchsize)
 	{
 		QwList2D batch;
 		QwList output;
 		std::mt19937 rng(std::random_device{}());
 
 		int count = size();
+		count = min(count, batchsize);
 
 		output.reserve(count);
 
 		auto& datas = GetCartPoleDataList();
 		std::sample(datas.begin(), datas.end(), std::back_inserter(output), count, rng);
-		datas = output;
-		
-		for (size_t i = 0; i < datas.size(); i += batchsize)
-		{
-			auto end = std::min(i + batchsize, output.size());
-			QwList listItem;
-			for (int k = i; k < end; k++) 
-			{
-				listItem.push_back(std::move(datas[k]));
-			}
-
-			batch.push_back(std::move(listItem));
-
-			datas.erase(remove_if(datas.begin(), datas.end(), [](const QwItem& item) 
-				{
-					return get<0>(item).size() == 0;
-				}), datas.end());
-			break;
-		}
-
-
-		return batch;
+	
+		return output;
 	}
 
 	
@@ -162,7 +143,7 @@ TORCH_MODULE(Qnet);
 class DeepQNetwork
 {
 public:
-	void PlayCartPole(int maxCount = 1000);
+	void PlayCartPole(int maxCount = 500);
 private:
 	void TestData(int maxCount);
 	void TrainData(int maxCount);
@@ -174,7 +155,7 @@ private:
 
 	const double m_dbAlpha = 0.1;
 	const double m_dbGamma = 0.9;
-	const double m_dbEpsilon = 0.05;
+	const double m_dbEpsilon = 0.1;
 
 	XRandom m_xRandomData;
 
@@ -182,8 +163,7 @@ private:
 	Qnet m_TargetQnet;
 	CartPoleEnv m_CartPoleEnv;
 
-
 	const int m_nMinimalsize = 500;
-	const int64_t m_batchsize = 64;
+	const int64_t m_batchsize = 100;
 };
 

@@ -89,6 +89,8 @@ class DQN():
             pass
 
 if __name__ == '__main__':
+
+
     os.system('cls' if os.name == 'nt' else 'clear')
     lr = 2e-3
     num_episodes = 20
@@ -127,3 +129,17 @@ if __name__ == '__main__':
             ##print(episode_return)
             return_list.append(episode_return)
     agent.save()
+
+    episode_return=0
+    state, info = env.reset()
+    done = False
+    while not done:
+        action = agent.take_action(state)
+        next_state, reward, done, _, __ = env.step(action)
+        state = next_state
+        episode_return += reward
+  
+    print(episode_return)
+  
+
+

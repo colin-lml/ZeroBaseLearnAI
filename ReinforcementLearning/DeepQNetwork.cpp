@@ -2,7 +2,7 @@
 #include "DeepQNetwork.h"
 
 static QwList gCartPoleDataList;
-
+static int gMaxCount = 10000;
 QwList& GetCartPoleDataList()
 {
 	return gCartPoleDataList;
@@ -11,6 +11,11 @@ QwList& GetCartPoleDataList()
 void AddCartPoleDataList(const QwItem& item)
 {
 	gCartPoleDataList.emplace_back(item);
+
+	if (gMaxCount < gCartPoleDataList.size())
+	{
+		gCartPoleDataList.erase(gCartPoleDataList.begin());
+	}
 }
 
 
@@ -157,37 +162,29 @@ void DeepQNetwork::TrainQnet(torch::optim::Adam& adam)
 
 	auto samples = dataTrain.sample(m_batchsize);
 
-	for (auto& item : samples)
+	auto [s0, a, r, s1, done] = dataTrain.QwListToTensor(samples);
+	
+	auto q = m_Qnet->forward(s0);
+	q = q.gather(1, a);
+
+	auto q1 = m_TargetQnet->forward(s1);
+
+	auto [qv, _] = q1.max(1);
+	q1 = qv.view({ -1,1 });
+	auto qtargets = r + m_dbGamma * q1 * (1 - done);
+
+	auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
+	auto dqnloss = mseloss->forward(q, qtargets);
+	adam.zero_grad();
+	dqnloss.backward();
+	adam.step();
+	auto loss  = dqnloss.item<double>();
+	if (count % 10 == 0)
 	{
-		auto [s0, a, r, s1, done] = dataTrain.QwListToTensor(item);
-		bool run = true;
-		//while (run)
-		{
-			//cout << s0 << endl;
-			auto q = m_Qnet->forward(s0);
-			q = q.gather(1, a);
-
-			auto q1 = m_TargetQnet->forward(s1);
-
-			auto [qv, _] = q1.max(1);
-			q1 = qv.view({ -1,1 });
-			auto qtargets = r + m_dbGamma * q1 * (1 - done);
-
-			auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
-			auto dqnloss = mseloss->forward(q, qtargets);
-			adam.zero_grad();
-			dqnloss.backward();
-			adam.step();
-			auto loss  = dqnloss.item<double>();
-			if (count % 10 == 0)
-			{
-				SyncTargetNet();
-				//cout << "dqnloss: " << loss << endl;
-			}
-			count++;
-			
-		}
-
+		SyncTargetNet();
+		//cout << "dqnloss: " << loss << endl;
 	}
-
+	count++;
+			
+	
 }
