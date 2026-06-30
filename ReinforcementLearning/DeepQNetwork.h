@@ -164,6 +164,6 @@ private:
 	CartPoleEnv m_CartPoleEnv;
 
 	const int m_nMinimalsize = 500;
-	const int64_t m_batchsize = 100;
+	const int64_t m_batchsize = 64;
 };
 
