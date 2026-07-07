@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
-
 class ReplayBuffer:
     """经验回放"""
     def __init__(self,batch_size=64):
@@ -30,6 +29,9 @@ class ReplayBuffer:
         return len(self.data)
 
 
+
+
+
 class Qnet(torch.nn.Module):
     ''' 只有一层隐藏层的Q网络 '''
     def __init__(self, state_dim, hidden_dim, action_dim):
@@ -41,8 +43,29 @@ class Qnet(torch.nn.Module):
         x = F.relu(self.fc1(x))
         return self.fc2(x)
 
+
+
+class VAnet(torch.nn.Module):
+    ''' 只有一层隐藏层的A网络和V网络 '''
+    def __init__(self, state_dim, hidden_dim, action_dim):
+        super(VAnet, self).__init__()
+        self.fc1 = torch.nn.Linear(state_dim, hidden_dim)  # 共享网络部分
+        self.fc_A = torch.nn.Linear(hidden_dim, action_dim)
+        self.fc_V = torch.nn.Linear(hidden_dim, 1)
+
+    def forward(self, x):
+
+        A = self.fc_A(F.relu(self.fc1(x)))
+        V = self.fc_V(F.relu(self.fc1(x)))
+        
+        Q = V + A - A.mean(1).view(-1, 1)  # Q值由V值和A值计算得到
+        ##print(f" A: {A.shape} , v: {V.shape} , x: {x.shape} , Q: {Q.shape}")
+
+        return Q
+
+
 class DQN:
-    ''' DQN算法,包括Double DQN '''
+    ''' DQN算法,包括Double DQN和Dueling DQN '''
     def __init__(self,
                  state_dim,
                  hidden_dim,
@@ -54,11 +77,13 @@ class DQN:
                  device,
                  dqn_type='VanillaDQN'):
         self.action_dim = action_dim
-        self.q_net = Qnet(state_dim, hidden_dim, self.action_dim).to(device=device)
-        self.target_q_net = Qnet(state_dim, hidden_dim,
-                                 self.action_dim).to(device=device)
-        self.optimizer = torch.optim.Adam(self.q_net.parameters(),
-                                          lr=learning_rate)
+        if dqn_type == 'DuelingDQN':  # Dueling DQN采取不一样的网络框架
+            self.q_net = VAnet(state_dim, hidden_dim,self.action_dim).to(device=device)
+            self.target_q_net = VAnet(state_dim, hidden_dim,self.action_dim).to(device=device)
+        else:
+            self.q_net = Qnet(state_dim, hidden_dim,self.action_dim).to(device=device)
+            self.target_q_net = Qnet(state_dim, hidden_dim,self.action_dim).to(device=device)
+        self.optimizer = torch.optim.Adam(self.q_net.parameters(),lr=learning_rate)
         self.gamma = gamma
         self.epsilon = epsilon
         self.target_update = target_update
@@ -71,46 +96,49 @@ class DQN:
             action = np.random.randint(self.action_dim)
         else:
             state = torch.tensor(state, dtype=torch.float).to(device=self.device)
+            if state.dim()==1:
+                state.unsqueeze_(0)
+
             action = self.q_net(state).argmax().item()
         return action
-    
+
     def max_q_value(self, state):
-        state = torch.tensor(state, dtype=torch.float).to(device=self.device)
+        state = torch.tensor(state, dtype=torch.float).to(self.device)
+        if state.dim()==1:
+            state.unsqueeze_(0)
         return self.q_net(state).max().item()
 
     def update(self, states,actions,rewards,next_states,dones):
-        
         states = torch.tensor(states,dtype=torch.float).to(device=self.device)
         actions = torch.tensor(actions).view(-1, 1).to(device=self.device)
         rewards = torch.tensor(rewards,dtype=torch.float).view(-1, 1).to(device=self.device)
         next_states = torch.tensor(next_states,dtype=torch.float).to(device=self.device)
         dones = torch.tensor(dones,dtype=torch.float).view(-1, 1).to(device=self.device)
 
-        q_values = self.q_net(states).gather(1, actions)  # Q值
-        # 下个状态的最大Q值
-        if self.dqn_type == 'DoubleDQN': # DQN与Double DQN的区别
+        q_values = self.q_net(states).gather(1, actions)
+        if self.dqn_type == 'DoubleDQN':
             max_action = self.q_net(next_states).max(1)[1].view(-1, 1)
-            max_next_q_values = self.target_q_net(next_states).gather(1, max_action)
-        else: # DQN的情况
+            max_next_q_values = self.target_q_net(next_states).gather(
+                1, max_action)
+        else:
             max_next_q_values = self.target_q_net(next_states).max(1)[0].view(-1, 1)
-        q_targets = rewards + self.gamma * max_next_q_values * (1 - dones)  # TD误差目标
-        dqn_loss = torch.mean(F.mse_loss(q_values, q_targets))  # 均方误差损失函数
-        self.optimizer.zero_grad()  # PyTorch中默认梯度会累积,这里需要显式将梯度置为0
-        dqn_loss.backward()  # 反向传播更新参数
+        q_targets = rewards + self.gamma * max_next_q_values * (1 - dones)
+        dqn_loss = torch.mean(F.mse_loss(q_values, q_targets))
+        self.optimizer.zero_grad()
+        dqn_loss.backward()
         self.optimizer.step()
 
         if self.count % self.target_update == 0:
-            self.target_q_net.load_state_dict(self.q_net.state_dict())  # 更新目标网络
+            self.target_q_net.load_state_dict(self.q_net.state_dict())
         self.count += 1
-
-
-
 
 
 def dis_to_con(discrete_action, env, action_dim):  # 离散动作转回连续的函数
     action_lowbound = env.action_space.low[0]  # 连续动作的最小值
     action_upbound = env.action_space.high[0]  # 连续动作的最大值
     return action_lowbound + (discrete_action / (action_dim - 1)) * (action_upbound - action_lowbound)
+
+
 
 def train_DQN(agent, env, num_episodes, replay_buffer, minimal_size, batch_size):
     return_list = []
@@ -138,8 +166,8 @@ def train_DQN(agent, env, num_episodes, replay_buffer, minimal_size, batch_size)
                         agent.update(b_s, b_a, b_r, b_ns, b_d)
 
                     maxcount+=1
-                    if 200 <= maxcount:
-                        break
+                    ##if 200 <= maxcount:
+                        ##break
 
 
                 return_list.append(episode_return)
@@ -152,6 +180,7 @@ def train_DQN(agent, env, num_episodes, replay_buffer, minimal_size, batch_size)
                     })
                 pbar.update(1)
     return return_list, max_q_value_list
+
 
 lr = 1e-2
 num_episodes = 200
@@ -172,13 +201,17 @@ action_dim = 11  # 将连续动作分成11个离散动作
 
 random.seed(0)
 np.random.seed(0)
-##env.seed(0)
+
 torch.manual_seed(0)
 replay_buffer = ReplayBuffer()
-agent = DQN(state_dim, hidden_dim, action_dim, lr, gamma, epsilon,target_update, device, 'DoubleDQN')
-return_list, max_q_value_list = train_DQN(agent, env, num_episodes,replay_buffer, minimal_size,batch_size)
+agent = DQN(state_dim, hidden_dim, action_dim, lr, gamma, epsilon,
+            target_update, device, 'DuelingDQN')
+return_list, max_q_value_list = train_DQN(agent, env, num_episodes,
+                                          replay_buffer, minimal_size,
+                                          batch_size)
 
 episodes_list = list(range(len(return_list)))
+
 
 
 frames_list = list(range(len(max_q_value_list)))
@@ -187,7 +220,5 @@ plt.axhline(0, c='orange', ls='--')
 plt.axhline(10, c='red', ls='--')
 plt.xlabel('Frames')
 plt.ylabel('Q value')
-plt.title('Double DQN on {}'.format(env_name))
+plt.title('Dueling DQN on {}'.format(env_name))
 plt.show()
-
-
