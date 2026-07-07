@@ -111,8 +111,7 @@ class DQN:
 def dis_to_con(discrete_action, env, action_dim):  # 离散动作转回连续的函数
     action_lowbound = env.action_space.low[0]  # 连续动作的最小值
     action_upbound = env.action_space.high[0]  # 连续动作的最大值
-    return action_lowbound + (discrete_action /
-                              (action_dim - 1)) * (action_upbound - action_lowbound)
+    return action_lowbound + (discrete_action / (action_dim - 1)) * (action_upbound - action_lowbound)
 
 def train_DQN(agent, env, num_episodes, replay_buffer, minimal_size, batch_size):
     return_list = []
@@ -123,14 +122,14 @@ def train_DQN(agent, env, num_episodes, replay_buffer, minimal_size, batch_size)
                   desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(num_episodes / 10)):
                 episode_return = 0
+                maxcount=0
                 state,info = env.reset()
                 done = False
                 while not done:
                     action = agent.take_action(state)
                     max_q_value = agent.max_q_value(state) * 0.005 + max_q_value * 0.995  # 平滑处理
                     max_q_value_list.append(max_q_value)  # 保存每个状态的最大Q值
-                    action_continuous = dis_to_con(action, env,
-                                                   agent.action_dim)
+                    action_continuous = dis_to_con(action, env, agent.action_dim)
                     next_state, reward, done, _,__ = env.step([action_continuous])
                     replay_buffer.add_data(state, action, reward, next_state, done)
                     state = next_state
@@ -138,7 +137,9 @@ def train_DQN(agent, env, num_episodes, replay_buffer, minimal_size, batch_size)
                     if replay_buffer.size() > minimal_size:
                         b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample()
                         agent.update(b_s, b_a, b_r, b_ns, b_d)
-                    if episode_return>500:
+
+                    maxcount+=1
+                    if 200 <= maxcount:
                         break
 
 
