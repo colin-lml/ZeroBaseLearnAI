@@ -228,10 +228,10 @@ int main()
     //td.SarsaIteration();
     //td.NStepSarsaIteration();
     //td.QLearningIteration();
-    //td.DynaQIteration();
+    td.DynaQIteration();
 
-      DeepQNetwork dqn;
-      dqn.PlayCartPole();
+     // DeepQNetwork dqn;
+    //  dqn.PlayCartPole();
 
 
 
