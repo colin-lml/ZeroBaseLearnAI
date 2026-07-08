@@ -57,9 +57,10 @@ class VAnet(torch.nn.Module):
 
         A = self.fc_A(F.relu(self.fc1(x)))
         V = self.fc_V(F.relu(self.fc1(x)))
-        
+        #advAverage = torch.mean(A, dim=1, keepdim=True)
         Q = V + A - A.mean(1).view(-1, 1)  # Q值由V值和A值计算得到
-        ##print(f" A: {A.shape} , v: {V.shape} , x: {x.shape} , Q: {Q.shape}")
+        #print(f" A: {A.shape} , v: {V.shape} , x: {x.shape} , Q: {Q.shape}")
+        #print(f" advAverage: {advAverage} , \nA: {A.mean(1).view(-1, 1)} ")
 
         return Q
 
@@ -166,8 +167,8 @@ def train_DQN(agent, env, num_episodes, replay_buffer, minimal_size, batch_size)
                         agent.update(b_s, b_a, b_r, b_ns, b_d)
 
                     maxcount+=1
-                    ##if 200 <= maxcount:
-                        ##break
+                    if 200 <= maxcount:
+                        break
 
 
                 return_list.append(episode_return)
