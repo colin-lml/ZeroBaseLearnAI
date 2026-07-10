@@ -143,7 +143,9 @@ TORCH_MODULE(Qnet);
 class DeepQNetwork
 {
 public:
-	void PlayCartPole(int maxCount = 500);
+	void PlayCartPole(int maxCount = 200, bool bDoubleDQN = false);
+	
+
 private:
 	void TestData(int maxCount);
 	void TrainData(int maxCount);
@@ -153,9 +155,10 @@ private:
 	void SyncTargetNet();
 	torch::optim::Adam CreateOptimizer(Qnet& model);
 
-	const double m_dbAlpha = 0.1;
+	//const double m_dbAlpha = 0.1;
 	const double m_dbGamma = 0.9;
 	const double m_dbEpsilon = 0.1;
+	const double m_dbLR = 2e-3;
 
 	XRandom m_xRandomData;
 
@@ -165,5 +168,7 @@ private:
 
 	const int m_nMinimalsize = 500;
 	const int64_t m_batchsize = 64;
+
+	bool m_bDoubleDQN = false;
 };
 

@@ -218,24 +218,28 @@ private:
 int main()
 {
    
-
+    /* 
     PolicyIteration policy;
-    //policy.Iteration();
-    //policy.ValueIteration2();
+    policy.Iteration();
+    policy.ValueIteration2();
 
     FreeModel td;
-    //td.MonteCarloMethods();
-    //td.SarsaIteration();
-    //td.NStepSarsaIteration();
-    //td.QLearningIteration();
+    td.MonteCarloMethods();
+    td.SarsaIteration();
+    td.NStepSarsaIteration();
+    td.QLearningIteration();
     td.DynaQIteration();
+    */
 
-     // DeepQNetwork dqn;
-    //  dqn.PlayCartPole();
+    DeepQNetwork dqn;
+    //dqn.PlayCartPole(200,true);
 
-
-
+    DuelingDQN duelingDqn;
+    //duelingDqn.PlayCartPole();
     
+    Reinforce  p;
+    p.PlayCartPole();
+
     cin.get();
 }
 

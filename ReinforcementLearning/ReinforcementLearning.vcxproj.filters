@@ -36,6 +36,12 @@
     <ClCompile Include="DeepQNetwork.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DuelingDQN.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Reinforce.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -54,6 +60,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="DeepQNetwork.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DuelingDQN.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Reinforce.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

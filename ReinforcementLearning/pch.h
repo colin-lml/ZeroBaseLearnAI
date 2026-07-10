@@ -34,5 +34,7 @@ using namespace std;
 #include "FreeModel.h"
 #include "CartPoleEnv.h"
 #include "DeepQNetwork.h"
+#include "DuelingDQN.h"
+#include "Reinforce.h"
 
 #endif //PCH_H

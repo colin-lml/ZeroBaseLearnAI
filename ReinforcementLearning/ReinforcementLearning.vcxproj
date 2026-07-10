@@ -137,6 +137,7 @@
     <ClCompile Include="CartPoleEnv.cpp" />
     <ClCompile Include="CliffWalkingEnv.cpp" />
     <ClCompile Include="DeepQNetwork.cpp" />
+    <ClCompile Include="DuelingDQN.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -144,6 +145,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="PolicyIteration.cpp" />
+    <ClCompile Include="Reinforce.cpp" />
     <ClCompile Include="ReinforcementLearning.cpp" />
     <ClCompile Include="FreeModel.cpp" />
   </ItemGroup>
@@ -151,9 +153,11 @@
     <ClInclude Include="CartPoleEnv.h" />
     <ClInclude Include="CliffWalkingEnv.h" />
     <ClInclude Include="DeepQNetwork.h" />
+    <ClInclude Include="DuelingDQN.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="PolicyIteration.h" />
     <ClInclude Include="FreeModel.h" />
+    <ClInclude Include="Reinforce.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

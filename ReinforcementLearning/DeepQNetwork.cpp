@@ -19,12 +19,11 @@ void AddCartPoleDataList(const QwItem& item)
 }
 
 
-
-void DeepQNetwork::PlayCartPole(int maxCount)
+void DeepQNetwork::PlayCartPole(int maxCount, bool bDoubleDQN)
 {
 	torch::manual_seed(12);
-
-
+	m_bDoubleDQN = bDoubleDQN;
+	GetCartPoleDataList().clear();
 	TrainData(maxCount);
 }
 
@@ -59,8 +58,8 @@ int DeepQNetwork::TakeAction(VectorDouble s0)
 
 torch::optim::Adam DeepQNetwork::CreateOptimizer(Qnet& model)
 {
-	const double  LR = 2e-3;
-	torch::optim::AdamOptions opt(LR);
+	
+	torch::optim::AdamOptions opt(m_dbLR);
 	opt.betas({ 0.9, 0.98 });
 	opt.eps(1e-9);
 	opt.weight_decay(0);
@@ -116,9 +115,10 @@ void DeepQNetwork::TrainData(int maxCount)
 			s = s1;
 
 		}
-		//if (m_nMinimalsize < GetCartPoleDataList().size())
+
+		if (i % 10 == 0)
 		{
-			cout << "train i: " << i << " , rewardCount: " << rewardCount << endl;
+			cout << "train i: " << i <<" / "<< maxCount << " , rewardCount: " << rewardCount << endl;
 		}
 		
 	}
@@ -167,10 +167,21 @@ void DeepQNetwork::TrainQnet(torch::optim::Adam& adam)
 	auto q = m_Qnet->forward(s0);
 	q = q.gather(1, a);
 
-	auto q1 = m_TargetQnet->forward(s1);
+	torch::Tensor q1 ;
+	if (m_bDoubleDQN)
+	{
+		auto [_, idx] = m_Qnet->forward(s1).max(1); // max(): (Tensor values, Tensor indices)
+		idx = idx.view({ -1,1 });
+		q1 = m_TargetQnet->forward(s1).gather(1, idx);
+		
+	}
+	else
+	{
+		q1 = m_TargetQnet->forward(s1);
+		auto [qv, _] = q1.max(1);
+		q1 = qv.view({ -1,1 });
+	}
 
-	auto [qv, _] = q1.max(1);
-	q1 = qv.view({ -1,1 });
 	auto qtargets = r + m_dbGamma * q1 * (1 - done);
 
 	auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
