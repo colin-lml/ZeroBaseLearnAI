@@ -235,10 +235,10 @@ int main()
     //dqn.PlayCartPole(200,true);
 
     DuelingDQN duelingDqn;
-    //duelingDqn.PlayCartPole();
+    duelingDqn.PlayCartPole();
     
     Reinforce  p;
-    p.PlayCartPole();
+   // p.PlayCartPole();
 
     cin.get();
 }

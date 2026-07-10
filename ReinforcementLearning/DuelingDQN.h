@@ -51,9 +51,9 @@ private:
 	VANent m_TargetQnet;
 
 	//const double m_dbAlpha = 0.1;
-	const double m_dbGamma = 0.9;
-	const double m_dbEpsilon = 0.1;
-	const double m_dbLR = 2e-3;
+	const double m_dbGamma = 0.98;
+	const double m_dbEpsilon = 0.01;
+	const double m_dbLR = 1e-2;
 	const int m_nMinimalsize = 500;
 	const int64_t m_batchsize = 64;
 	
