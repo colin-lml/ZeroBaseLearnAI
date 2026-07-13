@@ -134,6 +134,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ActorCritic.cpp" />
     <ClCompile Include="CartPoleEnv.cpp" />
     <ClCompile Include="CliffWalkingEnv.cpp" />
     <ClCompile Include="DeepQNetwork.cpp" />
@@ -150,6 +151,7 @@
     <ClCompile Include="FreeModel.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ActorCritic.h" />
     <ClInclude Include="CartPoleEnv.h" />
     <ClInclude Include="CliffWalkingEnv.h" />
     <ClInclude Include="DeepQNetwork.h" />

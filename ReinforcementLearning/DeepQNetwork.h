@@ -51,6 +51,7 @@ private:
 	std::mt19937 m_gen;
 };
 
+QwItemTensor QwListToTensor(const QwList& item);
 
 class ReplayBuffer
 {
@@ -79,32 +80,6 @@ public:
 	}
 
 	
-	QwItemTensor QwListToTensor(const QwList& item)
-	{
-		int64_t n = item.size();
-
-		auto S0 = torch::empty({ n, 4 }, torch::kFloat32);
-		auto A = torch::empty({ n, 1 }, torch::kInt);
-		auto R = torch::empty({ n, 1 }, torch::kFloat32);
-		auto S1 = torch::empty({ n, 4 }, torch::kFloat32);
-		auto Done = torch::empty({ n, 1 }, torch::kInt);
-		auto* pS0 = S0.data_ptr<float>();
-		auto* pS1 = S1.data_ptr<float>();
-
-		for (int64_t i = 0; i < n; ++i)
-		{
-			auto [s,a,r,s1,d] = item[i];
-			std::copy(s.begin(), s.end(), pS0 + i * 4);
-			A[i][0] = a;
-			R[i][0] = r;
-			std::copy(s1.begin(), s1.end(), pS1 + i * 4);
-			Done[i][0] = d;
-			//cout << s[0]<<" " << s[1] << " " << s[2] <<" " << s[3] << endl;
-		}
-
-		return { S0,A,R,S1, Done };
-		
-	}
 
 private:
 

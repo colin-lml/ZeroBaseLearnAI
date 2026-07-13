@@ -8,29 +8,6 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
-class ReplayBuffer:
-    """经验回放"""
-    def __init__(self,batch_size=64):
-        self.data = []
-        self.batch_size = batch_size
-    
-    def add_data(self,state,action,reward,next_state,done):
-        self.data.append((state,action,reward,next_state,done))
-    
-    def sample(self):
-        sample_data = random.sample(self.data,self.batch_size)
-        state, action, reward, next_state, done = zip(*sample_data)
-        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done)
-
-    def length(self):
-        return len(self.data)
-    
-    def size(self):
-        return len(self.data)
-
-
-
-
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):

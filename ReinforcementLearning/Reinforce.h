@@ -27,8 +27,26 @@ public:
 TORCH_MODULE(PolicyNet);
 
 
-using RecordDict = std::tuple<std::vector<double>, int, double>; // s,a,r,
-using VectorRecordDict = vector<RecordDict>;
+class Categorical
+{
+public:
+	
+	explicit Categorical(const torch::Tensor& logits)
+		: logits_(logits)
+	{
+		TORCH_CHECK(logits_.dim() == 2, "logits must be shape \[B, num\_actions\]");
+	}
+
+	torch::Tensor sample() const
+	{
+		return torch::multinomial(logits_, 1, true).squeeze(1);
+	}
+
+private:
+	torch::Tensor logits_;
+};
+
+
 
 class Reinforce
 {
@@ -39,7 +57,7 @@ private:
 	int TakeAction(VectorDouble s0, bool bPredict = false);
 	void TestData();
 	void TrainData(int maxCount);
-	void Update(torch::optim::Adam& adam, VectorRecordDict& vList);
+	void Update(torch::optim::Adam& adam, QwList& vList);
 	torch::optim::Adam CreateOptimizer(PolicyNet& model);
 
 

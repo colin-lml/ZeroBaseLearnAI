@@ -5,27 +5,6 @@ torch::Tensor VectorDoubleTensor(const VectorDouble& item);
 
 
 
-class Categorical 
-{
-public:
-    // 构造：仅支持 logits 输入 \[B, K\]
-    explicit Categorical(const torch::Tensor& logits)
-        : logits_(logits)
-    {
-        TORCH_CHECK(logits_.dim() == 2, "logits must be shape \[B, num\_actions\]");
-    }
-
-    // 采样 action, output shape \[B\], dtype long
-    torch::Tensor sample() const
-    {
-        return torch::multinomial(logits_, 1, true).squeeze(1);
-    }
-
-private:
-    torch::Tensor logits_;
-};
-
-
 
 void Reinforce::PlayCartPole(int maxCount)
 {
@@ -76,7 +55,7 @@ void Reinforce::TrainData(int maxCount)
         auto s = m_CartPoleEnv.reset();
         auto done = false;
         int64_t rewardCount = 0;
-        VectorRecordDict vList;
+        QwList vList;
         while (!done && rewardCount < 470)
         {
             auto a = TakeAction(s);
@@ -84,7 +63,7 @@ void Reinforce::TrainData(int maxCount)
             auto [s1, r, b, t] = m_CartPoleEnv.step(a);
 
             // s,a,r,
-            vList.push_back({ s, a, r });
+            vList.push_back({ s, a, r, s1, b});
 
             rewardCount += r;
             done = b;
@@ -130,7 +109,7 @@ void Reinforce::TestData()
 
 }
 
-void Reinforce::Update(torch::optim::Adam& adam, VectorRecordDict& vList)
+void Reinforce::Update(torch::optim::Adam& adam, QwList& vList)
 {
     if (vList.size()==0)
     {
@@ -144,7 +123,7 @@ void Reinforce::Update(torch::optim::Adam& adam, VectorRecordDict& vList)
     for (int i = length; 0 <= i; i--)
     {
         // s,a,r,
-        auto [s, a, r] = vList[i];
+        auto [s, a, r, s1, d] = vList[i];
         auto s0 = VectorDoubleTensor(s);
         auto act = torch::tensor({ {a} }, torch::kInt);
 

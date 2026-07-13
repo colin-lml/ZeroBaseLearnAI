@@ -239,7 +239,10 @@ int main()
     //duelingDqn.PlayCartPole();
     
     Reinforce  p;
-    p.PlayCartPole();
+   // p.PlayCartPole();
+
+    ActorCritic acp;
+    acp.PlayCartPole();
 
     cin.get();
 }

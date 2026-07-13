@@ -67,7 +67,7 @@ void DuelingDQN::TrainQnet(torch::optim::Adam& adam)
 
 	auto samples = dataTrain.sample(m_batchsize);
 
-	auto [s0, a, r, s1, done] = dataTrain.QwListToTensor(samples);
+	auto [s0, a, r, s1, done] = QwListToTensor(samples);
 
 	auto q = m_Qnet->forward(s0).gather(1, a);
 

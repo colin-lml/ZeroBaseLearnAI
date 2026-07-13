@@ -36,5 +36,6 @@ using namespace std;
 #include "DeepQNetwork.h"
 #include "DuelingDQN.h"
 #include "Reinforce.h"
+#include "ActorCritic.h"
 
 #endif //PCH_H
