@@ -40,7 +40,7 @@ private:
 	void TrainData(int maxCount);
 
 	void SyncTargetNet();
-	int TakeAction(VectorDouble s0);
+	int TakeAction(VectorDouble s0, bool bPredict = false);
 
 	torch::optim::Adam CreateOptimizer(VANent& model);
 	void TrainQnet(torch::optim::Adam& adam);

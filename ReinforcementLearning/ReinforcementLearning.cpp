@@ -232,13 +232,14 @@ int main()
     */
 
     DeepQNetwork dqn;
-    //dqn.PlayCartPole(200,true);
+   // dqn.PlayCartPole(); // dqn 
+    //dqn.PlayCartPole(200,true); // Double-dqn
 
     DuelingDQN duelingDqn;
-    duelingDqn.PlayCartPole();
+    //duelingDqn.PlayCartPole();
     
     Reinforce  p;
-   // p.PlayCartPole();
+    p.PlayCartPole();
 
     cin.get();
 }

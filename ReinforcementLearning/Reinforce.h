@@ -14,7 +14,7 @@ public:
 	{
 		x = torch::relu(m_fc1->forward(x));
 		x = m_fc2->forward(x);
-		return x.softmax(1);
+		return torch::softmax(x, 1);
 	}
 
 	torch::nn::Linear m_fc1{ nullptr };
@@ -27,16 +27,19 @@ public:
 TORCH_MODULE(PolicyNet);
 
 
+using RecordDict = std::tuple<std::vector<double>, int, double>; // s,a,r,
+using VectorRecordDict = vector<RecordDict>;
+
 class Reinforce
 {
 public:
-	void PlayCartPole(int maxCount = 500);
+	void PlayCartPole(int maxCount = 1000);
 
 private:
-	int TakeAction(VectorDouble s0);
+	int TakeAction(VectorDouble s0, bool bPredict = false);
 	void TestData();
 	void TrainData(int maxCount);
-
+	void Update(torch::optim::Adam& adam, VectorRecordDict& vList);
 	torch::optim::Adam CreateOptimizer(PolicyNet& model);
 
 

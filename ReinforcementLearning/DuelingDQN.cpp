@@ -34,18 +34,16 @@ void DuelingDQN::SyncTargetNet()
 
 }
 
-int DuelingDQN::TakeAction(VectorDouble s0)
+int DuelingDQN::TakeAction(VectorDouble s0, bool bPredict)
 {
 	int a = 0;
-	if (m_xRandomData.RandDouble(0, 1.0) < m_dbEpsilon)
+	if (!bPredict && m_xRandomData.RandDouble(0, 1.0) < m_dbEpsilon)
 	{
 		a = m_xRandomData.RandInt(0, 1);
 	}
 	else
 	{
-
 		auto s = VectorDoubleTensor(s0);
-
 		auto q = m_Qnet->forward(s);
 		a = q.squeeze().argmax().item<int>();
 	}
@@ -138,20 +136,25 @@ void DuelingDQN::TestData()
 
 	m_Qnet->eval();
 
-
-	auto s0 = m_CartPoleEnv.reset();
-	auto done = false;
-	int64_t rewardCount = 0;
-	int64_t step = 0;
-	while (!done && step < 500)
+	for (size_t i = 0; i < 10; i++)
 	{
-		auto a = TakeAction(s0);
-		//{ state, reward, terminated, truncated };
-		auto [s1, r, d, _] = m_CartPoleEnv.step(a);
-		done = d;
-		s0 = s1;
-		rewardCount += r;
-		step++;
+		auto s0 = m_CartPoleEnv.reset();
+		auto done = false;
+		int64_t rewardCount = 0;
+		int64_t step = 0;
+		while (!done && step < 500)
+		{
+			auto a = TakeAction(s0, true);
+			//{ state, reward, terminated, truncated };
+			auto [s1, r, d, _] = m_CartPoleEnv.step(a);
+			done = d;
+			s0 = s1;
+			rewardCount += r;
+			step++;
+		}
+		cout <<"count: "<<i+1 << " ,rewardCount: " << rewardCount << endl;
+
 	}
-	cout << "rewardCount: " << rewardCount << endl;
+	
+
 }

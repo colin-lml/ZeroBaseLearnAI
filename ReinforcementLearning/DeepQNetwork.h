@@ -149,7 +149,7 @@ public:
 private:
 	void TestData(int maxCount);
 	void TrainData(int maxCount);
-	int TakeAction(VectorDouble s0);
+	int TakeAction(VectorDouble s0, bool bPredict = false);
 	void TrainQnet(torch::optim::Adam& adam);
 
 	void SyncTargetNet();

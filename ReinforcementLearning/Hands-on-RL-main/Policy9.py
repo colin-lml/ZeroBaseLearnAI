@@ -8,29 +8,6 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
-class ReplayBuffer:
-    """经验回放"""
-    def __init__(self,batch_size=64):
-        self.data = []
-        self.batch_size = batch_size
-    
-    def add_data(self,state,action,reward,next_state,done):
-        self.data.append((state,action,reward,next_state,done))
-    
-    def sample(self):
-        sample_data = random.sample(self.data,self.batch_size)
-        state, action, reward, next_state, done = zip(*sample_data)
-        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done)
-
-    def length(self):
-        return len(self.data)
-    
-    def size(self):
-        return len(self.data)
-
-
-
-
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):
@@ -60,6 +37,12 @@ class REINFORCE:
         action_dist = torch.distributions.Categorical(probs)
         action = action_dist.sample()
         return action.item()
+    
+    def take_action2(self, state):  # 根据动作概率分布随机采样
+        state = torch.tensor([state], dtype=torch.float).to(self.device)
+        probs = self.policy_net(state).argmax(dim=1)  # 选择概率最大的动作
+        
+        return probs.item()
 
     def update(self, transition_dict):
         reward_list = transition_dict['rewards']
@@ -70,8 +53,7 @@ class REINFORCE:
         self.optimizer.zero_grad()
         for i in reversed(range(len(reward_list))):  # 从最后一步算起
             reward = reward_list[i]
-            state = torch.tensor([state_list[i]],
-                                 dtype=torch.float).to(self.device)
+            state = torch.tensor([state_list[i]],dtype=torch.float).to(self.device)
             action = torch.tensor([action_list[i]]).view(-1, 1).to(self.device)
             log_prob = torch.log(self.policy_net(state).gather(1, action))
             G = self.gamma * G + reward
@@ -111,7 +93,7 @@ for i in range(10):
             }
             state,info = env.reset()
             done = False
-            while not done:
+            while not done and episode_return < 475:
                 action = agent.take_action(state)
                 next_state, reward, done, _,__ = env.step(action)
                 transition_dict['states'].append(state)
@@ -131,6 +113,22 @@ for i in range(10):
                     '%.3f' % np.mean(return_list[-10:])
                 })
             pbar.update(1)
+
+
+for i in range(10):
+    state,info = env.reset()
+    done = False
+    episodeReturn = 0
+    while not done and episodeReturn < 500:
+        action = agent.take_action2(state)
+        next_state, reward, done, _,__ = env.step(action)
+        state = next_state
+        episodeReturn += reward
+    print(f"test #### i : {i+1} episodeReturn: {episodeReturn}\n")     
+    
+
+
+
 
 
 episodes_list = list(range(len(return_list)))
