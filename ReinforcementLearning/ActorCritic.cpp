@@ -79,25 +79,27 @@ void ActorCritic::TrainData(int maxCount)
 
 void ActorCritic::Update(torch::optim::Adam& actor, torch::optim::Adam& critic, QwList& vList)
 {
-    actor.zero_grad();
-    critic.zero_grad();
+
 
     auto [s0, a, r, s1, done] = QwListToTensor(vList);
 
-    auto q0 = m_CriticNet->forward(s0);
-    auto q1 = r + m_dbGamma * m_CriticNet->forward(s1) * (1- done);
-   
-    auto tdDelta = q1 - q0; // Ê±Ðò²î·ÖÎó²î
+    auto v0 = m_CriticNet->forward(s0);
+    auto v1 = r + m_dbGamma * m_CriticNet->forward(s1) * (1- done);
+    
+    auto td = v1 - v0; // Ê±Ðò²î·ÖÎó²î
 
     auto action = m_ActorNet->forward(s0).gather(1, a);
     auto logProbs = torch::log(action + 1e-8);
-    auto actorLoss = torch::mean(-logProbs * tdDelta.detach());
+    auto actorLoss = torch::mean(-logProbs * td.detach());
 
-    auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
-    auto criticLoss = mseloss->forward(q0, tdDelta.detach());
+    auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));
 
-    criticLoss.backward();
+    actor.zero_grad();
+    critic.zero_grad();
+
     actorLoss.backward();
+    criticLoss.backward();
+   
 
     actor.step();
     critic.step();

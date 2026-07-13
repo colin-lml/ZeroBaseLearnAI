@@ -29,7 +29,7 @@ TORCH_MODULE(ValueNet);
 class ActorCritic
 {
 public:
-	void PlayCartPole(int maxCount = 500);
+	void PlayCartPole(int maxCount = 1000);
 
 private:
 
