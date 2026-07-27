@@ -4,15 +4,15 @@ QwList& GetCartPoleDataList();
 
 
 
-torch::optim::Adam DuelingDQN::CreateOptimizer(VANent& model)
+void DuelingDQN::CreateOptimizer(DuelingNet& model)
 {
 	
 	torch::optim::AdamOptions opt(m_dbLR);
 	opt.betas({ 0.9, 0.98 });
 	opt.eps(1e-9);
 	opt.weight_decay(0);
-
-	return torch::optim::Adam(model->parameters(), opt);
+	m_pAdam  = new torch::optim::Adam(model->parameters(), opt);
+	
 }
 
 
@@ -50,8 +50,17 @@ int DuelingDQN::TakeAction(VectorDouble s0, bool bPredict)
 	return a;
 }
 
+void DuelingDQN::TrainGenerateItem1(const QwItem& item)
+{
+	AddCartPoleDataList(item);
 
-void DuelingDQN::TrainQnet(torch::optim::Adam& adam)
+	if (m_nMinimalsize < GetCartPoleDataList().size())
+	{
+		Update();
+	}
+}
+
+void DuelingDQN::Update()
 {
 	ReplayBuffer dataTrain;
 	static int count = 1;
@@ -69,9 +78,9 @@ void DuelingDQN::TrainQnet(torch::optim::Adam& adam)
 
 	auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
 	auto dqnloss = mseloss->forward(q, qtargets);
-	adam.zero_grad();
+	m_pAdam->zero_grad();
 	dqnloss.backward();
-	adam.step();
+	m_pAdam->step();
 
 	if (count % 10 == 0)
 	{
@@ -81,71 +90,30 @@ void DuelingDQN::TrainQnet(torch::optim::Adam& adam)
 }
 
 
-void DuelingDQN::TrainData(int maxCount)
+void DuelingDQN::GenerateTrainData(int maxCount)
 {
-	cout << "DuelingDQN -> TrainData....." << endl;
-	auto adam = CreateOptimizer(m_Qnet);
+	cout << "Currently DuelingDQN" << endl;
+
+	GetCartPoleDataList().clear();
+
+	auto input = m_CartPoleEnv.GetStateDim();
+	auto output = m_CartPoleEnv.GetActionDim();
+
+	m_Qnet = DuelingNet(input, output);
+	m_TargetQnet = DuelingNet(input, output);
+	m_Qnet->to(m_device);
+	m_TargetQnet->to(m_device);
+
+	CreateOptimizer(m_Qnet);
+
 	SyncTargetNet();
-	
 
-	for (int i = 0; i < maxCount; i++)
-	{
-		auto s = m_CartPoleEnv.reset();
-		auto done = false;
-		int64_t rewardCount = 0;
-
-		while (!done && rewardCount < 470)
-		{
-			auto a = TakeAction(s);
-			//{ state, reward, terminated, truncated };
-			auto [s1, r, b, t] = m_CartPoleEnv.step(a);
-			done = b;
-			rewardCount += r;
-			//{state, action, reward, next_state, done}
-			AddCartPoleDataList({ s,a,r,s1,done });
-
-			if (m_nMinimalsize < GetCartPoleDataList().size())
-			{
-				TrainQnet(adam);
-			}
-
-			s = s1;
-		}
-
-		if (i % 10 == 0)
-		{
-			cout << "train i: " << i << " / " << maxCount << " , rewardCount: " << rewardCount << endl;
-		}
-	}
-
-	TestData();
-}
-
-void DuelingDQN::TestData()
-{
-	cout << "TestData ....." << endl;
+	BaseAdvanced::GenerateTrainData(maxCount);
 
 	m_Qnet->eval();
-
-	for (size_t i = 0; i < 10; i++)
-	{
-		auto s0 = m_CartPoleEnv.reset();
-		auto done = false;
-		int64_t rewardCount = 0;
-		int64_t step = 0;
-		while (!done && step < 500)
-		{
-			auto a = TakeAction(s0, true);
-			//{ state, reward, terminated, truncated };
-			auto [s1, r, d, _] = m_CartPoleEnv.step(a);
-			done = d;
-			s0 = s1;
-			rewardCount += r;
-			step++;
-		}
-		cout <<"count: "<<i+1 << " ,rewardCount: " << rewardCount << endl;
-
-	}
+	m_TargetQnet->eval();
+	delete m_pAdam;
+	m_pAdam = nullptr;
 	
-
 }
+

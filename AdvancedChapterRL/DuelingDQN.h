@@ -1,15 +1,15 @@
 ﻿#pragma once
 
 
-class VANentImpl : public torch::nn::Module
+class DuelingNetImpl : public torch::nn::Module
 {
 public:
-	VANentImpl()
+	DuelingNetImpl() = default;
+	DuelingNetImpl(int64_t input, int64_t output, int64_t hidden = 128)
 	{
-		m_fc1 = register_module("fc1", torch::nn::Linear(inputN, hiddenN));
-		m_A = register_module("A", torch::nn::Linear(hiddenN, outN));
-
-		m_V = register_module("V", torch::nn::Linear(hiddenN, 1));
+		m_fc1 = register_module("fc1", torch::nn::Linear(input, hidden));
+		m_A = register_module("A", torch::nn::Linear(hidden, output));
+		m_V = register_module("V", torch::nn::Linear(hidden, 1));
 	}
 
 	torch::Tensor forward(torch::Tensor x)
@@ -17,18 +17,15 @@ public:
 		x = torch::relu(m_fc1->forward(x));
 		auto a  = m_A->forward(x);
 		auto v = m_V->forward(x);
-
 		return v + a - a.mean(1).view({-1,1});
 	}
 
 	torch::nn::Linear m_fc1{ nullptr };
 	torch::nn::Linear m_V{ nullptr };
 	torch::nn::Linear m_A{ nullptr };
-	const int64_t inputN = 4;
-	const int64_t hiddenN = 128;
-	const int64_t outN = 2;
+
 };
-TORCH_MODULE(VANent);
+TORCH_MODULE(DuelingNet);
 
 class DuelingDQN : public  BaseAdvanced
 {
@@ -36,22 +33,23 @@ public:
 
 protected:
 
-	void TestData();
-	void TrainData(int maxCount);
+	void GenerateTrainData(int maxCount) override;
+	int TakeAction(VectorDouble s0, bool bPredict = false) override;
+
+	void TrainGenerateItem1(const QwItem& item) override;
+	void TrainGenerateItem2(const QwList& item) override {};
+
+	void CreateOptimizer(DuelingNet& model);
+	void Update();
 
 	void SyncTargetNet();
-	int TakeAction(VectorDouble s0, bool bPredict = false);
-
-	torch::optim::Adam CreateOptimizer(VANent& model);
-	void TrainQnet(torch::optim::Adam& adam);
-
 
 	XRandom m_xRandomData;
-	VANent m_Qnet;
-	VANent m_TargetQnet;
+	DuelingNet m_Qnet;
+	DuelingNet m_TargetQnet;
 
 	const int m_nMinimalsize = 500;
 	const int64_t m_batchsize = 64;
-	
+	torch::optim::Adam* m_pAdam = nullptr;
 };
 

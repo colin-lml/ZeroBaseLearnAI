@@ -33,5 +33,6 @@ using namespace std;
 #include "CartPoleEnv.h"
 #include "BaseAdvanced.h"
 #include "DeepQNetwork.h"
+#include "DuelingDQN.h"
 
 #endif //PCH_H
