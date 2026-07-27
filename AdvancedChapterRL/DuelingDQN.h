@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 
 class VANentImpl : public torch::nn::Module
@@ -30,11 +30,11 @@ public:
 };
 TORCH_MODULE(VANent);
 
-class DuelingDQN
+class DuelingDQN : public  BaseAdvanced
 {
 public:
-	void PlayCartPole(int maxCount = 200);
-private:
+
+protected:
 
 	void TestData();
 	void TrainData(int maxCount);
@@ -45,15 +45,11 @@ private:
 	torch::optim::Adam CreateOptimizer(VANent& model);
 	void TrainQnet(torch::optim::Adam& adam);
 
-	CartPoleEnv m_CartPoleEnv;
+
 	XRandom m_xRandomData;
 	VANent m_Qnet;
 	VANent m_TargetQnet;
 
-	//const double m_dbAlpha = 0.1;
-	const double m_dbGamma = 0.98;
-	const double m_dbEpsilon = 0.01;
-	const double m_dbLR = 1e-2;
 	const int m_nMinimalsize = 500;
 	const int64_t m_batchsize = 64;
 	

@@ -42,7 +42,7 @@ int DuelingDQN::TakeAction(VectorDouble s0, bool bPredict)
 	}
 	else
 	{
-		auto s = VectorDoubleTensor(s0);
+		auto s = VectorDoubleTensor(s0,m_device);
 		auto q = m_Qnet->forward(s);
 		a = q.squeeze().argmax().item<int>();
 	}
@@ -50,14 +50,6 @@ int DuelingDQN::TakeAction(VectorDouble s0, bool bPredict)
 	return a;
 }
 
-void DuelingDQN::PlayCartPole(int maxCount)
-{
-	torch::manual_seed(22);
-	GetCartPoleDataList().clear();
-
-	TrainData(maxCount);
-
-}
 
 void DuelingDQN::TrainQnet(torch::optim::Adam& adam)
 {
@@ -66,7 +58,7 @@ void DuelingDQN::TrainQnet(torch::optim::Adam& adam)
 
 	auto samples = dataTrain.sample(m_batchsize);
 
-	auto [s0, a, r, s1, done] = QwListToTensor(samples);
+	auto [s0, a, r, s1, done] = QwListToTensor(samples, m_device);
 
 	auto q = m_Qnet->forward(s0).gather(1, a);
 

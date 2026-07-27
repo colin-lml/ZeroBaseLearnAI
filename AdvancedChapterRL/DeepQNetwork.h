@@ -85,7 +85,7 @@ protected:
 	const int m_nMinimalsize = 500;
 	const int64_t m_batchsize = 64;
 
-	bool m_bDoubleDQN = true;
+	bool m_bDoubleDQN = false;
 	torch::optim::Adam* m_pAdam=nullptr;
 };
 

@@ -19,9 +19,9 @@ protected:
 	CartPoleEnv m_CartPoleEnv;
 	XRandom m_xRandom;
 
-	const double m_dbAlpha = 0.1;
-	const double m_dbGamma = 0.9;
-	const double m_dbEpsilon = 0.1;
-	const double m_dbLR = 2e-3;
+	double m_dbAlpha = 0.1;
+	double m_dbGamma = 0.9;
+	double m_dbEpsilon = 0.1;
+	double m_dbLR = 2e-3;
 	torch::DeviceType m_device;
 };
