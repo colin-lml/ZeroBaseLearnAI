@@ -12,9 +12,9 @@ public:
 protected:
 	virtual void TestData(int maxCount);
 	virtual void GenerateTrainData(int maxCount);
-	virtual int TakeAction(VectorDouble s0, bool bPredict = false) = 0;
+	virtual int TakeAction(VectorDouble& s0, bool bPredict = false) = 0;
 	virtual void TrainGenerateItem1(const QwItem& item)=0;
-	virtual void TrainGenerateItem2(const QwList& item) = 0;
+	virtual void TrainGenerateItem2(const QwList& vList) = 0;
 
 	CartPoleEnv m_CartPoleEnv;
 	XRandom m_xRandom;

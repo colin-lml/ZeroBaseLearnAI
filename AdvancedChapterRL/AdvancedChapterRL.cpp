@@ -8,9 +8,16 @@ using namespace std;
 int main()
 {
 	DeepQNetwork  deepQN;
-	//deepQN.PlayCartPole(300);
+	//deepQN.PlayCartPole(200);
+	//deepQN.DoubleDQN(200);
 	DuelingDQN duelingDQN;
-	duelingDQN.PlayCartPole(200);
+	//duelingDQN.PlayCartPole(200);
+
+	PolicyGradient policyGradient;
+	//policyGradient.PlayCartPole(500);
+
+	ActorCritic actorCritic;
+	actorCritic.PlayCartPole(1000);
 
 	cin.get();
 	return 0;

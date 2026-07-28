@@ -3,21 +3,23 @@
 
 QwItemTensor QwListToTensor(const QwList& item, const torch::DeviceType& device)
 {
+ 
     int64_t B = item.size();
     VectorDouble vS0;
     VectorDouble vS1;
     vector<int> vA;
     vector<int> vD;
     vector<double> vR;
-    int M = 0;
+    int M = get<0>(item[0]).size();
+    vS0.reserve(B* M);
+    vS1.reserve(B * M);
+    vA.reserve(B);
+    vD.reserve(B);
+    vR.reserve(B);
+
     for (auto& i :item)
     {
         auto [s0,a,r,s1, done] = i;  // s0, a, r, s1, done
-        if (M == 0)
-        {
-            M = s0.size();
-        }
-
         vS0.insert(vS0.end(), s0.begin(), s0.end());
         vS1.insert(vS1.end(), s1.begin(), s1.end());
         vA.push_back(a);

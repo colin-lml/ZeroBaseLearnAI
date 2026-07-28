@@ -67,10 +67,14 @@ void BaseAdvanced::GenerateTrainData(int maxCount)
 
 		TrainGenerateItem2(vList);
 
-		if (i % 20 == 0 || maxCount==(i+1))
+		if (70 < (i+1))
 		{
-			cout << "train i: " << i << " / " << maxCount << " , rewardCount: " << rewardCount << endl;
+			if ((i+1) % 20 == 0 || maxCount == (i + 1))
+			{
+				cout << "train i: " << i+1 << " / " << maxCount << " , rewardCount: " << rewardCount << endl;
+			}
 		}
+		
 	}
 
 	cout  << endl;

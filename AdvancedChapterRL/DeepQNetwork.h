@@ -65,13 +65,13 @@ class DeepQNetwork :public  BaseAdvanced
 {
 public:
 	DeepQNetwork() = default;
-	
+	void DoubleDQN(int maxCount);
 protected:
 
 	void GenerateTrainData(int maxCount) override;
-	int TakeAction(VectorDouble s0, bool bPredict = false) override;
+	int TakeAction(VectorDouble& s0, bool bPredict = false) override;
 	void TrainGenerateItem1(const QwItem& item) override;
-	void TrainGenerateItem2(const QwList& item) override {};
+	void TrainGenerateItem2(const QwList& vList) override {};
 
 	void Update();
 

@@ -34,5 +34,7 @@ using namespace std;
 #include "BaseAdvanced.h"
 #include "DeepQNetwork.h"
 #include "DuelingDQN.h"
+#include "PolicyGradient.h"
+#include "ActorCritic.h"
 
 #endif //PCH_H

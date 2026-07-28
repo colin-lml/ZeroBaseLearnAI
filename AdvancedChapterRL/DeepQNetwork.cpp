@@ -18,8 +18,13 @@ void AddCartPoleDataList(const QwItem& item)
 	}
 }
 
+void DeepQNetwork::DoubleDQN(int maxCount)
+{
+	m_bDoubleDQN = true;
+	BaseAdvanced::PlayCartPole(maxCount);
 
-int DeepQNetwork::TakeAction(VectorDouble s0, bool bPredict)
+}
+int DeepQNetwork::TakeAction(VectorDouble& s0, bool bPredict)
 {
 	int a = 0;
 	if (!bPredict && m_xRandom.RandDouble(0, 1.0) < m_dbEpsilon)
@@ -82,11 +87,11 @@ void DeepQNetwork::GenerateTrainData(int maxCount)
 	
 	if (m_bDoubleDQN)
 	{
-		cout << "Currently DoubleDQN ,use DQN to set [m_bDoubleDQN=false]" << endl;
+		cout << "Currently DoubleDQN" << endl;
 	}
 	else
 	{
-		cout <<"Currently DQN ,use DoubleDQN to set [m_bDoubleDQN=true]" << endl;
+		cout <<"Currently DQN" << endl;
 	}
 
 	GetCartPoleDataList().clear();
@@ -99,9 +104,14 @@ void DeepQNetwork::GenerateTrainData(int maxCount)
 	m_Qnet->to(m_device);
 	m_TargetQnet->to(m_device);
 
+
+
 	CreateOptimizer(m_Qnet);
 
 	SyncTargetNet();
+
+	m_Qnet->train();
+	m_TargetQnet->train();
 
 	BaseAdvanced::GenerateTrainData(maxCount);
 

@@ -33,7 +33,7 @@ void DuelingDQN::SyncTargetNet()
 
 }
 
-int DuelingDQN::TakeAction(VectorDouble s0, bool bPredict)
+int DuelingDQN::TakeAction(VectorDouble& s0, bool bPredict)
 {
 	int a = 0;
 	if (!bPredict && m_xRandomData.RandDouble(0, 1.0) < m_dbEpsilon)
@@ -42,6 +42,7 @@ int DuelingDQN::TakeAction(VectorDouble s0, bool bPredict)
 	}
 	else
 	{
+		torch::NoGradGuard no_grad;
 		auto s = VectorDoubleTensor(s0,m_device);
 		auto q = m_Qnet->forward(s);
 		a = q.squeeze().argmax().item<int>();
@@ -107,6 +108,9 @@ void DuelingDQN::GenerateTrainData(int maxCount)
 	CreateOptimizer(m_Qnet);
 
 	SyncTargetNet();
+
+	m_Qnet->train();
+	m_TargetQnet->train();
 
 	BaseAdvanced::GenerateTrainData(maxCount);
 
