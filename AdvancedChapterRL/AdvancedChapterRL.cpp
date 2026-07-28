@@ -8,7 +8,7 @@ using namespace std;
 int main()
 {
 	DeepQNetwork  deepQN;
-	deepQN.PlayCartPole(400);
+	//deepQN.PlayCartPole(400);
 	//deepQN.DoubleDQN(400);
 	DuelingDQN duelingDQN;
 	//duelingDQN.PlayCartPole(400);
@@ -17,7 +17,7 @@ int main()
 	//policyGradient.PlayCartPole(1000);
 
 	ActorCritic actorCritic;
-	//actorCritic.PlayCartPole(1000);
+	actorCritic.PlayCartPole(1000);
 
 	cin.get();
 	return 0;
