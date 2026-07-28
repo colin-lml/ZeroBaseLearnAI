@@ -65,6 +65,12 @@ void PolicyGradient::TrainGenerateItem2(const QwList& vList)
         return;
     }
 
+    if (450 < vList.size())
+    {
+        m_bEndGenerateTrain = true;
+        return;
+    }
+
     int length = vList.size() - 1;
     double G = 0;
     m_pAdam->zero_grad();
