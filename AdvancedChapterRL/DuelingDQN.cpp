@@ -55,11 +55,32 @@ void DuelingDQN::TrainGenerateItem1(const QwItem& item)
 {
 	AddCartPoleDataList(item);
 
+}
+
+void DuelingDQN::TrainGenerateItem2(const QwList& vList)
+{
+	if (450 < vList.size())
+	{
+		m_bEndGenerateTrain = true;
+		return;
+	}
+
 	if (m_nMinimalsize < GetCartPoleDataList().size())
 	{
-		Update();
+		int max = 10;
+		if (100 < vList.size())
+		{
+			max = vList.size() / 2;
+		}
+
+		for (int i=0;i< max;i++)
+		{
+			Update();
+		}
+		
 	}
 }
+
 
 void DuelingDQN::Update()
 {

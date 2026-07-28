@@ -37,7 +37,7 @@ protected:
 	int TakeAction(VectorDouble& s0, bool bPredict = false) override;
 
 	void TrainGenerateItem1(const QwItem& item) override;
-	void TrainGenerateItem2(const QwList& vList) override {};
+	void TrainGenerateItem2(const QwList& vList) override;
 
 	void CreateOptimizer(DuelingNet& model);
 	void Update();
@@ -49,7 +49,7 @@ protected:
 	DuelingNet m_TargetQnet;
 
 	const int m_nMinimalsize = 500;
-	const int64_t m_batchsize = 64;
+	const int64_t m_batchsize = 80;
 	torch::optim::Adam* m_pAdam = nullptr;
 };
 

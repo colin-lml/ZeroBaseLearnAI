@@ -9,6 +9,8 @@ BaseAdvanced::BaseAdvanced()
 
 void BaseAdvanced::PlayCartPole(int maxCount)
 {
+	maxCount = max(200, maxCount);
+
 	torch::manual_seed(12);
 
 	GenerateTrainData(maxCount);
@@ -74,7 +76,11 @@ void BaseAdvanced::GenerateTrainData(int maxCount)
 				cout << "train i: " << i+1 << " / " << maxCount << " , rewardCount: " << rewardCount << endl;
 			}
 		}
-		
+
+		if (m_bEndGenerateTrain)
+		{
+			break;
+		}
 	}
 
 	cout  << endl;

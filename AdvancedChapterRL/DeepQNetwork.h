@@ -71,7 +71,7 @@ protected:
 	void GenerateTrainData(int maxCount) override;
 	int TakeAction(VectorDouble& s0, bool bPredict = false) override;
 	void TrainGenerateItem1(const QwItem& item) override;
-	void TrainGenerateItem2(const QwList& vList) override {};
+	void TrainGenerateItem2(const QwList& vList) override;
 
 	void Update();
 
@@ -83,7 +83,7 @@ protected:
 	CartPoleEnv m_CartPoleEnv;
 
 	const int m_nMinimalsize = 500;
-	const int64_t m_batchsize = 64;
+	const int64_t m_batchsize = 80;
 
 	bool m_bDoubleDQN = false;
 	torch::optim::Adam* m_pAdam=nullptr;

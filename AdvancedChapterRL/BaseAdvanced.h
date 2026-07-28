@@ -24,4 +24,6 @@ protected:
 	double m_dbEpsilon = 0.1;
 	double m_dbLR = 2e-3;
 	torch::DeviceType m_device;
+	bool m_bEndGenerateTrain=false;
+
 };

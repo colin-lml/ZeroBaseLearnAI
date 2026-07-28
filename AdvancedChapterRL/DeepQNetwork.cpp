@@ -3,6 +3,7 @@
 
 static QwList gCartPoleDataList;
 static int gMaxCount = 10000;
+
 QwList& GetCartPoleDataList()
 {
 	return gCartPoleDataList;
@@ -75,11 +76,6 @@ void DeepQNetwork::TrainGenerateItem1(const QwItem& item)
 {
 	AddCartPoleDataList(item);
 
-	if (m_nMinimalsize < GetCartPoleDataList().size())
-	{
-		Update();
-	}
-
 }
 
 void DeepQNetwork::GenerateTrainData(int maxCount)
@@ -121,6 +117,30 @@ void DeepQNetwork::GenerateTrainData(int maxCount)
 	m_pAdam = nullptr;
 }
 
+void DeepQNetwork::TrainGenerateItem2(const QwList& vList)
+{
+
+	if (400 < vList.size())
+	{
+		m_bEndGenerateTrain = true;
+		return;
+	}
+
+	if (m_nMinimalsize < GetCartPoleDataList().size())
+	{
+		int max = 10;
+		if (100 < vList.size())
+		{
+			max = vList.size() / 2;
+		}
+
+		for (int i = 0; i < max; i++)
+		{
+			Update();
+		}
+		
+	}
+}
 
 void DeepQNetwork::Update()
 {
