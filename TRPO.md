@@ -1,18 +1,18 @@
 
 
-基础定义
+# 海森矩阵（**黑塞矩阵**（Hessian matrix））
 
 对多元标量函数：$ f(\boldsymbol{x}) = f(x_1,x_2,\dots,x_n)$
 
 **梯度**（一阶偏导数$\partial$向量  ) 
 
-$\nabla f=\begin{bmatrix}\frac{\partial f}{\partial x_1} \\ \frac{\partial f}{\partial x_2} \\ \vdots \\   \frac{\partial f}{\partial x_n} \end{bmatrix}$
+$\nabla f(\boldsymbol{x})=\begin{bmatrix}\frac{\partial f}{\partial x_1} \\ \frac{\partial f}{\partial x_2} \\ \vdots \\   \frac{\partial f}{\partial x_n} \end{bmatrix}$
 
 
 
-**海森矩阵：** 梯度再求导
+**海森矩阵$H$**： 梯度再求导
 
-$\nabla{^2} f=\begin{bmatrix}\
+$\nabla{^2} f(\boldsymbol{x})=\begin{bmatrix}\
 \frac{\partial^{2} f}{\partial x_1^2} & \frac{\partial^{2} f}{\partial x_1 \partial x_2} & \dots & \frac{\partial^{2} f}{\partial x_1 \partial x_n}\ 
 \\ \frac{\partial^2 f}{\partial x_2 \partial x_1} & \dots & \dots &  \frac{\partial^{2} f}{\partial x_2 \partial x_n} \
 \\ \vdots  & \vdots & \vdots & \vdots \
@@ -31,13 +31,27 @@ $\frac{\partial^2 f}{\partial x_i \partial x_j}=\frac{\partial^2 f}{\partial x_j
 
 
 
-**引入矩阵 $\boldsymbol{A}$**
+**二次型**
 
+$f(\boldsymbol{x}) = \boldsymbol{x}^\top A \boldsymbol{x}$
 
+**方便求梯度、求海森、分析凹凸性、直接接入牛顿法 / 共轭梯度整套优化数学框架**，没有它高维推导寸步难行。
 
+支持任意 n 维向量: $f(\boldsymbol{x}) = \boldsymbol{x}^\top A \boldsymbol{x}$ ，维度匹配约束
 
+- $\boldsymbol{x}$是 $[n\times1]$ 向量
 
+- $A$ 是 $[n\times n]$ 方阵
 
+若 $\boldsymbol{A}$ 对称($A==A^{\top}$)：
+
+- $ \nabla f(\boldsymbol x)=2A\boldsymbol x$
+
+- $ \nabla^2 f(\boldsymbol x)=H=2A$  **海森矩阵**
+  
+  
+  
+  
 
 **二维实例**
 
@@ -49,13 +63,64 @@ $\boldsymbol{x}=\begin{bmatrix}x_1\\x_2\end{bmatrix} ,\quad f(\boldsymbol{x}) = 
 
 展开：
 
-$f(\boldsymbol{x})=\begin{bmatrix}x_1&x_2\end{bmatrix}\
-\begin{bmatrix}a_{11} & a_{12}\\ a_{21} & a_{22} \end{bmatrix}\
-\begin{bmatrix}x_1\\x_2\end{bmatrix} = a_{11}x_1^2+(a_{12}+a_{21})x_1x_2+a_{22}x_2^2$
+$f(\boldsymbol{x})=\underbrace{\begin{bmatrix}x_1&x_2\end{bmatrix}}_{\boldsymbol{x}^\top} \quad  
+\underbrace{\begin{bmatrix}a_{11} & a_{12}\\ a_{21} & a_{22} \end{bmatrix}}_{A} \quad
+\underbrace{\begin{bmatrix}x_1\\x_2\end{bmatrix}}_{\boldsymbol{x}} = 
+\underbrace{a_{11}x_1^2+(a_{12}+a_{21})x_1x_2+a_{22}x_2^2}_{方程式}$
 
-要求矩阵**对称** 所以$a_{12}=a_{21}$
+要求矩阵**对称** 所以：
 
-$A= \begin{bmatrix} 1 & 1 \\ 1 &3  \end{bmatrix}$
+$a_{12}=a_{21}， A= \begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix}$
+
+
+
+ $ \nabla f(\boldsymbol x)=2A\boldsymbol x= 2\begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix} \begin{bmatrix}x_1\\x_2\end{bmatrix}=\begin{bmatrix}2x_1+2x_2\\x_1+3x_2\end{bmatrix}$
+
+  $ \nabla^2 f(\boldsymbol x)=H=2A=\begin{bmatrix} 2 & 2 \\ 2 & 6 \end{bmatrix}$
+
+
+
+# 泰勒公式
+
+近似求解：在一个光滑函数上，选定某一点，构造多项式（方程式），在该点局部近似代替原本复杂的函数，用泰勒展开式作近似求解， 想要逼近效果更好，就要捕捉更多特征
+
+- **0 阶：** 只复制该点函数值，只有一个点，完全没有变化信息。
+
+- **1 阶：** 加上**一阶导数（斜率）** → 切线近似（直线）
+
+- **2 阶：** 再加**二阶导数（曲率）** → 抛物线，可以描述曲线怎么弯 （一般只作二阶）
+  
+  
+
+设函数 $f(x)$ 在 $x_0$ 光滑，$\Delta x = x-x_0$
+
+
+
+**带皮亚诺余项** ：
+
+ $f(\Delta x +x_0)= \underbrace{\frac{f(x_0)}{!0}  }_{0阶}+ \underbrace{\frac{f'(x_0)\Delta x}{1!}}_{1阶} + \underbrace{\frac{f''(x_0)(\Delta x)^2 }{2!}}_{2阶}+  \underbrace{\frac{f'''(x_0)(\Delta x)^3 }{3!}}_{3阶} + \dots $
+
+
+
+**二阶截断：**
+一元函数：
+$f(\Delta x +x_0) \approx \underbrace{f(x_0)}_{常数基准} + \underbrace{f'(x_0)\Delta x}_{切线、斜率信息} + \underbrace{\frac{1}{2} f''(x_0) (\Delta x)^2}_{曲率信息}$
+
+多元函数：
+
+二次型: $f(\boldsymbol{x}) = \boldsymbol{x}^\top A \boldsymbol{x}$
+
+- $ \nabla f(\boldsymbol x)=2A\boldsymbol x$
+
+- $ \nabla^2 f(\boldsymbol x)=H=2A$
+
+- 向量**没有平方 $(\boldsymbol{\Delta x})^2$** 这种运算
+
+$f(\Delta x +x_0) \approx f(x_0) +2A (\Delta x) + H$ 
+
+
+
+
 
 
 
