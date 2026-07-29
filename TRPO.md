@@ -33,25 +33,29 @@ $\frac{\partial^2 f}{\partial x_i \partial x_j}=\frac{\partial^2 f}{\partial x_j
 
 **二次型**
 
-$f(\boldsymbol{x}) = \boldsymbol{x}^\top A \boldsymbol{x}$
-
-**方便求梯度、求海森、分析凹凸性、直接接入牛顿法 / 共轭梯度整套优化数学框架**，没有它高维推导寸步难行。
-
-支持任意 n 维向量: $f(\boldsymbol{x}) = \boldsymbol{x}^\top A \boldsymbol{x}$ ，维度匹配约束
+ 二次型通用公式 : $f(\boldsymbol{x}) = \boldsymbol{x}^\top A \boldsymbol{x}$ 
 
 - $\boldsymbol{x}$是 $[n\times1]$ 向量
 
 - $A$ 是 $[n\times n]$ 方阵
 
+- 求梯度推导：$ \nabla f(\boldsymbol x)= \nabla(\boldsymbol{x}^\top A \boldsymbol{x})=(A+A^{\top})\boldsymbol{x}$
+
+- 再次求导：$\nabla^2 f(\boldsymbol x)=\nabla (A+A^{\top})\boldsymbol{x}=A+A^{\top}$
+
 若 $\boldsymbol{A}$ 对称($A==A^{\top}$)：
 
-- $ \nabla f(\boldsymbol x)=2A\boldsymbol x$
+- [ ] $\quad \nabla f(\boldsymbol x)=\nabla(\boldsymbol{x}^\top A \boldsymbol{x})=2A\boldsymbol x$
 
-- $ \nabla^2 f(\boldsymbol x)=H=2A$  **海森矩阵**
-  
-  
-  
-  
+- [ ] $\quad \nabla^2 f(\boldsymbol x)=2A=H$  **海森矩阵$H$**
+
+通过二次型公式求出$A$方阵，用矩阵运算代替求导过程
+
+**代替求导：** $\nabla f(\boldsymbol x)=\nabla(\boldsymbol{x}^\top A \boldsymbol{x})=2A\boldsymbol x$
+
+**海森矩阵：** $\nabla^2 f(\boldsymbol x)=2A=H$
+
+
 
 **二维实例**
 
@@ -72,11 +76,11 @@ $f(\boldsymbol{x})=\underbrace{\begin{bmatrix}x_1&x_2\end{bmatrix}}_{\boldsymbol
 
 $a_{12}=a_{21}， A= \begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix}$
 
-
+知道$A$矩阵带入求导公式：
 
  $ \nabla f(\boldsymbol x)=2A\boldsymbol x= 2\begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix} \begin{bmatrix}x_1\\x_2\end{bmatrix}=\begin{bmatrix}2x_1+2x_2\\x_1+3x_2\end{bmatrix}$
 
-  $ \nabla^2 f(\boldsymbol x)=H=2A=\begin{bmatrix} 2 & 2 \\ 2 & 6 \end{bmatrix}$
+  $ \nabla^2 f(\boldsymbol x)=2A=H=\begin{bmatrix} 2 & 2 \\ 2 & 6 \end{bmatrix}$
 
 
 
@@ -108,20 +112,22 @@ $f(\Delta x +x_0) \approx \underbrace{f(x_0)}_{常数基准} + \underbrace{f'(x_
 
 多元函数：
 
-二次型: $f(\boldsymbol{x}) = \boldsymbol{x}^\top A \boldsymbol{x}$
+$f(\Delta x +x_0) \approx f(x_0) + \nabla f(x_0)^{\top}(\Delta x) +\frac{1}{2}(\Delta x)^{\top} \nabla^2 f(x_0) \Delta x$ 
 
-- $ \nabla f(\boldsymbol x)=2A\boldsymbol x$
+结合二次型公式用矩阵$A$代替求导
 
-- $ \nabla^2 f(\boldsymbol x)=H=2A$
+1. $\nabla f(x_0){^\top} = (2Ax_0)^{\top}=>2x_0^{\top}A$，
 
-- 向量**没有平方 $(\boldsymbol{\Delta x})^2$** 这种运算
+2. $\nabla^2 f(x_0)=2A$
 
-$f(\Delta x +x_0) \approx f(x_0) +2A (\Delta x) + H$ 
-
-
+$f(\Delta x +x_0) \approx f(x_0) + 2x_0^{\top}A(\Delta x) +(\Delta x)^{\top} A \Delta x$
 
 
 
+**赋值演算**
 
+方程式：$f(x_1,x_2)=x_1^2 + 2x_1x_2 + 3x_2^2$
+
+$\textcircled{1} \textcircled{1}\;$
 
 
