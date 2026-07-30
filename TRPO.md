@@ -1,6 +1,6 @@
 
 
-# 海森矩阵（**黑塞矩阵**（Hessian matrix））
+# 海森矩阵（**黑塞矩阵**Hessian matrix）
 
 对多元标量函数：$ f(\boldsymbol{x}) = f(x_1,x_2,\dots,x_n)$
 
@@ -78,7 +78,7 @@ $a_{12}=a_{21}， A= \begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix}$
 
 知道$A$矩阵带入求导公式：
 
- $ \nabla f(\boldsymbol x)=2A\boldsymbol x= 2\begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix} \begin{bmatrix}x_1\\x_2\end{bmatrix}=\begin{bmatrix}2x_1+2x_2\\x_1+3x_2\end{bmatrix}$
+ $ \nabla f(\boldsymbol x)=2A\boldsymbol x= 2\begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix} \begin{bmatrix}x_1\\x_2\end{bmatrix}=\begin{bmatrix}2x_1+2x_2\\2x_1+6x_2\end{bmatrix}$
 
   $ \nabla^2 f(\boldsymbol x)=2A=H=\begin{bmatrix} 2 & 2 \\ 2 & 6 \end{bmatrix}$
 
@@ -124,10 +124,29 @@ $f(\Delta x +x_0) \approx f(x_0) + 2x_0^{\top}A(\Delta x) +(\Delta x)^{\top} A \
 
 
 
-**赋值演算**
+**数据演算**
 
 方程式：$f(x_1,x_2)=x_1^2 + 2x_1x_2 + 3x_2^2$
 
-$\textcircled{1} \textcircled{1}\;$
+$\textcircled{1}已知值 \begin{cases} A= \begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix}\\[4pt]
+\\ 中心点: x_0=  \begin{bmatrix} 2  \\ 1  \end{bmatrix}\\[4pt]
+\\增量: \Delta x=  \begin{bmatrix} 1  \\ 2  \end{bmatrix} \\[4pt]
+\\目标: \ x= x_0+ \Delta x=\begin{bmatrix} 3  \\ 3  \end{bmatrix} 
+\end{cases}$
+
+
+
+$\textcircled{2}逐项计算 \begin{cases} f(x_0)=f(2,1)=2^2 + 2*2*1 + 3*1^2=11\\[1pt]
+\\ 2x_0^{\top}A(\Delta x)= 2 * \underbrace{\begin{bmatrix} 2 & 1 \end{bmatrix}}_{x_0^{\top}} \underbrace{\begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix}}_{A} \underbrace{\begin{bmatrix} 1 \\ 2 \end{bmatrix}}_{\Delta x}=26\\[4pt]
+\\(\Delta x)^{\top} A \Delta x= \underbrace{\begin{bmatrix} 1 & 2 \end{bmatrix}}_{(\Delta x)^{\top}} \underbrace{\begin{bmatrix} 1 & 1 \\ 1 &3 \end{bmatrix}}_{A} \underbrace{\begin{bmatrix} 1 \\ 2 \end{bmatrix}}_{\Delta x}=17 \\[4pt]
+\\f(\Delta x +x_0) \approx 11+26+17=54 \end{cases}$
+
+
+
+$\textcircled{3}核验真值\begin{cases}二阶泰勒: f(\Delta x +x_0) \approx 11+26+17=54  \\
+f(3,3)=3^2 + 2*3*3 + 3*3^2=9+18+27=54
+\end{cases}$
+
+
 
 
