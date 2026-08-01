@@ -235,6 +235,16 @@ $H=\begin{bmatrix}a& b\\ c&d\end{bmatrix} \Rightarrow H^{-1}=\dfrac{1}{ad-bc} \b
 
 # 最速下降法
 
+## 柯西 - 施瓦茨不等式
+
+对任意两个同维度实向量 $\boldsymbol{a},\boldsymbol{b}$：
+
+$|a^\top b| \le \|a\| \cdot \|b\|$ 其中$|a^\top b|$是向量内积结果的绝对值 ,$\|a\|、\|b\|$是向量的模
+
+- 如 $|a^\top b| = \|a\| \cdot \|b\|$ 说明 $a、b$ 共线
+
+
+
 - **用一阶泰勒**   $ f( \boldsymbol x_0 + \boldsymbol d) = f(x_0) + \nabla f(x_0)^{\top} d $
 
 - **核心思想**  第一步找方向梯度方向，第二步求最优步长  第三步更新迭代点 局部下降最快的方向 = 负梯度方向
@@ -260,5 +270,3 @@ $\textcircled{1} \begin{cases} \displaystyle f(\boldsymbol x)=\frac12\boldsymbol
 \\ H= \begin{bmatrix} 2 & 2 \\ 2 & 6 \end{bmatrix}\\[4pt]
 \\ \phi(d) = f(x_k)+ \nabla f(x_k)^{\top} d\\[4pt]
 \\增量: \Delta x= \begin{bmatrix} 1 \\ 2 \end{bmatrix} \\[4pt]\\目标: \ x= x_0+ \Delta x=\begin{bmatrix} 3 \\ 3 \end{bmatrix} \end{cases}$
-
-
