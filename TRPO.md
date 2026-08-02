@@ -271,3 +271,23 @@ $\textcircled{1} \begin{cases} \displaystyle f(\boldsymbol x)=\frac12\boldsymbol
 \\ \phi(d) = g_0^{\top} d = x_0^{\top}Hd  \\[4pt]
 \\ \phi(d) = \begin{bmatrix}1&1 \end{bmatrix} \begin{bmatrix} 2 & 2 \\ 2 & 6 \end{bmatrix} d = \begin{bmatrix} 4 \\ 8 \end{bmatrix}d  \\[4pt]
 \end{cases}$
+
+$\textcircled{2}$  $\min_{\|d\|=1}\phi(d)=g_0^\top d=>|g_0^\top d|=\|g_0\|\cdot \underbrace{\|d\|}_{=1}$
+
+$\textcircled{3}$ $|g_0^\top d|=\|g_0\|=>d=-\dfrac{g_0}{\|g_0\|}$ 线性搜索只关心**方向**所以 $d=-g_0$
+
+$\textcircled{4}$求$\alpha$ 是步长
+
+$\phi(\alpha)=f(x_k-\alpha g_k)=\frac12(x_k-\alpha g_k)^\top H (x_k-\alpha g_k)=\frac12[\underbrace{(x_k^\top-\alpha g_k^\top) H}_{看成一个整体} (x_k-\alpha g_k)]$
+
+$=>(x_k^\top-\alpha g_k^\top) H(x_k-\alpha g_k)=(x_k^\top-\alpha g_k^\top) H x_k-(x_k^\top-\alpha g_k^\top) H ag_k$
+
+$=>\frac12[x_k^\top H x_k-\underbrace{\alpha g_k^\top Hx_k - \alpha x_k^\top H g_k}_{-2\alpha x_k^\top Hg_k} + \alpha^2g_k^\top Hg_k]$
+
+$=>\phi(\alpha) =\dfrac12x_k^\top Hx_k -\alpha x_k^\top Hg_k + \dfrac12 \alpha^2 g_k^\top H g_k$
+
+$\nabla \phi(\alpha)=-x_kHg_k+ \alpha g_k^\top H g_k=0$
+
+$\alpha=\dfrac{x_kHg_k}{g_k^\top Hg_k }$
+
+
