@@ -242,8 +242,8 @@ $H=\begin{bmatrix}a& b\\ c&d\end{bmatrix} \Rightarrow H^{-1}=\dfrac{1}{ad-bc} \b
 $|a^\top b| \le \|a\| \cdot \|b\|$ 其中$|a^\top b|$是向量内积结果的绝对值 ,$\|a\|、\|b\|$是向量的模
 
 - 如 $|a^\top b| = \|a\| \cdot \|b\|$ 说明 $a、b$ 共线
-
-
+  
+  
 
 - **用一阶泰勒**   $ f( \boldsymbol x_0 + \boldsymbol d) = f(x_0) + \nabla f(x_0)^{\top} d $
 
@@ -266,7 +266,8 @@ $|a^\top b| \le \|a\| \cdot \|b\|$ 其中$|a^\top b|$是向量内积结果的绝
 
  方程式：$f(x_1,x_2)=x_1^2 + 2x_1x_2 + 3x_2^2$
 
-$\textcircled{1} \begin{cases} \displaystyle f(\boldsymbol x)=\frac12\boldsymbol x^\top H\boldsymbol x \\[4pt]
-\\ H= \begin{bmatrix} 2 & 2 \\ 2 & 6 \end{bmatrix}\\[4pt]
-\\ \phi(d) = f(x_k)+ \nabla f(x_k)^{\top} d\\[4pt]
-\\增量: \Delta x= \begin{bmatrix} 1 \\ 2 \end{bmatrix} \\[4pt]\\目标: \ x= x_0+ \Delta x=\begin{bmatrix} 3 \\ 3 \end{bmatrix} \end{cases}$
+$\textcircled{1} \begin{cases} \displaystyle f(\boldsymbol x)=\frac12\boldsymbol x^\top H\boldsymbol x,\quad H= \begin{bmatrix} 2 & 2 \\ 2 & 6 \end{bmatrix} \\[4pt]
+\\x_0=\begin{bmatrix}1\\1 \end{bmatrix}, g_0 = \nabla f(x_0)^{\top}=Hx_0 \\[4pt]
+\\ \phi(d) = g_0^{\top} d = x_0^{\top}Hd  \\[4pt]
+\\ \phi(d) = \begin{bmatrix}1&1 \end{bmatrix} \begin{bmatrix} 2 & 2 \\ 2 & 6 \end{bmatrix} d = \begin{bmatrix} 4 \\ 8 \end{bmatrix}d  \\[4pt]
+\end{cases}$
