@@ -276,7 +276,11 @@ $\textcircled{2}$  $\min_{\|d\|=1}\phi(d)=g_0^\top d=>|g_0^\top d|=\|g_0\|\cdot 
 
 $\textcircled{3}$ $|g_0^\top d|=\|g_0\|=>d=-\dfrac{g_0}{\|g_0\|}$ 线性搜索只关心**方向**所以 $d=-g_0$
 
+## 线性搜索（Line Search）
+
 $\textcircled{4}$求$\alpha$ 是步长
+
+$g_k=\nabla f(x_k)=Hx_k$
 
 $\phi(\alpha)=f(x_k-\alpha g_k)=\frac12(x_k-\alpha g_k)^\top H (x_k-\alpha g_k)=\frac12[\underbrace{(x_k^\top-\alpha g_k^\top) H}_{看成一个整体} (x_k-\alpha g_k)]$
 
@@ -286,8 +290,32 @@ $=>\frac12[x_k^\top H x_k-\underbrace{\alpha g_k^\top Hx_k - \alpha x_k^\top H g
 
 $=>\phi(\alpha) =\dfrac12x_k^\top Hx_k -\alpha x_k^\top Hg_k + \dfrac12 \alpha^2 g_k^\top H g_k$
 
-$\nabla \phi(\alpha)=-x_kHg_k+ \alpha g_k^\top H g_k=0$
+$\nabla \phi(\alpha)=-x_k^\top Hg_k+ \alpha g_k^\top H g_k=0$
 
-$\alpha=\dfrac{x_kHg_k}{g_k^\top Hg_k }$
+$\alpha=\dfrac{x_k^\top Hg_k}{g_k^\top Hg_k }=\dfrac{g_k^\top \overbrace {Hx_k}^{g_k=Hx_k} }{g_k^\top Hg_k }=\dfrac{g_k^\top g_k}{g_k^\top Hg_k }$
+
+### 非精确搜索
+
+ Armijo + 曲率条件，最通用
+
+$\begin{cases}f(x_k+\alpha d_k)\le f(x_k)+c_1 \alpha g_k^\top d_k \quad &\text{Armijo（充分下降）}\\\nabla f(x_k+\alpha d_k)^\top d_k \ge c_2\,g_k^\top d_k \quad &\text{曲率条件}\end{cases}$
+
+标准参数:
+
+$c_1=10^{-4},\;c_2=0.9 \quad (拟牛顿、CG)$
+
+$c_2=0.1$（最速下降）
+
+
+
+**回溯法 (Backtracking) 搜索 $\alpha$** 
+
+初始化 $\alpha=\alpha_0$（比如 $\alpha_0=1.0$)
+
+循环：
+
+1. 检验 Armijo 条件；
+2. 不满足：$\alpha\leftarrow \tau\alpha,\;\tau\in(0,1)$，常用 $\tau=0.5\sim0.8$；
+3. 满足则停止，使用当前$\alpha$。
 
 
