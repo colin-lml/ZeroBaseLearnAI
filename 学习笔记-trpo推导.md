@@ -1,3 +1,62 @@
+# 广义优势估计GAE
+
+## 蒙特卡洛优势 MC
+
+$A_t^{MC}=G_t - V(s_t)$
+
+
+
+## 单步 TD 优势
+
+$A_t^{(1)} = \underbrace{ r_t + \gamma V(s_{t+1})}_{在训练中不等于G_t} - V(s_t)$
+
+
+
+## GAE 数学公式
+
+### 定义**TD 残差**
+
+$\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$
+
+### 广义优势估计定义
+
+$\boldsymbol{A_t^{GAE(\lambda)}=\sum_{l=0}^{\infty}(\gamma\lambda)^l \delta_{t+l}}$
+
+$\lambda\in[0,1]$：GAE 权重系数
+
+* $\lambda=0：A_t^{GAE}=A_t^{(1)}$ 单步 TD 优势
+* $\lambda=1：A_t^{GAE}=A_t^{MC}$ 蒙特卡洛优势
+
+### 示例
+
+设定超参：
+
+$\gamma=0.9,\quad \lambda=0.8$
+
+| t   | r   | V   |
+| --- | --- | --- |
+| 0   | 1.0 | 4.0 |
+| 1   | 1.0 | 3.0 |
+| 2   | 1.0 | 2.0 |
+| 3   | 1.0 | 1.0 |
+| 4   | 0   | 0   |
+
+
+
+#### 1. 计算各时刻 $\delta_t$
+
+$\begin{cases}\delta_3 &= r_3 + \gamma V_4 - V_3 = 1.0 + 0.9\times 0 - 1.0 = \boldsymbol{0.0}\\\delta_2 &= r_2 + \gamma V_3 - V_2 = 1.0 + 0.9\times 1.0 - 2.0 = \boldsymbol{-0.1}\\\delta_1 &= r_1 + \gamma V_2 - V_1 = 1.0 + 0.9\times 2.0 - 3.0 = \boldsymbol{-0.2}\\\delta_0 &= r_0 + \gamma V_1 - V_0 = 1.0 + 0.9\times 3.0 - 4.0 = \boldsymbol{-0.3}\\\end{cases}$
+
+
+
+#### 2.  $A_t^\text{GAE}$
+
+$\begin{cases}A_3 &= \delta_3 = \boldsymbol{0.0}\\A_2 &= \delta_2 + 0.72\,A_3 = -0.1 + 0.72\times 0.0 = \boldsymbol{-0.1}\\A_1 &= \delta_1 + 0.72\,A_2 = -0.2 + 0.72\times(-0.1) = \boldsymbol{-0.272}\\A_0 &= \delta_0 + 0.72\,A_1 = -0.3 + 0.72\times(-0.272) = -0.3 - 0.19584 = \boldsymbol{-0.49584}\\\end{cases}$
+
+
+
+# TRPO公式推导细节过程
+
 ## 1.原始定义
 
 $\underbrace{\pi_{\boldsymbol{\theta}}(a|s)}_{动作概率分布}= \underbrace{\mathrm{softmax}\Big(w_2\, \max\big(w_1 s + b_1,\,0\big)+b_2\Big)}_{策略神经网络},\quad \boldsymbol{\theta}= \underbrace {\{w_1,b_1,w_2,b_2\}}_{网络参数}$
@@ -132,14 +191,33 @@ x=\sqrt{\dfrac{2\delta}{g^\top H^{-1}g}} \cdot H^{-1}g
 
 $\textcircled{3}=\begin{cases}\\  x=\Delta\theta=\sqrt{\dfrac{2\delta}{g^\top H^{-1}g}} \cdot H^{-1}g \\\\  \end{cases}$
 
+## 7.共轭梯度算法
+
+$x=\Delta\theta=\sqrt{\dfrac{2\delta}{g^\top H^{-1}g}} \cdot H^{-1}g \quad 令 \ z=H^{-1}g \ 则 \ Hz=H H^{-1}g \Rightarrow Hz=g$ 
+
+通过$Hz=g$方程式 解出$z$:
+
+1. 海森矩阵–向量乘积 (HVP) $\quad Hd_k=HVP(d_k)$
+2. 初始化 $z_0=0,r_0=g,d_0=g$
+3. 迭代循环(最大次数$k=10$)
+4. $\quad Hd_k=HVP(d_k)$
+5. $\quad a_k=\dfrac{r_k^\top r_k}{d_k^\top Hd_k}$
+6. $\quad z_{k+1}=z_k+a_kd_k$
+7. $\quad r_{k+1}=r_k-a_kHd_k$
+8. $\quad if (\|r_{k+1}\|^2 < \epsilon): 结束$
+9. $\quad \beta_k=\dfrac{r_{k+1}^\top r_{k+1}}{ r_{k}^\top r_{k} }$
+10. $\quad d_{k+1}=r_{k+1}+\beta_k d_{k}$
+11. 迭代结束得到$z \approx H^{-1}g$
+
+## 8.线性搜索(回溯线搜索)
+
+$\Delta\theta=\sqrt{\dfrac{2\delta}{g^\top H^{-1}g}} \cdot H^{-1}g= \sqrt{\dfrac{2\delta}{g^\top z}} \cdot z$
 
 
-## 7.线性搜索(回溯线搜索)
 
-
-
-
-
-
-
-
+$\begin{cases}
+ i<15 
+\\ \theta_{k+i}=\theta+\alpha^i\cdot \Delta\theta_{}
+\\ \boldsymbol{L(\theta_{k+i})  \ge \boldsymbol{L(\theta)}\ \&\& \ D_{KL} < \delta} 结束 \ \ 输出 \  \theta_{k+i}
+\\ i++
+\end{cases}$
