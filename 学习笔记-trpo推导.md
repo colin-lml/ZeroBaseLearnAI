@@ -55,7 +55,7 @@ $\begin{cases}A_3 &= \delta_3 = \boldsymbol{0.0}\\A_2 &= \delta_2 + 0.72\,A_3 = 
 
 
 
-# TRPO公式推导细节过程
+# TRPO策略更新推导过程
 
 ## 1.原始定义
 
