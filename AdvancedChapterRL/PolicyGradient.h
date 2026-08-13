@@ -37,6 +37,13 @@ public:
 		TORCH_CHECK(logits_.dim() == 2, "logits must be shape \[B, num\_actions\]");
 	}
 
+	torch::Tensor log_prob(const torch::Tensor& actions) const
+	{
+		auto acts = actions.to(torch::kLong);
+		auto p_a = logits_.gather(1, acts);
+		return torch::log(p_a + 1e-8);
+	}
+
 	torch::Tensor sample() const
 	{
 		return torch::multinomial(logits_, 1, true).squeeze(1);

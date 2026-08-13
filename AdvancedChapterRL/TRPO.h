@@ -8,6 +8,10 @@ public:
 	
 
 private:
+
+	torch::Tensor ComputeAdvantage(double gamma, double lmbda, torch::Tensor td_delta);
+
+
 	void GenerateTrainData(int maxCount) override;
 
 	int TakeAction(VectorDouble& s0, bool bPredict = false) override;
@@ -21,7 +25,7 @@ private:
 
 	const double m_dbCriticLR = 1e-2;
 	const double m_dbklConstraint = 1e-4;
-
+	const double m_dbLmbda = 0.95;
 	torch::optim::Adam* m_pAdamCritic;
 };
 
