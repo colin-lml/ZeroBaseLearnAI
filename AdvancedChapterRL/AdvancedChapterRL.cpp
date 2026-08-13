@@ -17,7 +17,10 @@ int main()
 	//policyGradient.PlayCartPole(1000);
 
 	ActorCritic actorCritic;
-	actorCritic.PlayCartPole(1000);
+	//actorCritic.PlayCartPole(1000);
+
+	TRPO trpo;
+	trpo.PlayCartPole(1000);
 
 	cin.get();
 	return 0;

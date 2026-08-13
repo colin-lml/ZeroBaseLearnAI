@@ -36,5 +36,5 @@ using namespace std;
 #include "DuelingDQN.h"
 #include "PolicyGradient.h"
 #include "ActorCritic.h"
-
+#include "TRPO.h"
 #endif //PCH_H
