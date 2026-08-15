@@ -10,10 +10,10 @@ public:
 private:
 
 	torch::Tensor ComputeAdvantage(double gamma, double lmbda, torch::Tensor td_delta);
-	torch::Tensor ComputeSurrogateObj(torch::Tensor states, torch::Tensor actions, torch::Tensor advantage, torch::Tensor old_log_probs, PolicyNet&  actorNet);
-
-	void PolicyLearnUpdate(torch::Tensor states, torch::Tensor actions, Categorical old_actions_dists, torch::Tensor old_log_probs, torch::Tensor advantage);
-
+	torch::Tensor ComputeSurrogateObj(torch::Tensor s, torch::Tensor a, torch::Tensor advantage, torch::Tensor logProbs, PolicyNet&  actorNet);
+	void PolicyLearnUpdate(torch::Tensor s, torch::Tensor a, Categorical actionDists, torch::Tensor logProbs, torch::Tensor advantage);
+	torch::Tensor ConjugateGradient(torch::Tensor objGrad, torch::Tensor s, Categorical actionDists);
+	torch::Tensor HessianMatrixVectorProduct();
 
 	void GenerateTrainData(int maxCount) override;
 

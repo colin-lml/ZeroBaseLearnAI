@@ -35,25 +35,20 @@ torch::Tensor TRPO::ComputeAdvantage(double gamma, double lmbda, torch::Tensor t
     return adv_tensor.to(td_delta.device());
 }
 
-torch::Tensor TRPO::ComputeSurrogateObj(torch::Tensor states, torch::Tensor actions, torch::Tensor advantage, torch::Tensor old_log_probs, PolicyNet&  actorNet)
+torch::Tensor TRPO::ComputeSurrogateObj(torch::Tensor s, torch::Tensor a, torch::Tensor advantage, torch::Tensor logProbs, PolicyNet& actorNet)
 {
-    auto device = states.device();
-    actions = actions.to(torch::kLong).to(device);
-    advantage = advantage.to(device);
-    old_log_probs = old_log_probs.to(device);
-
     // actorNet 的 forward 在 PolicyNetImpl 中返回的是 softmax 概率
-    auto probs = actorNet->forward(states); // [B, A]
+    auto probs = actorNet->forward(s); // [B, A]
 
     // 规范 actions 形状为 [B,1]
-    if (actions.dim() == 1)
+    if (a.dim() == 1)
     {
-        actions = actions.unsqueeze(1);
+        a = a.unsqueeze(1);
     }
 
     // 取出当前策略下被采取动作的概率并计算 log-prob
     const double eps = 1e-8;
-    auto action_probs = probs.gather(1, actions);        // [B,1]
+    auto action_probs = probs.gather(1, a);        // [B,1]
     auto log_probs = torch::log(action_probs + eps);     // [B,1]
 
     // 规范 advantage 形状为 [B,1]
@@ -63,7 +58,7 @@ torch::Tensor TRPO::ComputeSurrogateObj(torch::Tensor states, torch::Tensor acti
     }
 
     // 计算比率 r(θ) = exp(logπ_θ(a|s) - logπ_old(a|s))
-    auto ratio = torch::exp(log_probs - old_log_probs);
+    auto ratio = torch::exp(log_probs - logProbs);
 
     // 计算 surrogate objective: mean( r * advantage )
     auto surrogate = (ratio * advantage).mean();
@@ -71,11 +66,32 @@ torch::Tensor TRPO::ComputeSurrogateObj(torch::Tensor states, torch::Tensor acti
     return surrogate;
 }
 
-
-
-void TRPO::PolicyLearnUpdate(torch::Tensor states, torch::Tensor actions, Categorical old_actions_dists, torch::Tensor old_log_probs, torch::Tensor advantage)
+torch::Tensor TRPO::ConjugateGradient(torch::Tensor objGrad, torch::Tensor s, Categorical actionDists)
 {
-    auto surrogate_obj = ComputeSurrogateObj(states,actions,advantage,old_log_probs,m_ActorNet);
+    auto x = torch::zeros_like(objGrad);
+	auto r = objGrad.clone();
+	auto p = r.clone();
+	auto rdotr = torch::dot(r, r);
+    for (int i = 0; i < 10; i++)
+    {
+
+    }
+
+	return torch::zeros_like(objGrad); // Placeholder implementation
+}
+
+
+void TRPO::PolicyLearnUpdate(torch::Tensor s, torch::Tensor a, Categorical actionDists, torch::Tensor logProbs, torch::Tensor advantage)
+{
+    auto surrogate_obj = ComputeSurrogateObj(s,a,advantage, logProbs,m_ActorNet);
+	auto grads = torch::autograd::grad({ surrogate_obj }, m_ActorNet->parameters());
+	vector<torch::Tensor> flat;
+    for (auto& t : grads) 
+    {
+        flat.push_back(t.view({ -1 })); 
+    }
+    auto flatGrad = torch::cat(flat);
+    auto descent_direction = ConjugateGradient(flatGrad, s, actionDists);
 }
 
 
@@ -146,7 +162,7 @@ void TRPO::TrainGenerateItem2(const QwList& vList)
 
     auto action = m_ActorNet->forward(s0).gather(1, a);
     auto logProbs = torch::log(action + 1e-8).detach();
-    auto old_action_dists = Categorical(m_ActorNet->forward(s0).detach());
+    auto actionDists = Categorical(m_ActorNet->forward(s0).detach());
 
     auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));
 
@@ -155,7 +171,7 @@ void TRPO::TrainGenerateItem2(const QwList& vList)
     criticLoss.backward();
     m_pAdamCritic->step();
 
-    PolicyLearnUpdate(s0,a,old_action_dists,logProbs,advantage);
+    PolicyLearnUpdate(s0,a, actionDists,logProbs,advantage);
 
 }
 
