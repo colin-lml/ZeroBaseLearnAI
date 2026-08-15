@@ -53,6 +53,58 @@ private:
 	torch::Tensor logits_;
 };
 
+#if 0
+ class Categorical
+{
+public:
+	explicit Categorical(const torch::Tensor& logits_or_probs, bool input_is_logits = true)
+	{
+		if (input_is_logits)
+		{
+			// 输入为 raw logits：内部计算 softmax / log_softmax（数值稳定）
+			logits_ = logits_or_probs;
+			log_probs_ = torch::log_softmax(logits_, /*dim=*/1);
+			probs_ = torch::softmax(logits_, /*dim=*/1);
+		}
+		else
+		{
+			// 输入已是概率分布（每行和为1）
+			probs_ = logits_or_probs;
+			// 防止 log(0)
+			log_probs_ = torch::log(probs_ + 1e-8);
+		}
+
+		TORCH_CHECK(log_probs_.dim() == 2, "Categorical expects a 2-D tensor [B, num_actions]");
+	}
+
+	// 返回与输入 actions 对应的对数概率，输出形状为 [B]
+	torch::Tensor log_prob(const torch::Tensor& actions) const
+	{
+		auto acts = actions.to(torch::kLong);
+		if (acts.dim() == 1)
+			acts = acts.unsqueeze(1); // 变为 [B,1] 以便 gather 使用
+		acts = acts.to(log_probs_.device());
+
+		auto p_a = log_probs_.gather(1, acts); // [B,1]
+		return p_a.squeeze(1);                 // 返回 [B]
+	}
+
+	// 采样动作，返回 shape [B] 的 LongTensor（按概率采样）
+	torch::Tensor sample() const
+	{
+		// multinomial 期待概率分布（非 log-probs）
+		auto samp = torch::multinomial(probs_, 1, /*replacement=*/true);
+		return samp.squeeze(1);
+	}
+
+private:
+	torch::Tensor logits_;    // 可选，raw logits（若构造时传入 logits）
+	torch::Tensor probs_;     // 概率分布，shape [B, num_actions]
+	torch::Tensor log_probs_; // log-probs，shape [B, num_actions]
+};
+#endif
+
+
 
 
 class PolicyGradient : public BaseAdvanced

@@ -35,6 +35,50 @@ torch::Tensor TRPO::ComputeAdvantage(double gamma, double lmbda, torch::Tensor t
     return adv_tensor.to(td_delta.device());
 }
 
+torch::Tensor TRPO::ComputeSurrogateObj(torch::Tensor states, torch::Tensor actions, torch::Tensor advantage, torch::Tensor old_log_probs, PolicyNet&  actorNet)
+{
+    auto device = states.device();
+    actions = actions.to(torch::kLong).to(device);
+    advantage = advantage.to(device);
+    old_log_probs = old_log_probs.to(device);
+
+    // actorNet 的 forward 在 PolicyNetImpl 中返回的是 softmax 概率
+    auto probs = actorNet->forward(states); // [B, A]
+
+    // 规范 actions 形状为 [B,1]
+    if (actions.dim() == 1)
+    {
+        actions = actions.unsqueeze(1);
+    }
+
+    // 取出当前策略下被采取动作的概率并计算 log-prob
+    const double eps = 1e-8;
+    auto action_probs = probs.gather(1, actions);        // [B,1]
+    auto log_probs = torch::log(action_probs + eps);     // [B,1]
+
+    // 规范 advantage 形状为 [B,1]
+    if (advantage.dim() == 1) 
+    {
+        advantage = advantage.unsqueeze(1);
+    }
+
+    // 计算比率 r(θ) = exp(logπ_θ(a|s) - logπ_old(a|s))
+    auto ratio = torch::exp(log_probs - old_log_probs);
+
+    // 计算 surrogate objective: mean( r * advantage )
+    auto surrogate = (ratio * advantage).mean();
+
+    return surrogate;
+}
+
+
+
+void TRPO::PolicyLearnUpdate(torch::Tensor states, torch::Tensor actions, Categorical old_actions_dists, torch::Tensor old_log_probs, torch::Tensor advantage)
+{
+    auto surrogate_obj = ComputeSurrogateObj(states,actions,advantage,old_log_probs,m_ActorNet);
+}
+
+
 
 int TRPO::TakeAction(VectorDouble& s0, bool bPredict)
 {
@@ -102,7 +146,7 @@ void TRPO::TrainGenerateItem2(const QwList& vList)
 
     auto action = m_ActorNet->forward(s0).gather(1, a);
     auto logProbs = torch::log(action + 1e-8).detach();
-
+    auto old_action_dists = Categorical(m_ActorNet->forward(s0).detach());
 
     auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));
 
@@ -111,7 +155,7 @@ void TRPO::TrainGenerateItem2(const QwList& vList)
     criticLoss.backward();
     m_pAdamCritic->step();
 
-
+    PolicyLearnUpdate(s0,a,old_action_dists,logProbs,advantage);
 
 }
 

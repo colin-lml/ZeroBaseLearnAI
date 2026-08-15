@@ -10,6 +10,9 @@ public:
 private:
 
 	torch::Tensor ComputeAdvantage(double gamma, double lmbda, torch::Tensor td_delta);
+	torch::Tensor ComputeSurrogateObj(torch::Tensor states, torch::Tensor actions, torch::Tensor advantage, torch::Tensor old_log_probs, PolicyNet&  actorNet);
+
+	void PolicyLearnUpdate(torch::Tensor states, torch::Tensor actions, Categorical old_actions_dists, torch::Tensor old_log_probs, torch::Tensor advantage);
 
 
 	void GenerateTrainData(int maxCount) override;
