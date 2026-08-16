@@ -13,7 +13,8 @@ private:
 	torch::Tensor ComputeSurrogateObj(torch::Tensor s, torch::Tensor a, torch::Tensor advantage, torch::Tensor logProbs, PolicyNet&  actorNet);
 	void PolicyLearnUpdate(torch::Tensor s, torch::Tensor a, Categorical actionDists, torch::Tensor logProbs, torch::Tensor advantage);
 	torch::Tensor ConjugateGradient(torch::Tensor objGrad, torch::Tensor s, Categorical actionDists);
-	torch::Tensor HessianMatrixVectorProduct();
+	torch::Tensor HessianMatrixVectorProduct(torch::Tensor s, Categorical actionDists, torch::Tensor v);
+	torch::Tensor LineSearch(torch::Tensor s, torch::Tensor a, torch::Tensor advantage, torch::Tensor logProbs, Categorical actionDists, torch::Tensor step_size);
 
 	void GenerateTrainData(int maxCount) override;
 

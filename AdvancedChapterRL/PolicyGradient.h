@@ -49,6 +49,19 @@ public:
 		return torch::multinomial(logits_, 1, true).squeeze(1);
 	}
 
+	// 计算 KL 散度（逐 batch 行）
+	torch::Tensor kl_divergence(const Categorical& other) const
+	{
+		// 本分布的概率和 log 概率
+		torch::Tensor p = torch::softmax(logits_, 1);
+		torch::Tensor log_p = torch::log_softmax(logits_, 1);
+		// 目标分布的 log 概率
+		torch::Tensor log_q = torch::log_softmax(other.logits_, 1);
+		// KL 散度 D_KL(P||Q) = sum_i p_i (log_p_i - log_q_i)
+		torch::Tensor kl = (p * (log_p - log_q)).sum(1);
+		return kl;
+	}
+
 private:
 	torch::Tensor logits_;
 };

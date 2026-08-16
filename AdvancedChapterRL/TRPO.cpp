@@ -3,6 +3,118 @@
 #include <vector>
 
 
+torch::Tensor parameters_to_vector(const std::vector<torch::Tensor>& params)
+{
+    if (params.empty())
+    {
+        return torch::empty({ 0 });
+    }
+
+    // 收集所有非空参数的扁平视图
+    std::vector<torch::Tensor> flats;
+    flats.reserve(params.size());
+    auto first = params.front();
+    auto options = torch::TensorOptions().dtype(first.dtype()).device(first.device());
+
+    for (const auto& p : params) 
+    {
+        if (!p.defined() || p.numel() == 0) 
+        {
+            continue;
+        }
+        // 保证连续并扁平化
+        flats.push_back(p.contiguous().view({ -1 }));
+    }
+
+    if (flats.empty()) {
+        return torch::empty({ 0 }, options);
+    }
+
+    // 在参数所在 device 上连接
+    return torch::cat(flats, 0);
+}
+
+torch::Tensor parameters_to_vector(const torch::nn::Module& module)
+{
+    std::vector<torch::Tensor> params;
+    for (const auto& p : module.parameters())
+    {
+        params.push_back(p);
+    }
+    return parameters_to_vector(params);
+}
+
+void vector_to_parameters(const torch::Tensor& flat, std::vector<torch::Tensor>& params)
+{
+    auto flat_view = flat.view(-1);
+    int64_t offset = 0;
+    const int64_t total = flat_view.numel();
+
+    for (auto& p : params)
+    {
+        if (!p.defined()) continue;
+        const int64_t numel = p.numel();
+        if (numel == 0) continue;
+        TORCH_CHECK(offset + numel <= total, "vector_to_parameters: provided vector is too small");
+
+        // 取出对应片段并 reshape 成 p 的形状，再复制到 p（保留 p 的 device & dtype）
+        auto slice = flat_view.narrow(0, offset, numel).view(p.sizes()).to(p.device()).to(p.dtype());
+        p.copy_(slice);
+        offset += numel;
+    }
+
+    TORCH_CHECK(offset == total, "vector_to_parameters: size mismatch between flat vector and parameters");
+}
+
+void vector_to_parameters(const torch::Tensor& flat, torch::nn::Module& module)
+{
+    std::vector<torch::Tensor> params;
+    for (auto& p : module.parameters()) 
+    {
+        params.push_back(p);
+    }
+    vector_to_parameters(flat, params);
+}
+
+// 将一个 module 的参数复制到另一个 module（替代 Python 的 load_state_dict）
+static void CopyModuleParameters(const torch::nn::Module& src, torch::nn::Module& dst)
+{
+    torch::NoGradGuard no_grad;
+
+    // 构建 src 参数的查找表： name -> tensor
+    std::unordered_map<std::string, torch::Tensor> src_map;
+    for (const auto& item : src.named_parameters(/*recurse=*/true))
+    {
+        src_map.emplace(item.key(), item.value());
+    }
+
+    // 遍历 dst 的参数，按 name 查找并 copy_
+    for (auto& item : dst.named_parameters(/*recurse=*/true)) 
+    {
+        const auto& name = item.key();
+        auto& dst_tensor = item.value();
+        auto it = src_map.find(name);
+        if (it == src_map.end())
+        {
+            // 名称不匹配：跳过（或根据需要记录警告）
+            continue;
+        }
+        auto src_tensor = it->second;
+        // 保证类型/设备一致，然后原地复制
+        if (src_tensor.device() != dst_tensor.device())
+        {
+            src_tensor = src_tensor.to(dst_tensor.device());
+        }
+        if (src_tensor.dtype() != dst_tensor.dtype())
+        {
+            src_tensor = src_tensor.to(dst_tensor.dtype());
+        }
+        dst_tensor.copy_(src_tensor);
+    }
+}
+
+
+
 torch::Tensor TRPO::ComputeAdvantage(double gamma, double lmbda, torch::Tensor td_delta)
 {
     // Ensure tensor is detached and on CPU for host-side loop
@@ -66,6 +178,30 @@ torch::Tensor TRPO::ComputeSurrogateObj(torch::Tensor s, torch::Tensor a, torch:
     return surrogate;
 }
 
+torch::Tensor TRPO::HessianMatrixVectorProduct(torch::Tensor s, Categorical actionDists, torch::Tensor v)
+{
+    auto newActionDists = Categorical(m_ActorNet->forward(s));
+    auto kl = torch::mean(actionDists.kl_divergence(newActionDists));
+    auto grads = torch::autograd::grad({ kl }, m_ActorNet->parameters(), {},true,true);
+    vector<torch::Tensor> flat;
+    for (auto& t : grads)
+    {
+        flat.push_back(t.view({ -1 }));
+    }
+    auto vectorGrad = torch::cat(flat);
+    auto klGradVectorProduct = torch::dot(vectorGrad, v);
+    auto grad2 = torch::autograd::grad({ klGradVectorProduct }, m_ActorNet->parameters());
+    
+    flat.clear();
+    for (auto& t : grads)
+    {
+        flat.push_back(t.view({ -1 }));
+    }
+
+	return torch::cat(flat);    
+}
+
+
 torch::Tensor TRPO::ConjugateGradient(torch::Tensor objGrad, torch::Tensor s, Categorical actionDists)
 {
     auto x = torch::zeros_like(objGrad);
@@ -74,12 +210,38 @@ torch::Tensor TRPO::ConjugateGradient(torch::Tensor objGrad, torch::Tensor s, Ca
 	auto rdotr = torch::dot(r, r);
     for (int i = 0; i < 10; i++)
     {
+	  auto Hp = HessianMatrixVectorProduct(s, actionDists, p);
+	  auto alpha = rdotr / (torch::dot(p, Hp) + 1e-8);
+	  x += alpha * p;
+	  r -= alpha * Hp;
+	  auto new_rdotr = torch::dot(r, r);
+      if (new_rdotr.item<double>() < 1e-9)
+      {
+          break;
+      }
+	  auto beta = new_rdotr / (rdotr + 1e-8);
+	  p = r + beta * p;
+	  rdotr = new_rdotr;
 
     }
 
-	return torch::zeros_like(objGrad); // Placeholder implementation
+	return x; 
 }
+torch::Tensor TRPO::LineSearch(torch::Tensor s, torch::Tensor a, torch::Tensor advantage, torch::Tensor logProbs, Categorical actionDists, torch::Tensor step_size)
+{
+   auto oldData = parameters_to_vector(m_ActorNet->parameters());
+   auto oldSurrogate = ComputeSurrogateObj(s, a, advantage, logProbs, m_ActorNet);
+   auto input = m_CartPoleEnv.GetStateDim();
+   auto output = m_CartPoleEnv.GetActionDim();
 
+   auto tmepActor = PolicyNet(input, output);
+   tmepActor->to(m_device);
+   
+   CopyModuleParameters(*m_ActorNet, *tmepActor);
+
+
+
+}
 
 void TRPO::PolicyLearnUpdate(torch::Tensor s, torch::Tensor a, Categorical actionDists, torch::Tensor logProbs, torch::Tensor advantage)
 {
@@ -92,6 +254,9 @@ void TRPO::PolicyLearnUpdate(torch::Tensor s, torch::Tensor a, Categorical actio
     }
     auto flatGrad = torch::cat(flat);
     auto descent_direction = ConjugateGradient(flatGrad, s, actionDists);
+	auto Hd = HessianMatrixVectorProduct(s, actionDists, descent_direction);
+	auto step_size = torch::sqrt(2 * m_dbklConstraint / (torch::dot(descent_direction, Hd) + 1e-8));
+
 }
 
 
