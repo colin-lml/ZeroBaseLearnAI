@@ -46,24 +46,40 @@ torch::Tensor parameters_to_vector(const torch::nn::Module& module)
 
 void vector_to_parameters(const torch::Tensor& flat, std::vector<torch::Tensor>& params)
 {
-    auto flat_view = flat.view(-1);
-    int64_t offset = 0;
+    // 展平为一维连续张量；若原flat不连续会触发一次拷贝，保证narrow可用
+    auto flat_view = flat.contiguous().view({ -1 });
     const int64_t total = flat_view.numel();
 
+    int64_t expected = 0;
+    for (const auto& p : params)
+    {
+        if (!p.defined()) continue;
+        const int64_t numel = p.numel();
+        if (numel == 0) continue;
+        expected += numel;
+    }
+
+    TORCH_CHECK(
+        expected == total,
+        "vector_to_parameters: size mismatch. expected=", expected, ", got=", total
+    );
+
+    int64_t offset = 0;
     for (auto& p : params)
     {
         if (!p.defined()) continue;
         const int64_t numel = p.numel();
         if (numel == 0) continue;
-        TORCH_CHECK(offset + numel <= total, "vector_to_parameters: provided vector is too small");
 
-        // 取出对应片段并 reshape 成 p 的形状，再复制到 p（保留 p 的 device & dtype）
-        auto slice = flat_view.narrow(0, offset, numel).view(p.sizes()).to(p.device()).to(p.dtype());
-        p.copy_(slice);
+        auto slice = flat_view.narrow(0, offset, numel);
+        // to(options) 自动包含 device + dtype，无需两次to，内部优化避免冗余拷贝
+        auto chunk = slice.to(p.options()).view(p.sizes());
+        p.copy_(chunk);
+
         offset += numel;
     }
 
-    TORCH_CHECK(offset == total, "vector_to_parameters: size mismatch between flat vector and parameters");
+    TORCH_CHECK(offset == expected, "vector_to_parameters: internal offset mismatch");
 }
 
 void vector_to_parameters(const torch::Tensor& flat, torch::nn::Module& module)
@@ -180,9 +196,18 @@ torch::Tensor TRPO::ComputeSurrogateObj(torch::Tensor s, torch::Tensor a, torch:
 
 torch::Tensor TRPO::HessianMatrixVectorProduct(torch::Tensor s, Categorical actionDists, torch::Tensor v)
 {
+#if 0
     auto newActionDists = Categorical(m_ActorNet->forward(s));
     auto kl = torch::mean(actionDists.kl_divergence(newActionDists));
-    auto grads = torch::autograd::grad({ kl }, m_ActorNet->parameters(), {},true,true);
+
+    // 一阶梯度，保留计算图以便后续二阶导（create_graph = true）
+    auto params = std::vector<torch::Tensor>();
+    for (auto& p : m_ActorNet->parameters())
+    {
+        params.push_back(p);
+    }
+
+    auto grads = torch::autograd::grad({ kl }, params, {}, true, true, true);
     vector<torch::Tensor> flat;
     for (auto& t : grads)
     {
@@ -190,15 +215,73 @@ torch::Tensor TRPO::HessianMatrixVectorProduct(torch::Tensor s, Categorical acti
     }
     auto vectorGrad = torch::cat(flat);
     auto klGradVectorProduct = torch::dot(vectorGrad, v);
-    auto grad2 = torch::autograd::grad({ klGradVectorProduct }, m_ActorNet->parameters());
-    
+
+    auto grad2 = torch::autograd::grad({ klGradVectorProduct }, params, {}, true, false,true);
     flat.clear();
     for (auto& t : grads)
     {
         flat.push_back(t.view({ -1 }));
     }
 
-	return torch::cat(flat);    
+	return torch::cat(flat);   
+#endif
+
+
+    // 计算 KL（batch mean）
+    auto newActionDists = Categorical(m_ActorNet->forward(s));
+    auto kl = torch::mean(actionDists.kl_divergence(newActionDists));
+
+    // 一阶梯度，保留计算图以便后续二阶导（create_graph = true）
+    auto params = std::vector<torch::Tensor>();
+    for (auto& p : m_ActorNet->parameters()) params.push_back(p);
+
+    auto grads = torch::autograd::grad({ kl }, params, /*grad_outputs=*/{}, /*retain_graph=*/true, /*create_graph=*/true, /*allow_unused=*/true);
+
+    // 将 grads 扁平化为向量 (与参数顺序一致)，未定义时填 0
+    std::vector<torch::Tensor> flat_grad_parts;
+    flat_grad_parts.reserve(grads.size());
+    for (size_t i = 0; i < params.size(); ++i)
+    {
+        const auto& p = params[i];
+        auto g = grads[i];
+        if (!g.defined())
+        {
+            // 填零，类型/设备与参数一致
+            flat_grad_parts.push_back(torch::zeros({ p.numel() }, torch::TensorOptions().dtype(p.dtype()).device(p.device())));
+        }
+        else
+        {
+            flat_grad_parts.push_back(g.contiguous().view({ -1 }));
+        }
+    }
+
+    auto vectorGrad = torch::cat(flat_grad_parts).to(v.device()).to(v.dtype());
+
+    // 内积得到标量
+    auto klGradVectorProduct = torch::dot(vectorGrad, v);
+
+    // 对该标量再对参数求导，得到 Hessian-vector 乘积（允许缺失项）
+    auto grad2 = torch::autograd::grad({ klGradVectorProduct }, params, /*grad_outputs=*/{}, /*retain_graph=*/true, /*create_graph=*/false, /*allow_unused=*/true);
+
+    // 扁平化 grad2，缺失处填 0
+    std::vector<torch::Tensor> flat2_parts;
+    flat2_parts.reserve(grad2.size());
+    for (size_t i = 0; i < params.size(); ++i)
+    {
+        const auto& p = params[i];
+        auto g2 = grad2[i];
+        if (!g2.defined())
+        {
+            flat2_parts.push_back(torch::zeros({ p.numel() }, torch::TensorOptions().dtype(p.dtype()).device(p.device())));
+        }
+        else
+        {
+            flat2_parts.push_back(g2.contiguous().view({ -1 }));
+        }
+    }
+
+    auto Hv = torch::cat(flat2_parts).to(v.device()).to(v.dtype());
+    return Hv;
 }
 
 
@@ -227,8 +310,10 @@ torch::Tensor TRPO::ConjugateGradient(torch::Tensor objGrad, torch::Tensor s, Ca
 
 	return x; 
 }
+
 torch::Tensor TRPO::LineSearch(torch::Tensor s, torch::Tensor a, torch::Tensor advantage, torch::Tensor logProbs, Categorical actionDists, torch::Tensor step_size)
 {
+#if 0
    auto oldData = parameters_to_vector(m_ActorNet->parameters());
    auto oldSurrogate = ComputeSurrogateObj(s, a, advantage, logProbs, m_ActorNet);
    auto input = m_CartPoleEnv.GetStateDim();
@@ -237,9 +322,61 @@ torch::Tensor TRPO::LineSearch(torch::Tensor s, torch::Tensor a, torch::Tensor a
    auto tmepActor = PolicyNet(input, output);
    tmepActor->to(m_device);
    
+
    CopyModuleParameters(*m_ActorNet, *tmepActor);
 
+   for (int i = 0; i < 15; i++)
+   {
+      auto coef = std::pow(m_dbAlpha, i);
+	  auto newParams = oldData + coef * step_size;
 
+      vector_to_parameters(newParams, *tmepActor);
+	  auto newActionDists = Categorical(tmepActor->forward(s));
+	  torch::Tensor kl = torch::mean(actionDists.kl_divergence(newActionDists));
+      auto newSurrogate = ComputeSurrogateObj(s, a, advantage, logProbs, tmepActor);
+      if (newSurrogate.item<double>() > oldSurrogate.item<double>() &&  kl.item<double>() > m_dbklConstraint)
+      {
+          return newParams;
+	  }
+   }
+
+   return oldData;
+#endif
+
+   auto oldData = parameters_to_vector(m_ActorNet->parameters());
+   auto oldSurrogate = ComputeSurrogateObj(s, a, advantage, logProbs, m_ActorNet);
+   auto input = m_CartPoleEnv.GetStateDim();
+   auto output = m_CartPoleEnv.GetActionDim();
+
+   auto tmpActor = PolicyNet(input, output);
+   tmpActor->to(m_device);
+
+   CopyModuleParameters(*m_ActorNet, *tmpActor);
+
+   for (int i = 0; i < 15; i++)
+   {
+       auto coef = std::pow(m_dbAlpha, i);
+       auto newParams = oldData + coef * step_size;
+       
+       auto params = std::vector<torch::Tensor>();
+       for (auto& p : m_ActorNet->parameters())
+       {
+           params.push_back(p);
+       }
+       vector_to_parameters(newParams, params);
+
+       auto newActionDists = Categorical(tmpActor->forward(s));
+       torch::Tensor kl = torch::mean(actionDists.kl_divergence(newActionDists));
+       auto newSurrogate = ComputeSurrogateObj(s, a, advantage, logProbs, tmpActor);
+
+       // 接受新参数：surrogate 提升且 KL 在约束之内（注意 <）
+       if (newSurrogate.item<double>() > oldSurrogate.item<double>() && kl.item<double>() < m_dbklConstraint)
+       {
+           return newParams;
+       }
+   }
+
+   return oldData;
 
 }
 
@@ -256,7 +393,8 @@ void TRPO::PolicyLearnUpdate(torch::Tensor s, torch::Tensor a, Categorical actio
     auto descent_direction = ConjugateGradient(flatGrad, s, actionDists);
 	auto Hd = HessianMatrixVectorProduct(s, actionDists, descent_direction);
 	auto step_size = torch::sqrt(2 * m_dbklConstraint / (torch::dot(descent_direction, Hd) + 1e-8));
-
+    auto new_para = LineSearch(s, a, advantage, logProbs, actionDists, step_size);
+	vector_to_parameters(new_para, *m_ActorNet);
 }
 
 
@@ -285,7 +423,7 @@ void TRPO::GenerateTrainData(int maxCount)
     cout << "Currently TRPO" << endl;
 
     m_dbGamma = 0.98;
-   
+    m_dbAlpha = 0.5;
 
     auto input = m_CartPoleEnv.GetStateDim();
     auto output = m_CartPoleEnv.GetActionDim();
