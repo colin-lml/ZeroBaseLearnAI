@@ -120,7 +120,7 @@ torch::Tensor TRPO::HessianMatrixVectorProduct(const torch::Tensor& s, const Cat
 }
 
 
-torch::Tensor TRPO::ConjugateGradient(torch::Tensor objGrad,const torch::Tensor& s,const Categorical& oldsDists)
+torch::Tensor TRPO::ConjugateGradient(const torch::Tensor& objGrad,const torch::Tensor& s,const Categorical& oldsDists)
 {
     auto x = torch::zeros_like(objGrad);
 	auto r = objGrad.clone();
