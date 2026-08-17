@@ -146,11 +146,11 @@ torch::Tensor TRPO::ConjugateGradient(const torch::Tensor& objGrad,const torch::
 	return x; 
 }
 
-torch::Tensor TRPO::LineSearch(torch::Tensor s, torch::Tensor a, torch::Tensor advantage, torch::Tensor logProbs, Categorical actionDists, torch::Tensor fullStep,bool& bUpdate)
+torch::Tensor TRPO::LineSearch(const torch::Tensor& s, const torch::Tensor& a, const torch::Tensor& adv, const torch::Tensor& oldLogProbs, const Categorical& oldsDists, const torch::Tensor& fullStep,bool& bUpdate)
 {
    bUpdate = false;
-   auto oldData = ParametersToVector(*m_ActorNet);
-   auto oldSurrogate = ComputeSurrogateObj(s, a, advantage, logProbs, m_ActorNet);
+   auto oldParam = ParametersToVector(*m_ActorNet);
+   auto oldSurrogate = ComputeSurrogateObj(s, a, adv, oldLogProbs, m_ActorNet);
    auto input = m_CartPoleEnv.GetStateDim();
    auto output = m_CartPoleEnv.GetActionDim();
 
@@ -162,13 +162,13 @@ torch::Tensor TRPO::LineSearch(torch::Tensor s, torch::Tensor a, torch::Tensor a
    for (int i = 0; i < 15; i++)
    {
        auto coefficient = std::pow(m_dbAlpha, i);
-       auto newParams = oldData + coefficient * fullStep;
+       auto newParams = oldParam + coefficient * fullStep;
        
        VectorToParameters(newParams, *tmpActor);
 
        auto newActionDists = Categorical(tmpActor->forward(s));
-       torch::Tensor kl = torch::mean(actionDists.kl_divergence(newActionDists));
-       auto newSurrogate = ComputeSurrogateObj(s, a, advantage, logProbs, tmpActor);
+       torch::Tensor kl = torch::mean(oldsDists.kl_divergence(newActionDists));
+       auto newSurrogate = ComputeSurrogateObj(s, a, adv, oldLogProbs, tmpActor);
 
        auto dbKl = kl.item<double>();
 
@@ -179,13 +179,13 @@ torch::Tensor TRPO::LineSearch(torch::Tensor s, torch::Tensor a, torch::Tensor a
        }
    }
 
-   return oldData;
+   return oldParam;
 
 }
 
-void TRPO::PolicyLearnUpdate(torch::Tensor s, torch::Tensor a, Categorical actionDists, torch::Tensor logProbs, torch::Tensor adv)
+void TRPO::PolicyLearnUpdate(const torch::Tensor& s, const torch::Tensor& a, const Categorical& oldsDists, const torch::Tensor& oldLogProbs, const torch::Tensor& adv)
 {
-    auto surrogate_obj = ComputeSurrogateObj(s,a, adv, logProbs,m_ActorNet);
+    auto surrogate_obj = ComputeSurrogateObj(s,a, adv, oldLogProbs,m_ActorNet);
 	auto grads = torch::autograd::grad({ surrogate_obj }, m_ActorNet->parameters());
 	vector<torch::Tensor> flat;
     for (auto& t : grads) 
@@ -193,12 +193,12 @@ void TRPO::PolicyLearnUpdate(torch::Tensor s, torch::Tensor a, Categorical actio
         flat.push_back(t.view({ -1 })); 
     }
     auto flatGrad = torch::cat(flat);
-    auto searchDirection = ConjugateGradient(flatGrad, s, actionDists);
-	auto Hd = HessianMatrixVectorProduct(s, actionDists, searchDirection);
+    auto searchDirection = ConjugateGradient(flatGrad, s, oldsDists);
+	auto Hd = HessianMatrixVectorProduct(s, oldsDists, searchDirection);
 	auto stepScale = torch::sqrt(2 * m_dbklConstraint / (torch::dot(searchDirection, Hd) + 1e-8));
     bool bUpdate;
     auto fullStep = (stepScale * searchDirection).detach();
-    auto new_para = LineSearch(s, a, adv, logProbs, actionDists, fullStep, bUpdate);
+    auto new_para = LineSearch(s, a, adv, oldLogProbs, oldsDists, fullStep, bUpdate);
     if (bUpdate)
     {
         VectorToParameters(new_para, *m_ActorNet);
