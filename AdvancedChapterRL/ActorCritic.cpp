@@ -60,6 +60,22 @@ void ActorCritic::GenerateTrainData(int maxCount)
 void ActorCritic::TrainGenerateItem2(const QwList& vList)
 {
 
+    static int count = 0;
+
+    if (450 < vList.size())
+    {
+        count++;
+        if (3 < count)
+        {
+            m_bEndGenerateTrain = true;
+            return;
+        }
+    }
+    else
+    {
+        count = 0;
+    }
+
     auto [s0, a, r, s1, done] = QwListToTensor(vList, m_device);
 
     auto v0 = m_CriticNet->forward(s0);
