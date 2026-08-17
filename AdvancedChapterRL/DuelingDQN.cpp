@@ -18,6 +18,10 @@ void DuelingDQN::CreateOptimizer(DuelingNet& model)
 
 void DuelingDQN::SyncTargetNet()
 {
+
+	CopyModuleParameters(*m_Qnet, *m_TargetQnet);
+
+#if 0	
 	string binPath = "tmpDuelingDQNParameters.pt";
 	{
 		torch::serialize::OutputArchive archive;
@@ -30,6 +34,7 @@ void DuelingDQN::SyncTargetNet()
 		archive.load_from(binPath);
 		m_TargetQnet->load(archive);
 	}
+#endif
 
 }
 

@@ -30,7 +30,7 @@ QwItemTensor QwListToTensor(const QwList& item, const torch::DeviceType& device)
     auto S0 = torch::tensor(vS0, torch::kFloat32).reshape({ B, M}).to(device);
     auto S1 = torch::tensor(vS1, torch::kFloat32).reshape({ B, M }).to(device);
     auto R = torch::tensor(vR, torch::kFloat32).reshape({ B, 1 }).to(device);
-    auto A = torch::tensor(vA, torch::kInt).reshape({ B, 1 }).to(device);
+    auto A = torch::tensor(vA, torch::kLong).reshape({ B, 1 }).to(device);
     auto E = torch::tensor(vD, torch::kInt).reshape({ B, 1 }).to(device);
 
 

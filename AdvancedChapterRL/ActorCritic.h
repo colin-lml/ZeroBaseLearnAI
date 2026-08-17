@@ -5,7 +5,7 @@ class ValueNetImpl : public torch::nn::Module
 public:
 	ValueNetImpl() = default;
 
-	ValueNetImpl(int64_t input, int64_t output, int64_t hidden = 128)
+	ValueNetImpl(int64_t input, int64_t output=1, int64_t hidden = 128)
 	{
 		m_fc1 = register_module("fc1", torch::nn::Linear(input, hidden));
 		m_fc2 = register_module("fc2", torch::nn::Linear(hidden, output));

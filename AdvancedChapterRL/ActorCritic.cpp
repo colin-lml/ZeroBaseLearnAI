@@ -33,7 +33,7 @@ void ActorCritic::GenerateTrainData(int maxCount)
     auto output = m_CartPoleEnv.GetActionDim();
 
     m_ActorNet = PolicyNet(input, output);
-    m_CriticNet = ValueNet(input, output);
+    m_CriticNet = ValueNet(input, 1);
 
     m_CriticNet->to(m_device);
     m_ActorNet->to(m_device);

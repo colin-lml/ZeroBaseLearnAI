@@ -57,6 +57,9 @@ void DeepQNetwork::CreateOptimizer(DQNQnet& model)
 
 void DeepQNetwork::SyncTargetNet()
 {
+	CopyModuleParameters(*m_Qnet, *m_TargetQnet);
+	
+#if 0
 	string binPath = "tmpNetParameters.pt";
 	{
 		torch::serialize::OutputArchive archive;
@@ -69,6 +72,7 @@ void DeepQNetwork::SyncTargetNet()
 		archive.load_from(binPath);
 		m_TargetQnet->load(archive);
 	}
+#endif
 
 }
 
