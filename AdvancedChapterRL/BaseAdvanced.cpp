@@ -87,40 +87,49 @@ void BaseAdvanced::GenerateTrainData(int maxCount)
 	cout  << endl;
 }
 
-// 将一个 module 的参数复制到另一个 module（替代 Python 的 load_state_dict）
+// 将一个 module 的参数复制到另一个 module
 void CopyModuleParameters(const torch::nn::Module& src, torch::nn::Module& dst)
 {
-	torch::NoGradGuard no_grad;
+	torch::NoGradGuard noGrad;
 
+#if 0
 	// 构建 src 参数的查找表： name -> tensor
-	std::unordered_map<std::string, torch::Tensor> src_map;
+	std::unordered_map<std::string, torch::Tensor> srcMap;
 	for (const auto& item : src.named_parameters(/*recurse=*/true))
 	{
-		src_map.emplace(item.key(), item.value());
+		srcMap.emplace(item.key(), item.value());
 	}
 
 	// 遍历 dst 的参数，按 name 查找并 copy_
 	for (auto& item : dst.named_parameters(/*recurse=*/true))
 	{
 		const auto& name = item.key();
-		auto& dst_tensor = item.value();
-		auto it = src_map.find(name);
-		if (it == src_map.end())
+		auto& dstTensor = item.value();
+		auto it = srcMap.find(name);
+		if (it == srcMap.end())
 		{
 			// 名称不匹配：跳过（或根据需要记录警告）
 			continue;
 		}
-		auto src_tensor = it->second;
+		auto srcTensor = it->second;
 		// 保证类型/设备一致，然后原地复制
-		if (src_tensor.device() != dst_tensor.device())
+		if (srcTensor.device() != dstTensor.device())
 		{
-			src_tensor = src_tensor.to(dst_tensor.device());
+			srcTensor = srcTensor.to(dstTensor.device());
 		}
-		if (src_tensor.dtype() != dst_tensor.dtype())
+		if (srcTensor.dtype() != dstTensor.dtype())
 		{
-			src_tensor = src_tensor.to(dst_tensor.dtype());
+			srcTensor = srcTensor.to(dstTensor.dtype());
 		}
-		dst_tensor.copy_(src_tensor);
+		dstTensor.copy_(srcTensor);
+	}
+#endif
+	auto srcParams = src.parameters();
+	auto dstParams = dst.parameters();
+	TORCH_CHECK(srcParams.size() == dstParams.size(),"copy_module_parameters: parameter count mismatch!");
+	for (size_t i = 0; i < srcParams.size(); ++i)
+	{
+		dstParams[i].copy_(srcParams[i]);
 	}
 }
 

@@ -11,8 +11,6 @@ torch::Tensor TRPO::ComputeAdvantage(double gamma, double lmbda, torch::Tensor& 
     // Ensure tensor is detached and on CPU for host-side loop
     td = td.cpu().contiguous();
    
-   
-
     // Expect td shape [n, m] (timesteps, batch or parallel envs)
     auto n = td.size(0);
     auto m = td.size(1);
@@ -36,6 +34,7 @@ torch::Tensor TRPO::ComputeAdvantage(double gamma, double lmbda, torch::Tensor& 
     auto options = torch::TensorOptions().dtype(torch::kFloat32);
     auto adv = torch::from_blob(advantages.data(), { (int64_t)n, (int64_t)m }, options).clone();
     return adv.to(device);
+    
 }
 
 torch::Tensor TRPO::ComputeSurrogateObj(const torch::Tensor& s, const torch::Tensor& a, const torch::Tensor& adv, const torch::Tensor& oldLogProbs, PolicyNet& actorNet)
@@ -46,7 +45,7 @@ torch::Tensor TRPO::ComputeSurrogateObj(const torch::Tensor& s, const torch::Ten
 
     // 取出当前策略下被采取动作的概率并计算 log-prob
    
-    auto logProbs = torch::log(probs + 1e-8);     // [B,1]
+    auto logProbs = torch::log(probs);     // [B,1]
 
     // 计算比率 r(θ) = exp(logπ_θ(a|s) - logπ_old(a|s))
     auto ratio = torch::exp(logProbs - oldLogProbs);
@@ -75,19 +74,10 @@ torch::Tensor TRPO::HessianMatrixVectorProduct(const torch::Tensor& s, const Cat
     // 将 grads 扁平化为向量 (与参数顺序一致)，未定义时填 0
     std::vector<torch::Tensor> flatGradParts;
     flatGradParts.reserve(grads.size());
-    for (size_t i = 0; i < params.size(); ++i)
+
+    for (auto& p: grads)
     {
-        const auto& p = params[i];
-        auto g = grads[i];
-        if (!g.defined())
-        {
-            // 填零，类型/设备与参数一致
-            flatGradParts.push_back(torch::zeros({ p.numel() }, torch::TensorOptions().dtype(p.dtype()).device(p.device())));
-        }
-        else
-        {
-            flatGradParts.push_back(g.contiguous().view({ -1 }));
-        }
+        flatGradParts.push_back(p.contiguous().view({ -1 }));
     }
 
     auto vectorGrad = torch::cat(flatGradParts).to(v.device()).to(v.dtype());
@@ -101,22 +91,16 @@ torch::Tensor TRPO::HessianMatrixVectorProduct(const torch::Tensor& s, const Cat
     // 扁平化 grad2，缺失处填 0
     std::vector<torch::Tensor> flat2Parts;
     flat2Parts.reserve(grad2.size());
-    for (size_t i = 0; i < params.size(); ++i)
+
+    for (auto& p: grad2)
     {
-        const auto& p = params[i];
-        auto g2 = grad2[i];
-        if (!g2.defined())
-        {
-            flat2Parts.push_back(torch::zeros({ p.numel() }, torch::TensorOptions().dtype(p.dtype()).device(p.device())));
-        }
-        else
-        {
-            flat2Parts.push_back(g2.contiguous().view({ -1 }));
-        }
+        flat2Parts.push_back(p.contiguous().view({ -1 }));
     }
 
     auto Hv = torch::cat(flat2Parts).to(v.device()).to(v.dtype());
-    return Hv;
+    //给 Hessian-vector product 加阻尼
+    constexpr double damping = 0.1;
+    return Hv + +damping * v;
 }
 
 
@@ -126,10 +110,10 @@ torch::Tensor TRPO::ConjugateGradient(const torch::Tensor& objGrad,const torch::
 	auto r = objGrad.clone();
 	auto p = r.clone();
 	auto rdotr = torch::dot(r, r);
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 20; i++)
     {
 	  auto Hp = HessianMatrixVectorProduct(s, oldsDists, p);
-	  auto alpha = rdotr / (torch::dot(p, Hp) + 1e-8);
+	  auto alpha = rdotr / (torch::dot(p, Hp));
 	  x += alpha * p;
 	  r -= alpha * Hp;
 	  auto new_rdotr = torch::dot(r, r);
@@ -137,7 +121,7 @@ torch::Tensor TRPO::ConjugateGradient(const torch::Tensor& objGrad,const torch::
       {
           break;
       }
-	  auto beta = new_rdotr / (rdotr + 1e-8);
+	  auto beta = new_rdotr / (rdotr);
 	  p = r + beta * p;
 	  rdotr = new_rdotr;
 
@@ -185,8 +169,8 @@ torch::Tensor TRPO::LineSearch(const torch::Tensor& s, const torch::Tensor& a, c
 
 void TRPO::PolicyLearnUpdate(const torch::Tensor& s, const torch::Tensor& a, const Categorical& oldsDists, const torch::Tensor& oldLogProbs, const torch::Tensor& adv)
 {
-    auto surrogate_obj = ComputeSurrogateObj(s,a, adv, oldLogProbs,m_ActorNet);
-	auto grads = torch::autograd::grad({ surrogate_obj }, m_ActorNet->parameters());
+    auto surrogateObj = ComputeSurrogateObj(s,a, adv, oldLogProbs,m_ActorNet);
+	auto grads = torch::autograd::grad({ surrogateObj }, m_ActorNet->parameters());
 	vector<torch::Tensor> flat;
     for (auto& t : grads) 
     {
@@ -195,7 +179,7 @@ void TRPO::PolicyLearnUpdate(const torch::Tensor& s, const torch::Tensor& a, con
     auto flatGrad = torch::cat(flat);
     auto searchDirection = ConjugateGradient(flatGrad, s, oldsDists);
 	auto Hd = HessianMatrixVectorProduct(s, oldsDists, searchDirection);
-	auto stepScale = torch::sqrt(2 * m_dbklConstraint / (torch::dot(searchDirection, Hd) + 1e-8));
+	auto stepScale = torch::sqrt(2 * m_dbklConstraint / (torch::dot(searchDirection, Hd)));
     bool bUpdate;
     auto fullStep = (stepScale * searchDirection).detach();
     auto new_para = LineSearch(s, a, adv, oldLogProbs, oldsDists, fullStep, bUpdate);
@@ -291,10 +275,18 @@ void TRPO::TrainGenerateItem2(const QwList& vList)
     m_pAdamCritic->step();
 
     auto adv = ComputeAdvantage(m_dbGamma, m_dbLmbda, td);
-    auto logProbs = torch::log(m_ActorNet->forward(s0).gather(1, a) + 1e-8).detach();
-    auto actionDists = Categorical(m_ActorNet->forward(s0).detach());
 
-    PolicyLearnUpdate(s0,a, actionDists,logProbs, adv);
+    auto logProbs = torch::log(m_ActorNet->forward(s0).gather(1, a)).detach();
+    auto actionDists = Categorical(m_ActorNet->forward(s0).detach());
+    /// 
+    //PolicyLearnUpdate(s0,a, actionDists,logProbs, adv);
+
+    //防止 advantage 数值爆炸 / 剧烈波动, 优势归一化
+    auto mean = adv.mean();
+    auto std = adv.std();
+    // +1e‑8 防止std为0除零
+    auto adv_norm = (adv - mean) / (std + 1e-8);
+    PolicyLearnUpdate(s0, a, actionDists, logProbs, adv_norm);
 
 }
 
