@@ -1,9 +1,44 @@
 ﻿#include "pch.h"
-#include "ActorCritic.h"
+#include "PPO.h"
+
+
+torch::Tensor PPO::ComputeAdvantage(double gamma, double lmbda, torch::Tensor& td)
+{
+    auto device = td.device();
+    td.detach_();
+    // Ensure tensor is detached and on CPU for host-side loop
+    td = td.cpu().contiguous();
+
+    // Expect td shape [n, m] (timesteps, batch or parallel envs)
+    auto n = td.size(0);
+    auto m = td.size(1);
+
+    std::vector<float> advantages(static_cast<size_t>(n * m));
+
+    // Compute advantage separately for each column (second dimension)
+    for (int64_t col = 0; col < m; ++col)
+    {
+        double adv = 0.0;
+        for (int64_t i = n - 1; i >= 0; --i)
+        {
+            // td[i][col] should be a scalar tensor
+            double delta = (m == 1) ? td[i].item<double>() : td[i][col].item<double>();
+            adv = gamma * lmbda * adv + delta;
+            advantages[static_cast<size_t>(i * m + col)] = static_cast<float>(adv);
+        }
+    }
+
+    // Create tensor on same device as original td_delta with shape [n, m]
+    auto options = torch::TensorOptions().dtype(torch::kFloat32);
+    auto adv = torch::from_blob(advantages.data(), { (int64_t)n, (int64_t)m }, options).clone();
+    return adv.to(device);
+
+}
 
 
 
-int ActorCritic::TakeAction(VectorDouble& s0, bool bPredict)
+
+int PPO::TakeAction(VectorDouble& s0, bool bPredict)
 {
     torch::NoGradGuard no_grad;
     auto s = VectorDoubleTensor(s0,m_device);
@@ -22,7 +57,7 @@ int ActorCritic::TakeAction(VectorDouble& s0, bool bPredict)
     return action.item<int>();
 }
 
-void ActorCritic::GenerateTrainData(int maxCount)
+void PPO::GenerateTrainData(int maxCount)
 {
     cout << "Currently Actor-Critic" << endl;
 
@@ -57,7 +92,7 @@ void ActorCritic::GenerateTrainData(int maxCount)
 
 }
 
-void ActorCritic::TrainGenerateItem2(const QwList& vList)
+void PPO::TrainGenerateItem2(const QwList& vList)
 {
 
     static int count = 0;
@@ -84,7 +119,7 @@ void ActorCritic::TrainGenerateItem2(const QwList& vList)
     auto td = v1 - v0;
 
     auto action = m_ActorNet->forward(s0).gather(1, a);
-    auto logProbs = torch::log(action);
+    auto logProbs = torch::log(action + 1e-8);
     auto actorLoss = torch::mean(-logProbs * td.detach());
 
     auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));

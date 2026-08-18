@@ -37,4 +37,5 @@ using namespace std;
 #include "PolicyGradient.h"
 #include "ActorCritic.h"
 #include "TRPO.h"
+#include "PPO.h"
 #endif //PCH_H
