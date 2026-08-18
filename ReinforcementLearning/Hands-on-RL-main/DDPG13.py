@@ -16,8 +16,8 @@ class ReplayBuffer:
     def add_data(self,state,action,reward,next_state,done):
         self.data.append((state,action,reward,next_state,done))
     
-    def sample(self):
-        sample_data = random.sample(self.data,self.batch_size)
+    def sample(self,batch_size):
+        sample_data = random.sample(self.data, batch_size)
         state, action, reward, next_state, done = zip(*sample_data)
         return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done)
 
