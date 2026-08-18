@@ -150,7 +150,7 @@ env_name = 'Pendulum-v1'
 env = gym.make(env_name)
 random.seed(0)
 np.random.seed(0)
-env.seed(0)
+
 torch.manual_seed(0)
 replay_buffer = ReplayBuffer(buffer_size)
 state_dim = env.observation_space.shape[0]
