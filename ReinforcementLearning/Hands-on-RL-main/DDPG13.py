@@ -147,7 +147,7 @@ sigma = 0.01  # 高斯噪声标准差
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 env_name = 'Pendulum-v1'
-env = gym.make(env_name)
+env = gym.make(env_name, render_mode='human')
 random.seed(0)
 np.random.seed(0)
 
