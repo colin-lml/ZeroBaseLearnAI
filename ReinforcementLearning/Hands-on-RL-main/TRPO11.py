@@ -16,7 +16,7 @@ def train_on_policy_agent(env, agent, num_episodes):
                 transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
                 state,info = env.reset()
                 done = False
-                while not done:
+                while not done and episode_return < 475:
                     action= agent.take_action(state)
                     next_state, reward, done, _2,_3 = env.step(action)
                     transition_dict['states'].append(state)
@@ -169,16 +169,19 @@ class TRPO:
         next_states = torch.tensor(transition_dict['next_states'], dtype=torch.float).to(self.device)
         dones = torch.tensor(transition_dict['dones'], dtype=torch.float).view(-1, 1).to(self.device)
 
+        v0 =self.critic(states)
         td_target = rewards + self.gamma * self.critic(next_states) * (1 -  dones)
-        td_delta = td_target - self.critic(states)
-        advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
-        old_log_probs = torch.log(self.actor(states).gather(1, actions)).detach()
-        old_action_dists = torch.distributions.Categorical( self.actor(states).detach())
-        critic_loss = torch.mean( F.mse_loss(self.critic(states), td_target.detach()))
+        td_delta = td_target - v0
+        
+        critic_loss = torch.mean( F.mse_loss(v0, td_target.detach()))
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()  # 更新价值函数
+
         # 更新策略函数
+        advantage = compute_advantage(self.gamma, self.lmbda, td_delta.cpu()).to(self.device)
+        old_log_probs = torch.log(self.actor(states).gather(1, actions)).detach()
+        old_action_dists = torch.distributions.Categorical( self.actor(states).detach())
         self.policy_learn(states, actions, old_action_dists, old_log_probs, advantage)
 
 
@@ -194,7 +197,7 @@ alpha = 0.5
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 env_name = 'CartPole-v1'
-env = gym.make(env_name, render_mode='human')
+env = gym.make(env_name)
 #env.seed(0)
 torch.manual_seed(0)
 

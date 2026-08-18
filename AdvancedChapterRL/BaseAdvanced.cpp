@@ -79,7 +79,7 @@ void BaseAdvanced::GenerateTrainData(int maxCount)
 
 		if (m_bEndGenerateTrain)
 		{
-			cout<<"break Generate Train ####" << endl;
+			cout<< "train i: " << i + 1 << ", break Generate Train ####" << endl;
 			break;
 		}
 	}

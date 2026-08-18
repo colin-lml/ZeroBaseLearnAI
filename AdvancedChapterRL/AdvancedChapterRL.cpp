@@ -20,7 +20,10 @@ int main()
 	//actorCritic.PlayCartPole(1000);
 
 	TRPO trpo;
-	trpo.PlayCartPole(500);
+	//trpo.PlayCartPole(500);
+
+	PPO ppo;
+	ppo.PlayCartPole(500);	
 
 	cin.get();
 	return 0;

@@ -23,6 +23,9 @@ private:
 	
 	const double m_dbActorLR = 1e-3;
 	const double m_dbCriticLR = 1e-2;
+	const double m_dbLmbda = 0.95;
+	const double m_dbEps = 0.2;
+	const int  m_nPPOEpochs = 10;
 
 	torch::optim::Adam* m_pAdamActor;
 	torch::optim::Adam* m_pAdamCritic;

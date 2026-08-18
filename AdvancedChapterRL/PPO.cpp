@@ -59,7 +59,7 @@ int PPO::TakeAction(VectorDouble& s0, bool bPredict)
 
 void PPO::GenerateTrainData(int maxCount)
 {
-    cout << "Currently Actor-Critic" << endl;
+    cout << "Currently PPO" << endl;
 
     m_dbGamma = 0.98;
    
@@ -114,24 +114,37 @@ void PPO::TrainGenerateItem2(const QwList& vList)
     auto [s0, a, r, s1, done] = QwListToTensor(vList, m_device);
 
     auto v0 = m_CriticNet->forward(s0);
-    auto v1 = r + m_dbGamma * m_CriticNet->forward(s1) * (1 - done);
-
+    auto v1 = r + m_dbGamma * m_CriticNet->forward(s1).detach() * (1 - done);
     auto td = v1 - v0;
 
-    auto action = m_ActorNet->forward(s0).gather(1, a);
-    auto logProbs = torch::log(action + 1e-8);
-    auto actorLoss = torch::mean(-logProbs * td.detach());
-
     auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));
-
-    m_pAdamActor->zero_grad();
     m_pAdamCritic->zero_grad();
-
-    actorLoss.backward();
     criticLoss.backward();
-
-
-    m_pAdamActor->step();
     m_pAdamCritic->step();
+
+    auto adv = ComputeAdvantage(m_dbGamma, m_dbLmbda, td);
+
+    //防止 advantage 数值爆炸 / 剧烈波动, 优势归一化
+    auto mean = adv.mean();
+    auto std = adv.std();
+    // +1e‑8 防止std为0除零
+    auto adv_norm = ((adv - mean) / (std + 1e-8)).detach();
+
+    auto oldLogProbs = torch::log(m_ActorNet->forward(s0).gather(1, a)).detach();
+    
+    for (int i = 0; i < m_nPPOEpochs; i++)
+    {
+         auto  logProbs = torch::log(m_ActorNet->forward(s0).gather(1, a));
+         auto  ratio = torch::exp(logProbs - oldLogProbs);
+         auto  surr1 = ratio * adv_norm;
+		 auto  surr2 = torch::clamp(ratio, 1.0 - m_dbEps, 1.0 + m_dbEps) * adv_norm; // 截断
+         auto actorLoss = torch::mean(-torch::min(surr1, surr2));  // # PPO损失函数
+         
+         m_pAdamActor->zero_grad(); 
+         actorLoss.backward();
+         m_pAdamActor->step();
+    }
+
+
 }
 
