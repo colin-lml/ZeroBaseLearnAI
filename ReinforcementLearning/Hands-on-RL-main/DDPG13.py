@@ -39,7 +39,7 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
                 while not done:
                     action = agent.take_action(state)
                     next_state, reward, done, _ ,__= env.step(action)
-                    replay_buffer.add(state, action, reward, next_state, done)
+                    replay_buffer.add_data(state, action, reward, next_state, done)
                     state = next_state
                     episode_return += reward
                     if replay_buffer.size() > minimal_size:
