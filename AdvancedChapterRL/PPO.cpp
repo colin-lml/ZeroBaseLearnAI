@@ -64,8 +64,8 @@ void PPO::GenerateTrainData(int maxCount)
     m_dbGamma = 0.98;
    
 
-    auto input = m_CartPoleEnv.GetStateDim();
-    auto output = m_CartPoleEnv.GetActionDim();
+    auto input = m_objEnv->GetStateDim();
+    auto output = m_objEnv->GetActionDim();
 
     m_ActorNet = PolicyNet(input, output);
     m_CriticNet = ValueNet(input, 1);

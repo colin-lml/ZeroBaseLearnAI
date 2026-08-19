@@ -3,7 +3,7 @@
 using  RewardState = std::tuple<std::vector<double>, double, bool, bool>;
 using  VectorDouble = std::vector<double>;
 
-using  QwItem = std::tuple<VectorDouble, int, double, VectorDouble, bool>;
+using  QwItem = std::tuple<VectorDouble, double, double, VectorDouble, bool>;
 using  QwList = vector<QwItem>;
 using  QwList2D = vector<QwList>;
 using  QwItemTensor = std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>;
@@ -27,8 +27,27 @@ private:
 	std::mt19937 m_gen;
 };
 
+class Env
+{
+public:
+    Env() = default;
+    virtual ~Env() = default;
 
-class CartPoleEnv
+    virtual VectorDouble reset() =0;
+    virtual RewardState step(double action)=0;
+
+    virtual   int GetStateDim()
+    {
+        return 0;
+    }
+
+    virtual int GetActionDim()
+    {
+        return 0;
+    }
+};
+
+class CartPoleEnv : public Env
 {
 public:
 
@@ -53,19 +72,19 @@ public:
 
     CartPoleEnv();
 
-    int GetStateDim()
+    int GetStateDim() override
     {
         return OBS_DIM;
     }
 
-    int GetActionDim()
+    int GetActionDim() override
     {
         return ACT_DIM;
     }
 
-    VectorDouble reset();
+    VectorDouble reset() override;
 
-    RewardState step(int action);
+    RewardState step(double action) override;
 
 };
 

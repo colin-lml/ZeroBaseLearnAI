@@ -3,8 +3,8 @@
 class BaseAdvanced
 {
 public:
-	BaseAdvanced();
-	virtual ~BaseAdvanced() = default;
+	explicit BaseAdvanced(bool bCartPole=true);
+	virtual ~BaseAdvanced();
 
 public:
 	virtual void PlayCartPole(int maxCount);
@@ -16,7 +16,7 @@ protected:
 	virtual void TrainGenerateItem1(const QwItem& item)=0;
 	virtual void TrainGenerateItem2(const QwList& vList) = 0;
 
-	CartPoleEnv m_CartPoleEnv;
+	
 	XRandom m_xRandom;
 
 	double m_dbAlpha = 0.1;
@@ -25,7 +25,10 @@ protected:
 	double m_dbLR = 2e-3;
 	torch::DeviceType m_device;
 	bool m_bEndGenerateTrain=false;
+	int64_t m_maxMewardCount = 470;
 
+	Env* m_objEnv;
+	 
 };
 
 

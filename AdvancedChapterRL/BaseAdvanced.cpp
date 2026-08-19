@@ -1,10 +1,25 @@
 ﻿#include "pch.h"
 #include "BaseAdvanced.h"
 
-BaseAdvanced::BaseAdvanced()
+BaseAdvanced::BaseAdvanced(bool bCartPole)
 {
-	 m_device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
+	m_device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
+	if (bCartPole)
+	{
+		m_objEnv = new CartPoleEnv();
+	}
+	else
+	{
+		m_objEnv = new PendulumEnv();
+	}
 }
+
+BaseAdvanced::~BaseAdvanced()
+{
+	delete m_objEnv;
+}
+
+
 
 
 void BaseAdvanced::PlayCartPole(int maxCount)
@@ -25,18 +40,18 @@ void BaseAdvanced::TestData(int maxCount)
 
 	for (size_t i = 0; i < maxCount; i++)
 	{
-		auto s0 = m_CartPoleEnv.reset();
+		auto s0 = m_objEnv->reset();
 		auto done = false;
-		int64_t rewardCount = 0;
+		double rewardCount = 0;
 		int64_t step = 0;
 		while (!done && step < 500)
 		{
 			auto a = TakeAction(s0, true);
 			//{ state, reward, terminated, truncated };
-			auto [s1, r, d, _] = m_CartPoleEnv.step(a);
-			done = d;
+			auto [s1, r, d, d2] = m_objEnv->step(a);
+			done = d|| d2;
 			s0 = s1;
-			rewardCount += r;
+			rewardCount+=r;
 			step++;
 		}
 		cout << "count: " << i + 1 << " , rewardCount: " << rewardCount << endl;
@@ -50,21 +65,23 @@ void BaseAdvanced::GenerateTrainData(int maxCount)
 
 	for (int i = 0; i < maxCount; i++)
 	{
-		auto s = m_CartPoleEnv.reset();
+		auto s = m_objEnv->reset();
 		auto done = false;
-		int64_t rewardCount = 0;
+		double rewardCount = 0;
+		int step = 0;	
 		QwList vList;
-		while (!done && rewardCount < 470)
+		while (!done && step < m_maxMewardCount)
 		{
 			auto a = TakeAction(s);
 			//{ state, reward, terminated, truncated };
-			auto [s1, r, b, t] = m_CartPoleEnv.step(a);
-			done = b;
-			rewardCount += r;
+			auto [s1, r, b, t] = m_objEnv->step(a);
+			done = b||t;
+			rewardCount+=r;
 			//{state, action, reward, next_state, done}
 			vList.push_back({ s, a, r, s1, b });
 			TrainGenerateItem1(vList[vList.size()-1]);
 			s = s1;
+			step++;
 		}
 
 		TrainGenerateItem2(vList);

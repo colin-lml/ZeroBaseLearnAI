@@ -31,7 +31,7 @@ TORCH_MODULE(DuelingNet);
 class DuelingDQN : public  BaseAdvanced
 {
 public:
-
+	
 protected:
 
 	void GenerateTrainData(int maxCount) override;

@@ -135,8 +135,8 @@ torch::Tensor TRPO::LineSearch(const torch::Tensor& s, const torch::Tensor& a, c
    bUpdate = false;
    auto oldParam = ParametersToVector(*m_ActorNet);
    auto oldSurrogate = ComputeSurrogateObj(s, a, adv, oldLogProbs, m_ActorNet);
-   auto input = m_CartPoleEnv.GetStateDim();
-   auto output = m_CartPoleEnv.GetActionDim();
+   auto input = m_objEnv->GetStateDim();
+   auto output = m_objEnv->GetActionDim();
 
    auto tmpActor = PolicyNet(input, output);
    tmpActor->to(m_device);
@@ -218,8 +218,8 @@ void TRPO::GenerateTrainData(int maxCount)
     m_dbGamma = 0.98;
     m_dbAlpha = 0.5;
 
-    auto input = m_CartPoleEnv.GetStateDim();
-    auto output = m_CartPoleEnv.GetActionDim();
+    auto input = m_objEnv->GetStateDim();
+    auto output = m_objEnv->GetActionDim();
 
     m_ActorNet = PolicyNet(input, output);
     m_CriticNet = ValueNet(input, 1);

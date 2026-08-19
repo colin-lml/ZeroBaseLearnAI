@@ -123,8 +123,8 @@ void DuelingDQN::GenerateTrainData(int maxCount)
 
 	GetCartPoleDataList().clear();
 
-	auto input = m_CartPoleEnv.GetStateDim();
-	auto output = m_CartPoleEnv.GetActionDim();
+	auto input = m_objEnv->GetStateDim();
+	auto output = m_objEnv->GetActionDim();
 
 	m_Qnet = DuelingNet(input, output);
 	m_TargetQnet = DuelingNet(input, output);

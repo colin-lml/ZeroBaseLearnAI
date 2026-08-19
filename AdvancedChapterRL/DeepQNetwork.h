@@ -64,7 +64,7 @@ TORCH_MODULE(DQNQnet);
 class DeepQNetwork :public  BaseAdvanced
 {
 public:
-	DeepQNetwork() = default;
+	
 	void DoubleDQN(int maxCount);
 protected:
 

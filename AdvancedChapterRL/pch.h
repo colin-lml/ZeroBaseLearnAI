@@ -38,4 +38,5 @@ using namespace std;
 #include "ActorCritic.h"
 #include "TRPO.h"
 #include "PPO.h"
+#include "PendulumEnv.h"
 #endif //PCH_H

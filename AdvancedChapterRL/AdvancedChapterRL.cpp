@@ -23,7 +23,11 @@ int main()
 	//trpo.PlayCartPole(500);
 
 	PPO ppo;
-	ppo.PlayCartPole(500);	
+	ppo.PlayCartPole(500);
+
+	PendulumEnv env;
+
+
 
 	cin.get();
 	return 0;

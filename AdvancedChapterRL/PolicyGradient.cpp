@@ -19,8 +19,8 @@ void PolicyGradient::GenerateTrainData(int maxCount)
     m_dbGamma = 0.98;
     m_dbLR = 1e-3;
 
-    auto input = m_CartPoleEnv.GetStateDim();
-    auto output = m_CartPoleEnv.GetActionDim();
+    auto input = m_objEnv->GetStateDim();
+    auto output = m_objEnv->GetActionDim();
 
     m_Qnet = PolicyNet(input, output);
     m_Qnet->to(m_device);

@@ -89,7 +89,7 @@ VectorDouble CartPoleEnv::reset()
     return m_vResetState;
 }
 
-RewardState CartPoleEnv::step(int action)
+RewardState CartPoleEnv::step(double action)
 {
     double x = m_vResetState[0];
     double x_dot = m_vResetState[1];
@@ -97,7 +97,7 @@ RewardState CartPoleEnv::step(int action)
     double theta_dot = m_vResetState[3];
 
  
-    double force = (action == 1) ? force_mag : -force_mag;
+    double force = (((int)(action)) == 1) ? force_mag : -force_mag;
 
     double cos_t = std::cos(theta);
     double sin_t = std::sin(theta);
