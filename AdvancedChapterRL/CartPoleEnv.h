@@ -8,7 +8,7 @@ using  QwList = vector<QwItem>;
 using  QwList2D = vector<QwList>;
 using  QwItemTensor = std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>;
 
-QwItemTensor QwListToTensor(const QwList& item, const torch::DeviceType& device);
+QwItemTensor QwListToTensor(const QwList& item, const torch::DeviceType& device, bool bCont = false);
 torch::Tensor VectorDoubleTensor(const VectorDouble& item, const torch::DeviceType& device);
 
 

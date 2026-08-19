@@ -26,7 +26,8 @@ protected:
 	torch::DeviceType m_device;
 	bool m_bEndGenerateTrain=false;
 	int64_t m_maxMewardCount = 470;
-
+	int64_t m_minLogCount = 70;
+	int64_t m_minLogStep = 20;
 	Env* m_objEnv;
 	 
 };

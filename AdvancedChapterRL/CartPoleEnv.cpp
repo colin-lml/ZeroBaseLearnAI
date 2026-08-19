@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "CartPoleEnv.h"
 
-QwItemTensor QwListToTensor(const QwList& item, const torch::DeviceType& device)
+QwItemTensor QwListToTensor(const QwList& item, const torch::DeviceType& device,bool bCont)
 {
  
     int64_t B = item.size();
@@ -30,7 +30,17 @@ QwItemTensor QwListToTensor(const QwList& item, const torch::DeviceType& device)
     auto S0 = torch::tensor(vS0, torch::kFloat32).reshape({ B, M}).to(device);
     auto S1 = torch::tensor(vS1, torch::kFloat32).reshape({ B, M }).to(device);
     auto R = torch::tensor(vR, torch::kFloat32).reshape({ B, 1 }).to(device);
-    auto A = torch::tensor(vA, torch::kFloat32).reshape({ B, 1 }).to(device);
+    torch::Tensor A;
+    if (bCont)
+    {
+        A = torch::tensor(vA, torch::kFloat32).reshape({ B, 1 }).to(device);
+    }
+    else
+    {
+        A = torch::tensor(vA, torch::kLong).reshape({ B, 1 }).to(device);
+    }
+     
+
     auto E = torch::tensor(vD, torch::kFloat32).reshape({ B, 1 }).to(device);
 
 

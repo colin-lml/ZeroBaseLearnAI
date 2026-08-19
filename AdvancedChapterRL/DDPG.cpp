@@ -15,9 +15,11 @@ double DDPG::TakeAction(VectorDouble& s0,bool bPredict)
         auto noise = torch::randn({ m_objEnv->GetActionDim()}, m_device) * m_dbSigma;
         //cout << noise<<endl;
         action = action + noise.squeeze().item<double>();
+        action = std::clamp(action, m_objEnv->GetActionLow(), m_objEnv->GetActionHigh());
+        
     }
 
-    action = std::clamp(action,m_objEnv->GetActionLow(),m_objEnv->GetActionHigh());
+  
 
     return action;
 }
@@ -26,7 +28,10 @@ void DDPG::GenerateTrainData(int maxCount)
 {
     cout << "Currently DDPG" << endl;
 
-    m_dbGamma = 0.99;
+    m_dbGamma = 0.95;
+    m_maxMewardCount = 200;
+    m_minLogCount = 20;
+    m_minLogStep = 6;
 
     m_stateDim = m_objEnv->GetStateDim();
     m_actionDim = m_objEnv->GetActionDim();
@@ -70,18 +75,25 @@ void DDPG::TrainGenerateItem1(const QwItem& item)
 
     if (m_nMinimalsize < GetCartPoleDataList().size())
     {
-        Update();
+       // Update();
     }
 }
 void DDPG::TrainGenerateItem2(const QwList& vList)
 {
+    if (m_nMinimalsize < GetCartPoleDataList().size())
+    {
+        for (size_t i = 0; i < vList.size(); i++)
+        {
+            Update();
+        }
+    }
 }
 
 void DDPG::Update()
 {
     ReplayBuffer dataTrain;
     auto samples = dataTrain.sample(m_batchSize);
-    auto [s0, a, r, s1, done] = QwListToTensor(samples, m_device);
+    auto [s0, a, r, s1, done] = QwListToTensor(samples, m_device,true);
 
     auto q1 = m_targetCritic->forward(s1, m_targetActor->forward(s1));
     auto qTargets = r + m_dbGamma * q1 * (1 - done);
