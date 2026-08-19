@@ -38,12 +38,22 @@ public:
 
     virtual   int GetStateDim()
     {
-        return 0;
+        return 1;
     }
 
     virtual int GetActionDim()
     {
-        return 0;
+        return 1;
+    }
+
+    virtual double GetActionLow()
+    {
+        return 1;
+    }
+
+    virtual double GetActionHigh()
+    {
+        return 1;
     }
 };
 

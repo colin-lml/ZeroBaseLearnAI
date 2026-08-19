@@ -34,12 +34,12 @@ public:
         return ACT_DIM;
     }
 
-    double GetActionLow() const
+    double GetActionLow() override
     {
         return -max_torque;
     }
 
-    double GetActionHigh() const
+    double GetActionHigh() override
     {
         return max_torque;
     }

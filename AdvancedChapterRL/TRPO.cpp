@@ -192,7 +192,7 @@ void TRPO::PolicyLearnUpdate(const torch::Tensor& s, const torch::Tensor& a, con
 
 
 
-int TRPO::TakeAction(VectorDouble& s0, bool bPredict)
+double TRPO::TakeAction(VectorDouble& s0, bool bPredict)
 {
     torch::NoGradGuard no_grad;
     auto s = VectorDoubleTensor(s0,m_device);

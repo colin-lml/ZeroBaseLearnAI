@@ -8,26 +8,24 @@ using namespace std;
 int main()
 {
 	DeepQNetwork  deepQN;
-	//deepQN.PlayCartPole(400);
+	//deepQN.Play(400);
 	//deepQN.DoubleDQN(400);
 	DuelingDQN duelingDQN;
-	//duelingDQN.PlayCartPole(400);
+	//duelingDQN.Play(400);
 
 	PolicyGradient policyGradient;
-	//policyGradient.PlayCartPole(1000);
+	//policyGradient.Play(1000);
 
 	ActorCritic actorCritic;
-	//actorCritic.PlayCartPole(1000);
+	//actorCritic.Play(1000);
 
 	TRPO trpo;
-	//trpo.PlayCartPole(500);
+	//trpo.Play(500);
 
 	PPO ppo;
-	ppo.PlayCartPole(500);
-
-	PendulumEnv env;
-
-
+	//ppo.Play(500);
+	DDPG ddpg;
+	ddpg.Play(500);
 
 	cin.get();
 	return 0;

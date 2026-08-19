@@ -22,7 +22,7 @@ BaseAdvanced::~BaseAdvanced()
 
 
 
-void BaseAdvanced::PlayCartPole(int maxCount)
+void BaseAdvanced::Play(int maxCount)
 {
 	maxCount = max(200, maxCount);
 

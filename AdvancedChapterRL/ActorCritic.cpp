@@ -3,7 +3,7 @@
 
 
 
-int ActorCritic::TakeAction(VectorDouble& s0, bool bPredict)
+double ActorCritic::TakeAction(VectorDouble& s0, bool bPredict)
 {
     torch::NoGradGuard no_grad;
     auto s = VectorDoubleTensor(s0,m_device);
@@ -49,11 +49,13 @@ void ActorCritic::GenerateTrainData(int maxCount)
 
     m_ActorNet->eval();
     m_CriticNet->eval();
-    delete m_pAdamActor;
+
+	delete m_pAdamActor;
     m_pAdamActor = nullptr;
 
     delete m_pAdamCritic;
     m_pAdamCritic = nullptr;
+
 
 }
 

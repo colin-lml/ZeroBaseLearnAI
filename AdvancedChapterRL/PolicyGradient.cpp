@@ -38,7 +38,7 @@ void PolicyGradient::GenerateTrainData(int maxCount)
     m_pAdam = nullptr;
 }
 
-int PolicyGradient::TakeAction(VectorDouble& s0, bool bPredict)
+double PolicyGradient::TakeAction(VectorDouble& s0, bool bPredict)
 {
     torch::NoGradGuard no_grad;
 	auto s = VectorDoubleTensor(s0, m_device);

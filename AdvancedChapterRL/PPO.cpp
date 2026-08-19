@@ -38,7 +38,7 @@ torch::Tensor PPO::ComputeAdvantage(double gamma, double lmbda, torch::Tensor& t
 
 
 
-int PPO::TakeAction(VectorDouble& s0, bool bPredict)
+double PPO::TakeAction(VectorDouble& s0, bool bPredict)
 {
     torch::NoGradGuard no_grad;
     auto s = VectorDoubleTensor(s0,m_device);

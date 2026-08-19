@@ -16,7 +16,7 @@ private:
 	torch::Tensor LineSearch(const torch::Tensor& s,const torch::Tensor& a, const torch::Tensor& adv, const torch::Tensor& oldLogProbs, const Categorical& oldsDists, const torch::Tensor& fullStep, bool& bUpdate);
 
 	void GenerateTrainData(int maxCount) override;
-	int TakeAction(VectorDouble& s0, bool bPredict = false) override;
+	double TakeAction(VectorDouble& s0, bool bPredict = false) override;
 	void TrainGenerateItem1(const QwItem& item) override {};
 	void TrainGenerateItem2(const QwList& vList) override;
 	

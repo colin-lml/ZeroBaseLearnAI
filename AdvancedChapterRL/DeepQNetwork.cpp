@@ -22,10 +22,10 @@ void AddCartPoleDataList(const QwItem& item)
 void DeepQNetwork::DoubleDQN(int maxCount)
 {
 	m_bDoubleDQN = true;
-	BaseAdvanced::PlayCartPole(maxCount);
+	BaseAdvanced::Play(maxCount);
 
 }
-int DeepQNetwork::TakeAction(VectorDouble& s0, bool bPredict)
+double DeepQNetwork::TakeAction(VectorDouble& s0, bool bPredict)
 {
 	int a = 0;
 	if (!bPredict && m_xRandom.RandDouble(0, 1.0) < m_dbEpsilon)

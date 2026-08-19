@@ -38,7 +38,7 @@ void DuelingDQN::SyncTargetNet()
 
 }
 
-int DuelingDQN::TakeAction(VectorDouble& s0, bool bPredict)
+double DuelingDQN::TakeAction(VectorDouble& s0, bool bPredict)
 {
 	int a = 0;
 	if (!bPredict && m_xRandomData.RandDouble(0, 1.0) < m_dbEpsilon)

@@ -21,7 +21,7 @@
 流程：
 
 1. 构造算法对象（例如 `TRPO trpo;`）。
-2. 调用运行方法（如 `trpo.PlayCartPole(1000);`）。
+2. 调用运行方法（如 `trpo.Play(1000);`）。
 3. 等待用户输入结束。
 
 公式：
@@ -38,7 +38,7 @@
 
 流程（伪码）：
 
-1. PlayCartPole(max):
+1. Play(max):
    - 调用 `GenerateTrainData(max)`，随后 `TestData(max)`。
 2. GenerateTrainData(max):
    - 对每个 episode：

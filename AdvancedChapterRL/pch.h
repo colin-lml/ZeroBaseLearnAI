@@ -39,4 +39,6 @@ using namespace std;
 #include "TRPO.h"
 #include "PPO.h"
 #include "PendulumEnv.h"
+#include "DDPG.h"
+
 #endif //PCH_H
