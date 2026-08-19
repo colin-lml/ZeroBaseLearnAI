@@ -67,13 +67,11 @@ public:
     DDPG(): BaseAdvanced(false){}
 private:
     double TakeAction(VectorDouble& s0, bool bPredict = false) override;
-
     void GenerateTrainData(int maxCount) override;
-
     void TrainGenerateItem1(const QwItem& item) override;
-
     void TrainGenerateItem2(const QwList& vList) override;
-
+    
+    void Update();
 
     void SoftUpdate(torch::nn::Module& source,torch::nn::Module& target);
 
@@ -88,20 +86,16 @@ private:
     std::unique_ptr<torch::optim::Adam> m_actorOptimizer;
     std::unique_ptr<torch::optim::Adam> m_criticOptimizer;
 
-  
+    int64_t m_nMinimalsize = 1000;
     int64_t m_stateDim = 0;
     int64_t m_actionDim = 0;
 
-    size_t m_bufferCapacity = 100000;
     size_t m_batchSize = 64;
 
     double m_actorLearningRate = 1e-4;
     double m_criticLearningRate = 1e-3;
-    double m_gamma = 0.99;
+   
     double m_tau = 0.005;
     
-    double m_noiseStd = 0.2;
-    double m_noiseDecay = 0.9995;
-
     double m_dbSigma = 0.01;
 };

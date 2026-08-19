@@ -25,7 +25,7 @@ int main()
 	PPO ppo;
 	//ppo.Play(500);
 	DDPG ddpg;
-	ddpg.Play(500);
+	ddpg.Play(200);
 
 	cin.get();
 	return 0;

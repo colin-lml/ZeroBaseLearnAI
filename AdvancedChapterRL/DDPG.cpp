@@ -26,6 +26,8 @@ void DDPG::GenerateTrainData(int maxCount)
 {
     cout << "Currently DDPG" << endl;
 
+    m_dbGamma = 0.99;
+
     m_stateDim = m_objEnv->GetStateDim();
     m_actionDim = m_objEnv->GetActionDim();
 	auto actionBound = m_objEnv->GetActionHigh();
@@ -65,11 +67,39 @@ void DDPG::GenerateTrainData(int maxCount)
 void DDPG::TrainGenerateItem1(const QwItem& item)
 {
     AddCartPoleDataList(item);
+
+    if (m_nMinimalsize < GetCartPoleDataList().size())
+    {
+        Update();
+    }
 }
 void DDPG::TrainGenerateItem2(const QwList& vList)
 {
-
 }
+
+void DDPG::Update()
+{
+    ReplayBuffer dataTrain;
+    auto samples = dataTrain.sample(m_batchSize);
+    auto [s0, a, r, s1, done] = QwListToTensor(samples, m_device);
+
+    auto q1 = m_targetCritic->forward(s1, m_targetActor->forward(s1));
+    auto qTargets = r + m_dbGamma * q1 * (1 - done);
+    auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
+    auto criticLoss = mseloss->forward(m_critic->forward(s0, a), qTargets);
+    m_criticOptimizer->zero_grad();
+    criticLoss.backward();
+    m_criticOptimizer->step();
+
+    auto actorLoss = -m_critic->forward(s0, m_actor->forward(s0)).mean();
+    m_actorOptimizer->zero_grad();
+    actorLoss.backward();
+    m_actorOptimizer->step();
+
+    SoftUpdate(*m_actor, *m_targetActor);
+    SoftUpdate(*m_critic, *m_targetCritic);
+}
+
 
 void DDPG::SoftUpdate(torch::nn::Module& source,torch::nn::Module& target)
 {
