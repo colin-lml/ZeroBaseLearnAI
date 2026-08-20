@@ -78,7 +78,7 @@ void BaseAdvanced::GenerateTrainData(int maxCount)
 			done = b||t;
 			rewardCount+=r;
 			//{state, action, reward, next_state, done}
-			vList.push_back({ s, a, r, s1, b });
+			vList.push_back({ s, a, r, s1, done });
 			TrainGenerateItem1(vList[vList.size()-1]);
 			s = s1;
 			step++;

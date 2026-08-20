@@ -33,9 +33,14 @@ void DDPG::GenerateTrainData(int maxCount)
     m_minLogCount = 20;
     m_minLogStep = 6;
 
+    GetReplayDataList().clear();
+
     m_stateDim = m_objEnv->GetStateDim();
     m_actionDim = m_objEnv->GetActionDim();
 	auto actionBound = m_objEnv->GetActionHigh();
+
+    TORCH_CHECK(m_actionDim == 1,"DDPG currently supports only one-dimensional continuous actions");
+
     m_actor = PolicyNetCont(m_stateDim, m_actionDim, actionBound);
     m_targetActor = PolicyNetCont(m_stateDim, m_actionDim, actionBound);
 
@@ -71,22 +76,16 @@ void DDPG::GenerateTrainData(int maxCount)
 
 void DDPG::TrainGenerateItem1(const QwItem& item)
 {
-    AddCartPoleDataList(item);
+    AddReplayDataList(item);
 
-    if (m_nMinimalsize < GetCartPoleDataList().size())
+    if (m_nMinimalsize < GetReplayDataList().size())
     {
-       // Update();
+        Update();
     }
 }
 void DDPG::TrainGenerateItem2(const QwList& vList)
 {
-    if (m_nMinimalsize < GetCartPoleDataList().size())
-    {
-        for (size_t i = 0; i < vList.size(); i++)
-        {
-            Update();
-        }
-    }
+  
 }
 
 void DDPG::Update()
@@ -95,21 +94,34 @@ void DDPG::Update()
     auto samples = dataTrain.sample(m_batchSize);
     auto [s0, a, r, s1, done] = QwListToTensor(samples, m_device,true);
 
-    auto q1 = m_targetCritic->forward(s1, m_targetActor->forward(s1));
-    auto qTargets = r + m_dbGamma * q1 * (1 - done);
+    m_dbSigma = std::max(0.02, m_dbSigma * 0.9995);
+  
+    torch::Tensor qTargets;
+    {
+        torch::NoGradGuard noGrad;
+
+        auto q1 = m_targetCritic->forward(s1, m_targetActor->forward(s1));
+
+        qTargets = r + m_dbGamma * q1 * (1.0 - done);
+    }
+
     auto mseloss = torch::nn::MSELoss(torch::nn::MSELossOptions().reduction(torch::kMean));
     auto criticLoss = mseloss->forward(m_critic->forward(s0, a), qTargets);
     m_criticOptimizer->zero_grad();
     criticLoss.backward();
     m_criticOptimizer->step();
 
+
     auto actorLoss = -m_critic->forward(s0, m_actor->forward(s0)).mean();
+    m_criticOptimizer->zero_grad();
     m_actorOptimizer->zero_grad();
     actorLoss.backward();
     m_actorOptimizer->step();
 
     SoftUpdate(*m_actor, *m_targetActor);
     SoftUpdate(*m_critic, *m_targetCritic);
+
+    
 }
 
 
@@ -128,4 +140,6 @@ void DDPG::SoftUpdate(torch::nn::Module& source,torch::nn::Module& target)
         targetParameters[i].add_(sourceParameters[i],m_tau);
     }
 }
+
+//
 

@@ -97,5 +97,5 @@ private:
    
     double m_tau = 0.005;
     
-    double m_dbSigma = 0.01;
+    double m_dbSigma = 0.2;
 };

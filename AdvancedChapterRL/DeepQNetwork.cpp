@@ -4,12 +4,12 @@
 static QwList gCartPoleDataList;
 static int gMaxCount = 10000;
 
-QwList& GetCartPoleDataList()
+QwList& GetReplayDataList()
 {
 	return gCartPoleDataList;
 }
 
-void AddCartPoleDataList(const QwItem& item)
+void AddReplayDataList(const QwItem& item)
 {
 	gCartPoleDataList.emplace_back(item);
 
@@ -78,7 +78,7 @@ void DeepQNetwork::SyncTargetNet()
 
 void DeepQNetwork::TrainGenerateItem1(const QwItem& item)
 {
-	AddCartPoleDataList(item);
+	AddReplayDataList(item);
 
 }
 
@@ -94,7 +94,7 @@ void DeepQNetwork::GenerateTrainData(int maxCount)
 		cout <<"Currently DQN" << endl;
 	}
 
-	GetCartPoleDataList().clear();
+	GetReplayDataList().clear();
 
 	auto input = m_objEnv->GetStateDim();
 	auto output = m_objEnv->GetActionDim();
@@ -130,7 +130,7 @@ void DeepQNetwork::TrainGenerateItem2(const QwList& vList)
 		return;
 	}
 
-	if (m_nMinimalsize < GetCartPoleDataList().size())
+	if (m_nMinimalsize < GetReplayDataList().size())
 	{
 		int max = 10;
 		if (100 < vList.size())

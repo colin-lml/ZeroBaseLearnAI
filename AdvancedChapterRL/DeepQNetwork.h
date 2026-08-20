@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-QwList& GetCartPoleDataList();
-void AddCartPoleDataList(const QwItem& item);
+QwList& GetReplayDataList();
+void AddReplayDataList(const QwItem& item);
 
 
 class ReplayBuffer
@@ -10,7 +10,7 @@ public:
 
 	size_t size() const
 	{
-		return GetCartPoleDataList().size();
+		return GetReplayDataList().size();
 	}
 
 	QwList sample(int batchsize)
@@ -24,7 +24,7 @@ public:
 
 		output.reserve(count);
 
-		auto& datas = GetCartPoleDataList();
+		auto& datas = GetReplayDataList();
 		std::sample(datas.begin(), datas.end(), std::back_inserter(output), count, random.GetGen());
 	
 		return output;

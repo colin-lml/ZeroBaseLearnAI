@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "DuelingDQN.h"
-QwList& GetCartPoleDataList();
+QwList& GetReplayDataList();
 
 
 
@@ -58,7 +58,7 @@ double DuelingDQN::TakeAction(VectorDouble& s0, bool bPredict)
 
 void DuelingDQN::TrainGenerateItem1(const QwItem& item)
 {
-	AddCartPoleDataList(item);
+	AddReplayDataList(item);
 
 }
 
@@ -70,7 +70,7 @@ void DuelingDQN::TrainGenerateItem2(const QwList& vList)
 		return;
 	}
 
-	if (m_nMinimalsize < GetCartPoleDataList().size())
+	if (m_nMinimalsize < GetReplayDataList().size())
 	{
 		int max = 10;
 		if (100 < vList.size())
@@ -121,7 +121,7 @@ void DuelingDQN::GenerateTrainData(int maxCount)
 {
 	cout << "Currently DuelingDQN" << endl;
 
-	GetCartPoleDataList().clear();
+	GetReplayDataList().clear();
 
 	auto input = m_objEnv->GetStateDim();
 	auto output = m_objEnv->GetActionDim();
