@@ -143,13 +143,21 @@ outy2 = sigmoid(y2)            outy2(y2) =  sigmoid(y2)
 5. E(w1)' = (outy1 - o1)*sigmoid_derivative_from_sigmoid(outy1)*sigmoid_derivative_from_sigmoid(outh1)*w5*i1 +  (outy2 - o2)*sigmoid_derivative_from_sigmoid(outy2)*sigmoid_derivative_from_sigmoid(outh1)*w7*i1
 
 6. E(w1)' = ((outy1 - o1)*sigmoid_derivative_from_sigmoid(outy1)*w5 + (outy2 - o2)*sigmoid_derivative_from_sigmoid(outy2)*w7)*sigmoid_derivative_from_sigmoid(outh1)*i1
-
-
-
-
-
-
+   
+   
+   
+   
+   
+   
 
 **Tavily API Key:**
 
 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
+
+
+
+**千问API Key：**
+
+sk-ws-H.EYMXPPY.bPN4.MEQCIEwehiqMXJLX8IU9-8JcCfU9BfhOQ1bkkLtR_wUKTM2lAiBg_PR_Tahib4vregwm1i7KyDJar5vSY0u3j9HFQJzNRA
+
+
