@@ -40,5 +40,5 @@ using namespace std;
 #include "PPO.h"
 #include "PendulumEnv.h"
 #include "DDPG.h"
-
+#include "SAC.h"
 #endif //PCH_H
