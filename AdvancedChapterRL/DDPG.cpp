@@ -26,7 +26,7 @@ double DDPG::TakeAction(VectorDouble& s0,bool bPredict)
 
 void DDPG::GenerateTrainData(int maxCount)
 {
-    cout << "Currently DDPG" << endl;
+    cout << "Currently DDPG (continuous)" << endl;
 
     m_dbGamma = 0.95;
     m_maxMewardCount = 200;

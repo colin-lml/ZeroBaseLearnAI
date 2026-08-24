@@ -28,7 +28,7 @@ int main()
 	//ddpg.Play(200);
 
 	SAC sac;
-	sac.Play(200);
+	//sac.Play(200);
 
 	cin.get();
 	return 0;

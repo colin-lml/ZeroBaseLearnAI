@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <unordered_set>
+
 QwList& GetReplayDataList();
 void AddReplayDataList(const QwItem& item);
 
@@ -15,7 +17,6 @@ public:
 
 	QwList sample(int batchsize)
 	{
-		QwList2D batch;
 		QwList output;
 		XRandom random;
 
@@ -25,7 +26,23 @@ public:
 		output.reserve(count);
 
 		auto& datas = GetReplayDataList();
-		std::sample(datas.begin(), datas.end(), std::back_inserter(output), count, random.GetGen());
+        if (count == 0)
+		{
+			return output;
+		}
+		/// std::sample(datas.begin(), datas.end(), std::back_inserter(output), count, random.GetGen());
+		// Sampling random indices avoids traversing the entire replay buffer.
+		std::unordered_set<size_t> indices;
+		indices.reserve(static_cast<size_t>(count));
+		const int lastIndex = static_cast<int>(size() - 1);
+		while (indices.size() < static_cast<size_t>(count))
+		{
+            indices.insert(static_cast<size_t>(random.RandInt(0, lastIndex)));
+		}
+		for (auto index : indices)
+		{
+			output.push_back(datas[index]);
+		}
 	
 		return output;
 	}
