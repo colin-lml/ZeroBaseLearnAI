@@ -12,12 +12,23 @@
 
 回顾一下 Q-learning 的更新规则： $Q(s,a) \leftarrow Q(s,a)+ \alpha[r+ \gamma \max \limits_{a} Q(s',a')-Q(s,a)]$ ,我们用神经网络代替了$Q$表，记$Q_{dqn}$表示
 
-1公式： $Q_{dqn}(s,a) \leftarrow Q_{dqn}(s,a)+ \alpha[r+ \gamma \max \limits_{a} Q_{dqn}(s',a')-Q_{dqn}(s,a)]$
+1. 公式： $Q_{\theta}(s,a) \leftarrow Q_{\theta}(s,a)+ \alpha[r+ \gamma \max \limits_{a} Q_{\theta}(s',a')-Q_{\theta}(s,a)]$
 
-2中括号部分叫作 TD Error（时序差分误差）：
-                                                                 $\delta=\underbrace{r+ \gamma \max \limits_{a} Q_{dqn}(s',a')}_{目标值(标签)}-\underbrace{Q_{dqn}(s,a)}_{当前预测值}$
+2. 因为$Q_{dqn}$是神经网络所以要更新只能更新神经网络权重，也就是训练神经网络。
 
-3因为$Q_{dqn}$是神经网络所以要更新只能更新神经网络权重，也就是训练神经网络
+3. 中括号部分叫作 TD Error（时序差分误差）：$\delta=\underbrace{r+ \gamma \max \limits_{a} Q_{\theta}(s',a')}_{目标值(标签)}-\underbrace{Q_{\theta}(s,a)}_{当前预测值}$ ，使用两套 一样 网络，**在线网络** 预测当前值，实时更新。**目标网络** 表示目标值，定期更新。可以这样理解在Q-learning 中更新迭代$Q$表时 先更新当前的$Q(a,s)$，再更新下个$Q(a',s')$ 
+
+4. 定义损失函数 $\mathcal L_{\text{MSE}} = \big(目标网络 - 在线网络\big)^2$
+
+**总结：**  使用神经网络$Q_{\theta}$ 代替$Q$表，损失函数用均方误差$MSE$ $\mathcal L_{\text{MSE}} = \big(目标网络 - 在线网络\big)^2$  训练神经网络。
+
+
+
+
+
+
+
+
 
 
 
@@ -143,5 +154,3 @@ r
 +
 \gamma\max_{a'}Q(s',a')
 Q(s,a) \right]$ 
-
-
