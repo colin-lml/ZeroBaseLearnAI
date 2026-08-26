@@ -1,10 +1,6 @@
 # DuelingDQN
 
-## DuelingDQN 由来
-
-标准 DQN 使用一个网络直接输出每个动作的动作价值：$Q(s,a)$。但是在一些状态下，环境当前的好坏比具体选择哪个动作更重要。例如车杆已经接近倾倒时，无论向左还是向右施力，状态本身的价值都比较低；而在车杆平衡时，两个动作的价值可能很接近。
-
-DuelingDQN（Dueling Deep Q-Network）将 $Q$ 值拆分为两部分：
+Dueling DQN 是 DQN 另一种的改进算法，它在 DQN 的基础上对神经网络$Q_{\theta}$进行了微小的改动，其他的和DQN 完全一样， 它将DQN神经网络$Q_{\theta}$结构 拆分为两部分：
 
 - **状态价值函数 $V(s)$**：只评价当前状态 $s$ 的好坏；
 - **优势函数 $A(s,a)$**：表示在状态 $s$ 下，动作 $a$ 相比其他动作带来的额外价值。
@@ -14,12 +10,6 @@ DuelingDQN（Dueling Deep Q-Network）将 $Q$ 值拆分为两部分：
 
 
 ## DuelingDQN 公式推导
-
-动作价值函数可以写为：
-
-$Q(s,a)=V(s)+A(s,a)$
-
-但这个式子存在不可辨识问题：对于任意常数 $c$，将 $V(s)$ 增加 $c$，同时将所有 $A(s,a)$ 减少 $c$，得到的 $Q(s,a)$ 不变。因此不能直接使用这个式子组合两个分支。
 
 DuelingDQN 对优势函数减去所有动作优势的平均值：
 
@@ -31,18 +21,6 @@ $Q(s,a)=V(s)+\left(A(s,a)-\frac{1}{|\mathcal A|}\sum_{a'}A(s,a')\right)$
 - $V(s)$ 的输出维度为 $1$；
 - $A(s,a)$ 的输出维度为动作数量；
 - 每个样本的优势均值为 $\frac{1}{|\mathcal A|}\sum_{a'} A(s,a')$。
-
-经过聚合后，网络最终输出仍然是每个动作对应的 $Q$ 值：
-
-$Q(s,\cdot)=[Q(s,a_0),Q(s,a_1),\ldots]$
-
-DuelingDQN 改变的是网络结构，DQN 的 TD 目标和损失函数不变：
-
-$y=r+\gamma\max_{a'}Q_{\theta'}(s',a')(1-done)$
-
-$\mathcal L_{\text{MSE}}=\left(y-Q_{\theta}(s,a)\right)^2$
-
-其中在线网络 $Q_{\theta}$ 预测当前动作价值，目标网络 $Q_{\theta'}$ 计算 TD 目标。
 
 **总结：** DuelingDQN 用一个共享特征层提取状态特征，再分别估计 $V(s)$ 和 $A(s,a)$，最后聚合为 $Q(s,a)$。经验回放、$\epsilon$-贪心、目标网络和 DQN 的训练方式保持一致。
 
@@ -85,8 +63,6 @@ public:
 TORCH_MODULE(DuelingNet);
 ```
 
-`a.mean(1)` 计算每个样本所有动作优势值的平均值。`view({ -1, 1 })` 将它转换为列向量，使其能与所有动作的优势值相减。
-
 例如某状态下：
 
 $V(s)=3,\quad A(s,\cdot)=[1,3]$
@@ -118,35 +94,7 @@ SyncTargetNet();
    
    
 
-### 2. 实现动作：$\epsilon$-贪心策略
-
-```
-double DuelingDQN::TakeAction(VectorDouble& s0, bool bPredict)
-{
-    int a = 0;
-    if (!bPredict && m_xRandomData.RandDouble(0, 1.0) < m_dbEpsilon)
-    {
-        a = m_xRandomData.RandInt(0, 1);
-    }
-    else
-    {
-        torch::NoGradGuard no_grad;
-        auto s = VectorDoubleTensor(s0, m_device);
-        auto q = m_Qnet->forward(s);
-        a = q.squeeze().argmax().item<int>();
-    }
-
-    return a;
-}
-```
-
-训练时，按概率 $\epsilon$ 随机选择动作，增加探索；其余情况下选择网络输出中最大 $Q$ 值对应的动作。评测时 `bPredict` 为 `true`，始终选择最大 $Q$ 值动作。
-
-虽然网络内部使用价值分支和优势分支，但 `forward()` 已经聚合得到完整的 $Q(s,a)$，因此动作选择方式和 DQN 相同。
-
-
-
-### 3. 经验回放与网络更新
+### 2. 经验回放与网络更新
 
 ```
 void DuelingDQN::Update()
@@ -190,7 +138,7 @@ void DuelingDQN::Update()
 
 
 
-### 4. 训练时机与终止条件
+### 3. 训练时机与终止条件
 
 ```
 void DuelingDQN::TrainGenerateItem1(const QwItem& item)
@@ -228,6 +176,25 @@ void DuelingDQN::TrainGenerateItem2(const QwList& vList)
 
 **训练终止条件：** 达到最大迭代次数，或单回合奖励超过 450。
 
+### 4. 运行效果
+
+```
+int main()
+{
+    DeepQNetwork  deepQN;
+    //deepQN.Play(400);
+    //deepQN.DoubleDQN(400);
+    DuelingDQN duelingDQN;
+    duelingDQN.Play(400);
+ }
+
+ /***
+
+
+ ***/
+
+```
+
 
 
 ### 5. DuelingDQN 与 DQN 的区别
@@ -240,4 +207,10 @@ void DuelingDQN::TrainGenerateItem2(const QwList& vList)
 | TD 目标与损失       | 标准 DQN             | 与标准 DQN 相同                         |
 | 经验回放、目标网络、探索策略 | 使用                 | 使用                                 |
 
-DuelingDQN 可以与 DoubleDQN、优先经验回放等改进组合使用。例如使用 DoubleDQN 的动作选择和目标估计方式，再使用 Dueling 网络输出 $Q$ 值，即可构成 Dueling Double DQN。
+
+
+
+
+
+
+
