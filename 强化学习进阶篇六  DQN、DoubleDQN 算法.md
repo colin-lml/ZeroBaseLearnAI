@@ -218,7 +218,7 @@ void DeepQNetwork::TrainGenerateItem2(const QwList& vList)
 }
 ```
 
- 
+
 
 **训练终止条件： 达迭代最大次数 或 回合数400分以上**
 
@@ -421,5 +421,13 @@ count: 26 , rewardCount: 500
 | 🟢良好         | 350～474    | 大部分回合接近满分，偶尔提前结束；接近通关，但未达标   |
 | ✅通关 (Solved) | ≥475       | 达到 Gymnasium 官方解决标准，整体策略稳定可靠 |
 | ⭐满分          | =500       | 绝大多数回合跑满 500 步，杆子全程不倒，最优性能   |
+
+
+
+
+
+# 代码下载
+
+[强化学习-进阶篇示例代码资源](https://download.csdn.net/download/qq00769539/93326504?spm=1011.2124.3001.6210)
 
 
