@@ -17,13 +17,13 @@ DuelingDQN（Dueling Deep Q-Network）将 $Q$ 值拆分为两部分：
 
 动作价值函数可以写为：
 
-$$Q(s,a)=V(s)+A(s,a)$$
+$Q(s,a)=V(s)+A(s,a)$
 
 但这个式子存在不可辨识问题：对于任意常数 $c$，将 $V(s)$ 增加 $c$，同时将所有 $A(s,a)$ 减少 $c$，得到的 $Q(s,a)$ 不变。因此不能直接使用这个式子组合两个分支。
 
 DuelingDQN 对优势函数减去所有动作优势的平均值：
 
-$$Q(s,a)=V(s)+\left(A(s,a)-\frac{1}{|\mathcal A|}\sum_{a'}A(s,a')\right)$$
+$Q(s,a)=V(s)+\left(A(s,a)-\frac{1}{|\mathcal A|}\sum_{a'}A(s,a')\right)$
 
 其中：
 
