@@ -1,10 +1,10 @@
-﻿# PPO 算法
+# PPO 算法
 
 ## PPO 算法由来
 
 普通 ActorCritic 使用策略梯度更新 Actor：
 
-$$\mathcal L_{Actor}=-\mathbb E_t\left[\log\pi_\theta(a_t|s_t)A_t\right]$$
+$\mathcal L_{Actor}=-\mathbb E_t\left[\log\pi_\theta(a_t|s_t)A_t\right]$
 
 如果一次参数更新过大，新策略可能与采集数据时的旧策略差异过大，导致策略性能突然下降。
 
@@ -14,9 +14,9 @@ PPO（Proximal Policy Optimization，近端策略优化）保留了“新策略�
 
 PPO 常用的实现是 **PPO-Clip**。它通过裁剪新旧策略的概率比率，限制一次更新对策略产生的影响：
 
-$$r_t(\theta)=\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$$
+$r_t(\theta)=\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$
 
-$$L^{CLIP}(\theta)=\mathbb E_t\left[\min\left(r_t(\theta)A_t,\operatorname{clip}(r_t(\theta),1-\epsilon,1+\epsilon)A_t\right)\right]$$
+$L^{CLIP}(\theta)=\mathbb E_t\left[\min\left(r_t(\theta)A_t,\operatorname{clip}(r_t(\theta),1-\epsilon,1+\epsilon)A_t\right)\right]$
 
 其中 $\epsilon$ 是裁剪范围，本实现使用 $\epsilon=0.2$。
 
@@ -30,11 +30,11 @@ $$L^{CLIP}(\theta)=\mathbb E_t\left[\min\left(r_t(\theta)A_t,\operatorname{clip}
 
 一批轨迹由旧策略 $\pi_{\theta_{old}}$ 采样得到。Actor 更新后，需要使用同一批数据评价新策略 $\pi_\theta$，因此引入重要性采样比率：
 
-$$r_t(\theta)=\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$$
+$r_t(\theta)=\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$
 
 代码通过对数概率计算该比率：
 
-$$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{\theta_{old}}(a_t|s_t)\right)$$
+$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{\theta_{old}}(a_t|s_t)\right)$
 
 比率含义：
 
@@ -44,7 +44,7 @@ $$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{\theta_{old}}(a_t|s_t)\
 
 不加限制的代理目标为：
 
-$$L^{CPI}(\theta)=\mathbb E_t\left[r_t(\theta)A_t\right]$$
+$L^{CPI}(\theta)=\mathbb E_t\left[r_t(\theta)A_t\right]$
 
 
 
@@ -52,25 +52,25 @@ $$L^{CPI}(\theta)=\mathbb E_t\left[r_t(\theta)A_t\right]$$
 
 PPO 将概率比率限制在：
 
-$$[1-\epsilon,1+\epsilon]$$
+$[1-\epsilon,1+\epsilon]$
 
 本实现中 $\epsilon=0.2$，对应区间：
 
-$$[0.8,1.2]$$
+$[0.8,1.2]$
 
 定义两个代理目标：
 
-$$L_1=r_t(\theta)A_t$$
+$L_1=r_t(\theta)A_t$
 
-$$L_2=\operatorname{clip}(r_t(\theta),1-\epsilon,1+\epsilon)A_t$$
+$L_2=\operatorname{clip}(r_t(\theta),1-\epsilon,1+\epsilon)A_t$
 
 最终目标取二者中较小的值：
 
-$$L^{CLIP}(\theta)=\mathbb E_t[\min(L_1,L_2)]$$
+$L^{CLIP}(\theta)=\mathbb E_t[\min(L_1,L_2)]$
 
 神经网络使用梯度下降，因此代码最小化负代理目标：
 
-$$\mathcal L_{Actor}=-L^{CLIP}(\theta)$$
+$\mathcal L_{Actor}=-L^{CLIP}(\theta)$
 
 
 
@@ -88,22 +88,22 @@ $$\mathcal L_{Actor}=-L^{CLIP}(\theta)$$
 
 首先使用 Critic 计算 TD 误差：
 
-$$\delta_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)-V_\omega(s_t)$$
+$\delta_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)-V_\omega(s_t)$
 
 再从回合末尾向前递推 GAE：
 
-$$A_t=\delta_t+\gamma\lambda A_{t+1}$$
+$A_t=\delta_t+\gamma\lambda A_{t+1}$
 
 展开后为：
 
-$$A_t=\delta_t+\gamma\lambda\delta_{t+1}+(\gamma\lambda)^2\delta_{t+2}+\cdots$$
+$A_t=\delta_t+\gamma\lambda\delta_{t+1}+(\gamma\lambda)^2\delta_{t+2}+\cdots$
 
 其中：
 
 - $\gamma=0.98$：奖励折扣因子；
 - $\lambda=0.95$：GAE 参数，用于平衡偏差与方差。
-
-
+  
+  
 
 ## PPO 实现细节
 
@@ -118,11 +118,11 @@ ValueNet m_CriticNet;
 
 Actor 使用 `PolicyNet`，输入状态并输出离散动作概率：
 
-$$\pi_\theta(\cdot|s)=[P(a_0|s),P(a_1|s),\ldots]$$
+$\pi_\theta(\cdot|s)=[P(a_0|s),P(a_1|s),\ldots]$
 
 Critic 使用 `ValueNet`，输入状态并输出一个状态价值：
 
-$$V_\omega(s)$$
+$V_\omega(s)$
 
 Actor 根据裁剪代理目标更新，Critic 根据 TD 目标更新。
 
@@ -145,8 +145,8 @@ const int m_nPPOEpochs = 10;
 - `m_dbLmbda`：GAE 中的 $\lambda$；
 - `m_dbEps`：PPO 概率比率的裁剪参数 $\epsilon$；
 - `m_nPPOEpochs`：同一批轨迹重复训练 Actor 的次数。
-
-
+  
+  
 
 ### 2. 创建网络和优化器
 
@@ -239,11 +239,11 @@ m_pAdamCritic->step();
 
 Critic 的 TD 目标为：
 
-$$y_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$$
+$y_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$
 
 Critic 损失为：
 
-$$\mathcal L_{Critic}=\operatorname{MSE}(V_\omega(s_t),y_t)$$
+$\mathcal L_{Critic}=\operatorname{MSE}(V_\omega(s_t),y_t)$
 
 `done=1` 时不再加入下一状态价值。`detach()` 将 TD 目标作为固定标签，避免梯度通过 $V(s_{t+1})$ 传播。
 
@@ -288,7 +288,7 @@ torch::Tensor PPO::ComputeAdvantage(
 
 代码从轨迹最后一步向前计算：
 
-$$adv\leftarrow\delta_t+\gamma\lambda adv$$
+$adv\leftarrow\delta_t+\gamma\lambda adv$
 
 `td.detach_()` 切断优势与 Critic 计算图的连接，因为优势只作为 Actor 损失中的固定权重。
 
@@ -306,7 +306,7 @@ auto adv_norm = ((adv - mean) / (std + 1e-8)).detach();
 
 归一化公式为：
 
-$$\hat A_t=\frac{A_t-\operatorname{mean}(A)}{\operatorname{std}(A)+10^{-8}}$$
+$\hat A_t=\frac{A_t-\operatorname{mean}(A)}{\operatorname{std}(A)+10^{-8}}$
 
 优势归一化使当前批次的优势均值接近 $0$、标准差接近 $1$，减少奖励尺度和不同回合长度对 Actor 更新幅度的影响。
 
@@ -323,7 +323,7 @@ auto oldLogProbs = torch::log(
 
 在更新 Actor 前，先保存旧策略对轨迹中实际动作的对数概率：
 
-$$\log\pi_{\theta_{old}}(a_t|s_t)$$
+$\log\pi_{\theta_{old}}(a_t|s_t)$
 
 `gather(1, a)` 从所有动作概率中取出实际执行动作对应的概率。
 
@@ -341,11 +341,11 @@ auto ratio = torch::exp(logProbs - oldLogProbs);
 
 每轮更新都使用当前 Actor 重新计算：
 
-$$\log\pi_\theta(a_t|s_t)$$
+$\log\pi_\theta(a_t|s_t)$
 
 然后得到重要性采样比率：
 
-$$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{old}(a_t|s_t)\right)$$
+$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{old}(a_t|s_t)\right)$
 
 第一轮更新前，新旧策略相同，因此 `ratio` 接近 $1$。随着 Actor 被重复更新，`ratio` 会逐渐偏离 $1$，裁剪机制开始限制过大的策略变化。
 
@@ -362,11 +362,11 @@ auto actorLoss = torch::mean(-torch::min(surr1, surr2));
 
 代码对应以下公式：
 
-$$surr1=r_t(\theta)\hat A_t$$
+$surr1=r_t(\theta)\hat A_t$
 
-$$surr2=\operatorname{clip}(r_t(\theta),0.8,1.2)\hat A_t$$
+$surr2=\operatorname{clip}(r_t(\theta),0.8,1.2)\hat A_t$
 
-$$\mathcal L_{Actor}=-\operatorname{mean}\left(\min(surr1,surr2)\right)$$
+$\mathcal L_{Actor}=-\operatorname{mean}\left(\min(surr1,surr2)\right)$
 
 取 `min` 表示使用更保守的代理目标，负号将最大化目标转换成优化器需要最小化的损失。
 
@@ -412,8 +412,8 @@ for (int i = 0; i < m_nPPOEpochs; i++)
 6. 保存旧策略动作对数概率；
 7. 使用裁剪代理目标重复更新 Actor 10 次；
 8. 使用更新后的策略重新采集下一回合数据。
-
-
+   
+   
 
 ### 12. 训练终止条件
 
@@ -443,16 +443,16 @@ else
 
 ## PPO 与 TRPO 的区别
 
-| 项目 | TRPO | PPO-Clip |
-| --- | --- | --- |
-| 策略约束 | 显式 KL 散度约束 | 裁剪概率比率 |
-| 优化方式 | 二阶近似 | 一阶梯度优化 |
-| Actor 更新 | 共轭梯度、线搜索 | Adam |
-| Hessian 向量积 | 需要 | 不需要 |
-| 回溯线搜索 | 需要 | 不需要 |
-| 优势估计 | GAE | GAE |
-| 同批数据多轮更新 | 通常受信赖域控制 | 使用裁剪目标控制 |
-| 实现复杂度 | 较高 | 较低 |
+| 项目          | TRPO       | PPO-Clip |
+| ----------- | ---------- | -------- |
+| 策略约束        | 显式 KL 散度约束 | 裁剪概率比率   |
+| 优化方式        | 二阶近似       | 一阶梯度优化   |
+| Actor 更新    | 共轭梯度、线搜索   | Adam     |
+| Hessian 向量积 | 需要         | 不需要      |
+| 回溯线搜索       | 需要         | 不需要      |
+| 优势估计        | GAE        | GAE      |
+| 同批数据多轮更新    | 通常受信赖域控制   | 使用裁剪目标控制 |
+| 实现复杂度       | 较高         | 较低       |
 
 TRPO 显式要求平均 KL 散度小于指定阈值，理论约束更直接；PPO 使用裁剪概率比率近似限制策略变化，实现更简单，并且可以使用常规的小批量梯度优化方法。
 
@@ -460,14 +460,14 @@ TRPO 显式要求平均 KL 散度小于指定阈值，理论约束更直接；PP
 
 ## PPO 与 ActorCritic 的区别
 
-| 项目 | ActorCritic | PPO |
-| --- | --- | --- |
-| Actor 损失 | $-\log\pi(a|s)A$ | 裁剪代理损失 |
-| 新旧策略比率 | 不使用 | 使用 |
-| 策略更新限制 | 主要依赖学习率 | 使用概率比率裁剪 |
-| 优势估计 | 单步 TD 误差 | GAE |
-| 同批数据训练次数 | 通常一次 | 本实现为 10 次 |
-| 更新稳定性 | 可能出现过大更新 | 通常更加稳定 |
+| 项目       | ActorCritic   | PPO       |
+| -------- | ------------- | --------- |
+| Actor 损失 | $-\log\pi(a)$ | $(s)A$    |
+| 新旧策略比率   | 不使用           | 使用        |
+| 策略更新限制   | 主要依赖学习率       | 使用概率比率裁剪  |
+| 优势估计     | 单步 TD 误差      | GAE       |
+| 同批数据训练次数 | 通常一次          | 本实现为 10 次 |
+| 更新稳定性    | 可能出现过大更新      | 通常更加稳定    |
 
 PPO 可以理解为在 ActorCritic 基础上加入三项主要改进：
 

@@ -1,18 +1,18 @@
-﻿# TRPO 算法
+# TRPO 算法
 
 ## TRPO 算法由来
 
 ActorCritic 使用策略网络 Actor 选择动作，使用价值网络 Critic 计算 TD 误差，并根据下面的损失函数更新 Actor：
 
-$$\mathcal L_{Actor}=-\mathbb E_t\left[\log\pi_\theta(a_t|s_t)A_t\right]$$
+$\mathcal L_{Actor}=-\mathbb E_t\left[\log\pi_\theta(a_t|s_t)A_t\right]$
 
 普通策略梯度使用学习率控制每次参数更新的大小，但是参数变化小并不一定表示策略概率分布变化小。一次过大的策略更新可能使原来表现较好的动作概率突然降低，导致新策略性能严重下降。
 
 TRPO（Trust Region Policy Optimization，信赖域策略优化）限制新旧策略之间的 KL 散度，在一个可信赖的策略变化范围内尽可能提高策略目标：
 
-$$\max_\theta\quad \mathbb E_t\left[\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}A_t\right]$$
+$\max_\theta\quad \mathbb E_t\left[\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}A_t\right]$
 
-$$\text{s.t.}\quad \mathbb E_t\left[D_{KL}\left(\pi_{\theta_{old}}(\cdot|s_t)\|\pi_\theta(\cdot|s_t)\right)\right]\leq\delta$$
+$\text{s.t.}\quad \mathbb E_t\left[D_{KL}\left(\pi_{\theta_{old}}(\cdot|s_t)\|\pi_\theta(\cdot|s_t)\right)\right]\leq\delta$
 
 其中 $\delta$ 是 KL 散度上限。TRPO 的核心思想是：**策略可以更新，但每次不能离旧策略太远。**
 
@@ -22,8 +22,8 @@ TRPO 仍然采用 ActorCritic 结构：
 - **Critic：** 估计状态价值，使用 Adam 优化器更新；
 - **GAE：** 根据 TD 误差计算优势函数；
 - **KL 约束：** 限制新旧策略分布之间的差异。
-
-
+  
+  
 
 ## TRPO 公式推导
 
@@ -31,17 +31,17 @@ TRPO 仍然采用 ActorCritic 结构：
 
 训练数据由旧策略 $\pi_{\theta_{old}}$ 采样得到，但是要评价新策略 $\pi_\theta$。使用重要性采样比率：
 
-$$r_t(\theta)=\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$$
+$r_t(\theta)=\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$
 
 代理目标（Surrogate Objective）为：
 
-$$L(\theta)=\mathbb E_t\left[r_t(\theta)A_t\right]$$
+$L(\theta)=\mathbb E_t\left[r_t(\theta)A_t\right]$
 
 当新旧策略相同时，$r_t(\theta)=1$。如果某个动作的优势 $A_t>0$，增大该动作在新策略中的概率可以提高代理目标；如果 $A_t<0$，则应该减小该动作的概率。
 
 为了提高数值稳定性，代码通过对数概率计算比率：
 
-$$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{\theta_{old}}(a_t|s_t)\right)$$
+$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{\theta_{old}}(a_t|s_t)\right)$
 
 
 
@@ -49,15 +49,15 @@ $$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{\theta_{old}}(a_t|s_t)\
 
 TRPO 使用 KL 散度衡量新旧策略之间的距离：
 
-$$\bar D_{KL}(\theta_{old},\theta)=\mathbb E_t\left[D_{KL}\left(\pi_{\theta_{old}}(\cdot|s_t)\|\pi_\theta(\cdot|s_t)\right)\right]$$
+$\bar D_{KL}(\theta_{old},\theta)=\mathbb E_t\left[D_{KL}\left(\pi_{\theta_{old}}(\cdot|s_t)\|\pi_\theta(\cdot|s_t)\right)\right]$
 
 策略更新需要满足：
 
-$$\bar D_{KL}(\theta_{old},\theta)\leq\delta$$
+$\bar D_{KL}(\theta_{old},\theta)\leq\delta$
 
 本实现设置：
 
-$$\delta=5\times10^{-4}$$
+$\delta=5\times10^{-4}$
 
 KL 约束直接限制动作概率分布的变化，比简单限制参数变化更符合策略优化的目标。
 
@@ -69,31 +69,31 @@ KL 约束直接限制动作概率分布的变化，比简单限制参数变化�
 
 对代理目标进行一阶近似：
 
-$$L(\theta_{old}+x)\approx L(\theta_{old})+g^Tx$$
+$L(\theta_{old}+x)\approx L(\theta_{old})+g^Tx$
 
 其中：
 
-$$g=\nabla_\theta L(\theta)\big|_{\theta=\theta_{old}}$$
+$g=\nabla_\theta L(\theta)\big|_{\theta=\theta_{old}}$
 
 对 KL 散度进行二阶近似：
 
-$$\bar D_{KL}(\theta_{old},\theta_{old}+x)\approx\frac{1}{2}x^THx$$
+$\bar D_{KL}(\theta_{old},\theta_{old}+x)\approx\frac{1}{2}x^THx$
 
 其中 $H$ 是 KL 散度关于策略参数的 Hessian 矩阵。
 
 近似后的优化问题为：
 
-$$\max_x\quad g^Tx$$
+$\max_x\quad g^Tx$
 
-$$\text{s.t.}\quad\frac{1}{2}x^THx\leq\delta$$
+$\text{s.t.}\quad\frac{1}{2}x^THx\leq\delta$
 
 其搜索方向为：
 
-$$d=H^{-1}g$$
+d=H^{-1}g$
 
 满足 KL 约束的完整步长为：
 
-$$x=\sqrt{\frac{2\delta}{d^THd}}d$$
+$x=\sqrt{\frac{2\delta}{d^THd}}d$
 
 实际实现不会直接构造和求逆巨大的 Hessian 矩阵，而是使用 Hessian 向量积和共轭梯度法近似求解 $H^{-1}g$。
 
@@ -105,23 +105,23 @@ TRPO 使用 GAE（Generalized Advantage Estimation，广义优势估计）降低
 
 首先计算单步 TD 误差：
 
-$$\delta_t=r_t+\gamma V(s_{t+1})(1-done_t)-V(s_t)$$
+$\delta_t=r_t+\gamma V(s_{t+1})(1-done_t)-V(s_t)$
 
 然后从回合末尾向前递推：
 
-$$A_t=\delta_t+\gamma\lambda A_{t+1}$$
+$A_t=\delta_t+\gamma\lambda A_{t+1}$
 
 展开后为：
 
-$$A_t=\delta_t+\gamma\lambda\delta_{t+1}+(\gamma\lambda)^2\delta_{t+2}+\cdots$$
+$A_t=\delta_t+\gamma\lambda\delta_{t+1}+(\gamma\lambda)^2\delta_{t+2}+\cdots$
 
 其中：
 
 - $\gamma$ 控制未来奖励的折扣；
 - $\lambda$ 控制偏差与方差之间的平衡；
 - 本实现设置 $\gamma=0.98$、$\lambda=0.95$。
-
-
+  
+  
 
 ## TRPO 实现细节
 
@@ -136,11 +136,11 @@ ValueNet m_CriticNet;
 
 Actor 使用 `PolicyNet`，输入状态，经过 `softmax` 输出所有离散动作的概率：
 
-$$\pi_\theta(\cdot|s)=[P(a_0|s),P(a_1|s),\ldots]$$
+$\pi_\theta(\cdot|s)=[P(a_0|s),P(a_1|s),\ldots]$
 
 Critic 使用 `ValueNet`，输入状态并输出一个标量状态价值：
 
-$$V_\omega(s)$$
+$V_\omega(s)$
 
 Actor 不使用普通 Adam 优化器，而是通过共轭梯度和回溯线搜索更新参数。Critic 仍然使用 Adam 优化器最小化价值损失。
 
@@ -188,8 +188,8 @@ void TRPO::GenerateTrainData(int maxCount)
 - Critic 学习率 `m_dbCriticLR = 1e-2`；
 - KL 约束 `m_dbklConstraint = 5e-4`；
 - 回溯线搜索系数 `m_dbAlpha = 0.5`。
-
-
+  
+  
 
 ### 2. 根据 Actor 选择动作
 
@@ -236,11 +236,11 @@ m_pAdamCritic->step();
 
 Critic 的 TD 目标为：
 
-$$y_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$$
+$y_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$
 
 Critic 损失为：
 
-$$\mathcal L_{Critic}=\operatorname{MSE}(V_\omega(s_t),y_t)$$
+$\mathcal L_{Critic}=\operatorname{MSE}(V_\omega(s_t),y_t)$
 
 `v1.detach()` 将 TD 目标作为固定标签，避免梯度通过下一状态价值传播。变量 `td` 保存 Critic 更新前计算的 TD 误差，后续用于计算 GAE 优势。
 
@@ -283,7 +283,7 @@ torch::Tensor TRPO::ComputeAdvantage(
 
 代码从轨迹末尾向前执行：
 
-$$adv\leftarrow\delta_t+\gamma\lambda adv$$
+$adv\leftarrow\delta_t+\gamma\lambda adv$
 
 `td.detach_()` 切断 TD 误差与 Critic 计算图的联系，因为优势值只作为更新 Actor 的固定权重。
 
@@ -303,7 +303,7 @@ auto adv_norm = (adv - mean) / (std + 1e-8);
 
 优势归一化公式为：
 
-$$\hat A_t=\frac{A_t-\operatorname{mean}(A)}{\operatorname{std}(A)+10^{-8}}$$
+$\hat A_t=\frac{A_t-\operatorname{mean}(A)}{\operatorname{std}(A)+10^{-8}}$
 
 归一化不会改变动作优势的相对大小，可以减少不同回合奖励尺度变化对策略更新的影响。分母加 $10^{-8}$ 用于防止标准差为 $0$ 时除零。
 
@@ -346,9 +346,9 @@ torch::Tensor TRPO::ComputeSurrogateObj(
 
 对应公式：
 
-$$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{old}(a_t|s_t)\right)$$
+$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{old}(a_t|s_t)\right)$
 
-$$L(\theta)=\operatorname{mean}\left(r_t(\theta)\hat A_t\right)$$
+$L(\theta)=\operatorname{mean}\left(r_t(\theta)\hat A_t\right)$
 
 TRPO 的目标是最大化代理目标，因此后续沿其梯度方向更新，而不是像常规损失函数一样执行梯度下降。
 
@@ -374,13 +374,13 @@ return Hv + damping * v;
 
 首先对平均 KL 散度求一次梯度，并保留计算图；然后将 KL 梯度与向量 $v$ 做内积，再对结果求一次梯度，得到：
 
-$$Hv=\nabla_\theta\left((\nabla_\theta D_{KL})^Tv\right)$$
+$Hv=\nabla_\theta\left((\nabla_\theta D_{KL})^Tv\right)$
 
 这种方法不需要显式构造大小为“参数量 × 参数量”的 Hessian 矩阵。
 
 返回结果中加入阻尼项：
 
-$$Hv\leftarrow Hv+0.1v$$
+$Hv\leftarrow Hv+0.1v$
 
 阻尼能够改善数值稳定性，避免 Hessian 接近奇异时共轭梯度求解发生剧烈波动。
 
@@ -423,11 +423,11 @@ torch::Tensor TRPO::ConjugateGradient(
 
 共轭梯度法用于近似求解线性方程：
 
-$$Hx=g$$
+$Hx=g$
 
 返回的 $x$ 近似为：
 
-$$x\approx H^{-1}g$$
+$x\approx H^{-1}g$
 
 本实现最多迭代 20 次。当残差平方小于 $10^{-9}$ 时提前停止。
 
@@ -454,11 +454,11 @@ auto fullStep = (stepScale * searchDirection).detach();
 
 首先计算代理目标梯度 $g$，然后使用共轭梯度法得到搜索方向：
 
-$$d\approx H^{-1}g$$
+$d\approx H^{-1}g$
 
 再按照 KL 约束缩放搜索方向：
 
-$$fullStep=\sqrt{\frac{2\delta}{d^THd}}d$$
+$fullStep=\sqrt{\frac{2\delta}{d^THd}}d$
 
 `fullStep` 是二阶近似下能够满足 KL 约束的最大更新步长，但由于神经网络是非线性的，实际更新后仍可能违反 KL 约束，因此还需要回溯线搜索。
 
@@ -492,7 +492,7 @@ for (int i = 0; i < 15; i++)
 
 第 $i$ 次尝试的参数为：
 
-$$\theta_{new}=\theta_{old}+\alpha^i fullStep$$
+$\theta_{new}=\theta_{old}+\alpha^i fullStep$
 
 本实现中 $\alpha=0.5$，最多尝试 15 次。候选参数必须同时满足两个条件：
 
@@ -527,8 +527,8 @@ TRPO 的 Actor 更新流程为：
 4. 根据 KL 上限计算完整步长；
 5. 使用回溯线搜索检查代理目标和真实 KL 散度；
 6. 找到合格参数后更新 Actor，否则放弃本次更新。
-
-
+   
+   
 
 ### 13. 训练终止条件
 
@@ -558,16 +558,16 @@ else
 
 ## TRPO 与 ActorCritic 的区别
 
-| 项目 | ActorCritic | TRPO |
-| --- | --- | --- |
-| Actor 目标 | $\log\pi(a|s)A$ | 重要性采样代理目标 |
-| Actor 更新 | Adam 梯度更新 | 共轭梯度与回溯线搜索 |
-| 策略变化限制 | 依赖学习率 | 显式限制 KL 散度 |
-| 优势估计 | 单步 TD 误差 | GAE |
-| Critic 更新 | MSE + Adam | MSE + Adam |
-| 二阶信息 | 不使用 | 使用 KL Hessian 向量积 |
-| 实现复杂度 | 较低 | 较高 |
-| 更新稳定性 | 可能出现过大更新 | 信赖域内更新更加稳定 |
+| 项目        | ActorCritic  | TRPO              |
+| --------- | ------------ | ----------------- |
+| Actor 目标  | $\log\pi(a)$ | $(s)A$            |
+| Actor 更新  | Adam 梯度更新    | 共轭梯度与回溯线搜索        |
+| 策略变化限制    | 依赖学习率        | 显式限制 KL 散度        |
+| 优势估计      | 单步 TD 误差     | GAE               |
+| Critic 更新 | MSE + Adam   | MSE + Adam        |
+| 二阶信息      | 不使用          | 使用 KL Hessian 向量积 |
+| 实现复杂度     | 较低           | 较高                |
+| 更新稳定性     | 可能出现过大更新     | 信赖域内更新更加稳定        |
 
 TRPO 通过 KL 散度信赖域解决了普通策略梯度更新步长难以控制的问题，但共轭梯度、二阶自动微分和回溯线搜索使实现较复杂、计算量较大。
 

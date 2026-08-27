@@ -1,10 +1,10 @@
-﻿# ActorCritic 算法
+# ActorCritic 算法
 
 ## ActorCritic 算法由来
 
 策略梯度算法使用策略网络 $\pi_\theta(a|s)$ 直接输出动作概率，并使用一个完整回合的累计折扣回报 $G_t$ 更新网络：
 
-$$\mathcal L_{Actor}=-G_t\log\pi_\theta(a_t|s_t)$$
+$\mathcal L_{Actor}=-G_t\log\pi_\theta(a_t|s_t)$
 
 这种 REINFORCE 算法简单直观，但必须等一个回合结束后才能计算累计回报，而且蒙特卡洛回报 $G_t$ 的方差较大，训练过程容易波动。
 
@@ -25,11 +25,11 @@ ActorCritic 不需要等待回合结束再计算完整的累计回报，而是�
 
 Critic 使用神经网络估计状态价值：
 
-$$V_\omega(s)=\mathbb E_{\pi}\left[G_t|s_t=s\right]$$
+$V_\omega(s)=\mathbb E_{\pi}\left[G_t|s_t=s\right]$
 
 根据贝尔曼方程，当前状态价值的单步 TD 目标为：
 
-$$y_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$$
+$y_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$
 
 其中：
 
@@ -40,15 +40,15 @@ $$y_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$$
 
 TD Error（时序差分误差）为：
 
-$$\delta_t=y_t-V_\omega(s_t)$$
+$\delta_t=y_t-V_\omega(s_t)$
 
 即：
 
-$$\delta_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)-V_\omega(s_t)$$
+$\delta_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)-V_\omega(s_t)$
 
 Critic 使用均方误差训练：
 
-$$\mathcal L_{Critic}=\frac{1}{N}\sum_t\left(y_t-V_\omega(s_t)\right)^2$$
+$\mathcal L_{Critic}=\frac{1}{N}\sum_t\left(y_t-V_\omega(s_t)\right)^2$
 
 
 
@@ -56,15 +56,15 @@ $$\mathcal L_{Critic}=\frac{1}{N}\sum_t\left(y_t-V_\omega(s_t)\right)^2$$
 
 策略梯度使用优势函数评价动作：
 
-$$\nabla_\theta J(\theta)=\mathbb E\left[A(s_t,a_t)\nabla_\theta\log\pi_\theta(a_t|s_t)\right]$$
+$\nabla_\theta J(\theta)=\mathbb E\left[A(s_t,a_t)\nabla_\theta\log\pi_\theta(a_t|s_t)\right]$
 
 在 ActorCritic 中，可以使用 TD 误差 $\delta_t$ 作为优势函数 $A(s_t,a_t)$ 的近似：
 
-$$A(s_t,a_t)\approx\delta_t$$
+$A(s_t,a_t)\approx\delta_t$
 
 因此 Actor 的损失函数为：
 
-$$\mathcal L_{Actor}=-\frac{1}{N}\sum_t\log\pi_\theta(a_t|s_t)\delta_t$$
+$\mathcal L_{Actor}=-\frac{1}{N}\sum_t\log\pi_\theta(a_t|s_t)\delta_t$
 
 公式含义：
 
@@ -110,7 +110,7 @@ TORCH_MODULE(PolicyNet);
 
 Actor 的输入是状态 $s$，输出是所有离散动作的概率：
 
-$$\pi_\theta(\cdot|s)=[P(a_0|s),P(a_1|s),\ldots]$$
+$\pi_\theta(\cdot|s)=[P(a_0|s),P(a_1|s),\ldots]$
 
 输出层使用 `softmax`，保证每个动作概率大于等于 $0$，并且所有动作概率之和为 $1$。
 
@@ -241,7 +241,7 @@ auto [s0, a, r, s1, done] = QwListToTensor(vList, m_device);
 
 一个回合中每一步的数据格式为：
 
-$$(s_t,a_t,r_t,s_{t+1},done_t)$$
+$(s_t,a_t,r_t,s_{t+1},done_t)$
 
 转换完成后：
 
@@ -266,19 +266,19 @@ auto td = v1 - v0;
 
 代码中：
 
-$$v0=V_\omega(s_t)$$
+$v0=V_\omega(s_t)$
 
-$$v1=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$$
+$v1=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$
 
-$$td=v1-v0$$
+$td=v1-v0$
 
 `done` 为 $1$ 时，`1 - done` 为 $0$，TD 目标只保留终止动作获得的即时奖励：
 
-$$y_t=r_t$$
+$y_t=r_t$
 
 `done` 为 $0$ 时，TD 目标包含下一状态的估计价值：
 
-$$y_t=r_t+\gamma V_\omega(s_{t+1})$$
+$y_t=r_t+\gamma V_\omega(s_{t+1})$
 
 
 
@@ -292,11 +292,11 @@ auto actorLoss = torch::mean(-logProbs * td.detach());
 
 `m_ActorNet->forward(s0)` 输出每个状态下所有动作的概率，`gather(1, a)` 取出轨迹中实际执行动作的概率：
 
-$$\pi_\theta(a_t|s_t)$$
+$\pi_\theta(a_t|s_t)$
 
 Actor 损失为：
 
-$$\mathcal L_{Actor}=-\operatorname{mean}\left(\log\pi_\theta(a_t|s_t)\delta_t\right)$$
+$\mathcal L_{Actor}=-\operatorname{mean}\left(\log\pi_\theta(a_t|s_t)\delta_t\right)$
 
 `td.detach()` 非常重要。TD 误差由 Critic 计算，但更新 Actor 时只把它作为评价动作好坏的固定权重，不允许 Actor 损失的梯度传播到 Critic 网络。
 
@@ -312,7 +312,7 @@ auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));
 
 Critic 使用均方误差：
 
-$$\mathcal L_{Critic}=\operatorname{MSE}(V_\omega(s_t),y_t)$$
+$\mathcal L_{Critic}=\operatorname{MSE}(V_\omega(s_t),y_t)$
 
 `v1.detach()` 将 TD 目标视为固定标签，阻止梯度通过下一状态价值 $V_\omega(s_{t+1})$ 继续传播。这样 Critic 只调整当前状态的预测值 `v0`，使其接近 TD 目标 `v1`。
 
@@ -375,22 +375,24 @@ else
 
 ## ActorCritic 与策略梯度的区别
 
-| 项目 | REINFORCE | ActorCritic |
-| --- | --- | --- |
-| 策略网络 | Actor | Actor |
-| 价值网络 | 无 | Critic |
-| 动作评价 | 蒙特卡洛累计回报 $G_t$ | TD 误差 $\delta_t$ |
-| 是否等待完整回报 | 是 | 不需要完整累计回报 |
-| 更新目标 | $-G_t\log\pi(a_t|s_t)$ | $-\delta_t\log\pi(a_t|s_t)$ |
-| 方差 | 较大 | 通常较小 |
-| 偏差 | 蒙特卡洛估计偏差较小 | TD 自举会引入一定偏差 |
+| 项目       | REINFORCE        | ActorCritic      |
+| -------- | ---------------- | ---------------- |
+| 策略网络     | Actor            | Actor            |
+| 价值网络     | 无                | Critic           |
+| 动作评价     | 蒙特卡洛累计回报 $G_t$   | TD 误差 $\delta_t$ |
+| 是否等待完整回报 | 是                | 不需要完整累计回报        |
+| 更新目标     | $-G_t\log\pi(a_t | s_t)$            |
+| 方差       | 较大               | 通常较小             |
+| 偏差       | 蒙特卡洛估计偏差较小       | TD 自举会引入一定偏差     |
 
 ActorCritic 使用 Critic 作为策略梯度的基线，降低了梯度估计的方差；同时使用下一状态的估计价值进行自举，不必完全依赖回合结束后的实际累计回报。
 
 其基本训练关系为：
 
-$$Actor:\quad\max_\theta\log\pi_\theta(a_t|s_t)\delta_t$$
+$Actor:\quad\max_\theta\log\pi_\theta(a_t|s_t)\delta_t$
 
-$$Critic:\quad\min_\omega\left(r_t+\gamma V_\omega(s_{t+1})-V_\omega(s_t)\right)^2$$
+$Critic:\quad\min_\omega\left(r_t+\gamma V_\omega(s_{t+1})-V_\omega(s_t)\right)^2$
 
 ActorCritic 是 A2C、A3C、PPO、DDPG、SAC 等现代强化学习算法的重要基础。
+
+
