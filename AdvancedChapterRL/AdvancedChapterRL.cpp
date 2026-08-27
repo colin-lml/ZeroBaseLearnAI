@@ -8,7 +8,7 @@ using namespace std;
 int main()
 {
 	DeepQNetwork  deepQN;
-	//deepQN.Play(400);
+	deepQN.Play(400);
 	//deepQN.DoubleDQN(400);
 	DuelingDQN duelingDQN;
 	//duelingDQN.Play(400);
