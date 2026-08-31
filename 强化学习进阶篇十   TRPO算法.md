@@ -89,7 +89,7 @@ $\text{s.t.}\quad\frac{1}{2}x^THx\leq\delta$
 
 其搜索方向为：
 
-d=H^{-1}g$
+$d=H^{-1}g$
 
 满足 KL 约束的完整步长为：
 
