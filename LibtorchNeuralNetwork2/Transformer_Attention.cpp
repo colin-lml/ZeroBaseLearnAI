@@ -122,12 +122,13 @@ public:
 		
 		Dk = dim / head;
 		H = head;
-
+#if 0
 		auto onesw = torch::eye(dim);   
 		Q->weight.set_data(onesw);
 		K->weight.set_data(onesw);
 		V->weight.set_data(onesw);
 		Wo->weight.set_data(onesw);
+#endif
 	}
 
 	auto forward(torch::Tensor x, int64_t head = 2, torch::Tensor mask = {})
