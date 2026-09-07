@@ -360,4 +360,8 @@ count: 66 , rewardCount: 500
 
 
 
-## ActorCritic 与策略梯度的区别
+## ActorCritic 是现代 RL 的骨架
+
+AC 融合了两大路线
+
+**Actor‑Critic 是当代深度强化学习实用算法的骨架始祖**。PPO、SAC、TD3 全部是在 AC 这个骨架上修改目标函数、损失、正则而来。
