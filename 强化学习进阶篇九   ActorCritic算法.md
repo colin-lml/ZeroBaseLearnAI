@@ -1,17 +1,27 @@
-# ActorCritic 算法
+# Actor-Critic 算法
 
-## ActorCritic 算法由来
+## 算法回顾
+
+- 车杆事件：随机初始状态 → 选择动作→下一个状态→ $\dots$ → 结束
+
+- DQN 以及 DQN的改进算法**基于价值**的方法解决连续状态的问题，用神经网络代替$Q$表(**拟合动作价值**)。 基于最大值选择动作，算法目标是优化价值神经网络。
+
+- 策略梯度算法是**基于策略**的方法，用神经网络对动作进行建模（分布概率），算法目标是最大化轨迹期望总回报。
+
+![ActorCritic](ActorCritic.png)
+
+## ActorCritic 算法
 
 策略梯度算法使用策略网络 $\pi_\theta(a|s)$ 直接输出动作概率，并使用一个完整回合的累计折扣回报 $G_t$ 更新网络：
 
 $\mathcal L_{Actor}=-G_t\log\pi_\theta(a_t|s_t)$
 
-这种 REINFORCE 算法简单直观，但必须等一个回合结束后才能计算累计回报，而且蒙特卡洛回报 $G_t$ 的方差较大，训练过程容易波动。
+这种算法简单直观，但必须等一个回合结束后才能计算累计回报，而且蒙特卡洛回报 $G_t$ 的方差较大，训练过程容易波动。Actor-Critic 是囊括一系列算法的整体架构，目前很多高效的前沿算法都属于 Actor-Critic 算法，它既学习价值函数，又学习策略函数。
 
 ActorCritic（演员-评论家）算法同时训练两个神经网络：
 
-- **Actor（演员）**：策略网络 $\pi_\theta(a|s)$，根据当前状态选择动作；
-- **Critic（评论家）**：价值网络 $V_\omega(s)$，评价当前状态的价值，并指导 Actor 更新。
+- **Actor（演员）**：策略网络 $\pi_\theta(a|s)$，根据当前状态选择动作 （**用上一章策略梯度网络**）；
+- **Critic（评论家）**：价值网络 $V_\omega(s)$，评价当前状态的价值，并指导 Actor 更新 (**ValueNet与DQN中的价值网络一样**)。
 
 可以这样理解：Actor 负责做动作，Critic 负责评价动作产生的结果。Actor 根据 Critic 给出的评价调整动作概率，Critic 根据实际奖励不断提高自己的评价准确性。
 
@@ -19,139 +29,23 @@ ActorCritic 不需要等待回合结束再计算完整的累计回报，而是�
 
 
 
-## ActorCritic 公式推导
-
-### 1. Critic 的 TD 目标
-
-Critic 使用神经网络估计状态价值：
-
-$V_\omega(s)=\mathbb E_{\pi}\left[G_t|s_t=s\right]$
-
-根据贝尔曼方程，当前状态价值的单步 TD 目标为：
-
-$y_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$
-
-其中：
-
-- $r_t$ 是执行动作后获得的即时奖励；
-- $\gamma$ 是折扣因子；
-- $V_\omega(s_{t+1})$ 是 Critic 对下一状态价值的估计；
-- $done_t=1$ 表示回合已经终止，终止状态没有后续价值。
-
-TD Error（时序差分误差）为：
-
-$\delta_t=y_t-V_\omega(s_t)$
-
-即：
-
-$\delta_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)-V_\omega(s_t)$
-
-Critic 使用均方误差训练：
-
-$\mathcal L_{Critic}=\frac{1}{N}\sum_t\left(y_t-V_\omega(s_t)\right)^2$
+![ActorCritic2.png](ActorCritic2.png)
 
 
 
-### 2. Actor 的策略梯度
 
-策略梯度使用优势函数评价动作：
 
-$\nabla_\theta J(\theta)=\mathbb E\left[A(s_t,a_t)\nabla_\theta\log\pi_\theta(a_t|s_t)\right]$
+**ActorCritic 实现** 如上图 策略梯度算法更新时：
 
-在 ActorCritic 中，可以使用 TD 误差 $\delta_t$ 作为优势函数 $A(s_t,a_t)$ 的近似：
-
-$A(s_t,a_t)\approx\delta_t$
-
-因此 Actor 的损失函数为：
-
-$\mathcal L_{Actor}=-\frac{1}{N}\sum_t\log\pi_\theta(a_t|s_t)\delta_t$
-
-公式含义：
-
-1. 当 $\delta_t>0$ 时，实际结果比 Critic 原来的预期更好，增大动作 $a_t$ 的概率；
-2. 当 $\delta_t<0$ 时，实际结果比预期更差，减小动作 $a_t$ 的概率；
-3. $|\delta_t|$ 越大，Actor 更新幅度越大。
-
-**总结：** Critic 通过最小化 TD 目标与当前价值估计之间的误差来学习 $V(s)$；Actor 使用 Critic 计算的 TD 误差作为动作优势，更新策略网络。
+公式：$\mathcal L_{Actor}=-G_t\log\pi_\theta(a_t|s_t)$  中 由$G_t$ 换成 $TD$ ,$TD$是Critic网络中的**时序差分的误差**
 
 
 
-## ActorCritic 实现细节
-
-### 0. Actor 策略网络
-
-Actor 使用前面策略梯度算法中的 `PolicyNet`：
-
-```
-class PolicyNetImpl : public torch::nn::Module
-{
-public:
-    PolicyNetImpl() = default;
-
-    PolicyNetImpl(int64_t input, int64_t output, int64_t hidden = 128)
-    {
-        m_fc1 = register_module("fc1", torch::nn::Linear(input, hidden));
-        m_fc2 = register_module("fc2", torch::nn::Linear(hidden, output));
-    }
-
-    torch::Tensor forward(torch::Tensor x)
-    {
-        x = torch::relu(m_fc1->forward(x));
-        x = m_fc2->forward(x);
-        return torch::softmax(x, 1);
-    }
-
-    torch::nn::Linear m_fc1{ nullptr };
-    torch::nn::Linear m_fc2{ nullptr };
-};
-
-TORCH_MODULE(PolicyNet);
-```
-
-Actor 的输入是状态 $s$，输出是所有离散动作的概率：
-
-$\pi_\theta(\cdot|s)=[P(a_0|s),P(a_1|s),\ldots]$
-
-输出层使用 `softmax`，保证每个动作概率大于等于 $0$，并且所有动作概率之和为 $1$。
 
 
+### 1. 创建 Actor、Critic 和优化器
 
-### 1. Critic 价值网络
-
-```
-class ValueNetImpl : public torch::nn::Module
-{
-public:
-    ValueNetImpl() = default;
-
-    ValueNetImpl(int64_t input, int64_t output = 1, int64_t hidden = 128)
-    {
-        m_fc1 = register_module("fc1", torch::nn::Linear(input, hidden));
-        m_fc2 = register_module("fc2", torch::nn::Linear(hidden, output));
-    }
-
-    torch::Tensor forward(torch::Tensor x)
-    {
-        x = torch::relu(m_fc1->forward(x));
-        return m_fc2->forward(x);
-    }
-
-    torch::nn::Linear m_fc1{ nullptr };
-    torch::nn::Linear m_fc2{ nullptr };
-};
-
-TORCH_MODULE(ValueNet);
-```
-
-Critic 输入状态 $s$，输出一个标量 $V_\omega(s)$，表示从当前状态出发，按照 Actor 的策略继续执行时能够获得的预期累计折扣奖励。
-
-Critic 输出层不使用 `softmax`，因为状态价值不是概率，可以是任意实数。
-
-
-
-### 2. 创建 Actor、Critic 和优化器
-
-```
+```cpp
 void ActorCritic::GenerateTrainData(int maxCount)
 {
     cout << "Currently Actor-Critic" << endl;
@@ -200,9 +94,9 @@ ActorCritic 不需要 DQN 中的目标网络，也不需要使用 $\epsilon$-贪
 
 
 
-### 3. Actor 选择动作
+### 2. Actor 选择动作
 
-```
+```cpp
 double ActorCritic::TakeAction(VectorDouble& s0, bool bPredict)
 {
     torch::NoGradGuard no_grad;
@@ -233,7 +127,7 @@ double ActorCritic::TakeAction(VectorDouble& s0, bool bPredict)
 
 
 
-### 4. 将一个回合的数据转换成张量
+### 3. 将一个回合的数据转换成张量
 
 ```
 auto [s0, a, r, s1, done] = QwListToTensor(vList, m_device);
@@ -255,97 +149,60 @@ $(s_t,a_t,r_t,s_{t+1},done_t)$
 
 
 
-### 5. Critic 计算 TD 目标和 TD 误差
+### 4. 更新策略
 
-```
-auto v0 = m_CriticNet->forward(s0);
-auto v1 = r + m_dbGamma * m_CriticNet->forward(s1) * (1 - done);
+```cpp
+void ActorCritic::TrainGenerateItem2(const QwList& vList)
+{
 
-auto td = v1 - v0;
-```
+    static int count = 0;
 
-代码中：
+    if (450 < vList.size())
+    {
+        count++;
+        if (3 < count)
+        {
+            m_bEndGenerateTrain = true;
+            return;
+        }
+    }
+    else
+    {
+        count = 0;
+    }
 
-$v0=V_\omega(s_t)$
+    auto [s0, a, r, s1, done] = QwListToTensor(vList, m_device);
 
-$v1=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$
+    auto v0 = m_CriticNet->forward(s0);
+    auto v1 = r + m_dbGamma * m_CriticNet->forward(s1) * (1 - done);
 
-$td=v1-v0$
+    auto td = v1 - v0;
 
-`done` 为 $1$ 时，`1 - done` 为 $0$，TD 目标只保留终止动作获得的即时奖励：
+    auto action = m_ActorNet->forward(s0).gather(1, a);
+    auto logProbs = torch::log(action);
+    auto actorLoss = torch::mean(-logProbs * td.detach());
 
-$y_t=r_t$
+    auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));
 
-`done` 为 $0$ 时，TD 目标包含下一状态的估计价值：
+    m_pAdamActor->zero_grad();
+    m_pAdamCritic->zero_grad();
 
-$y_t=r_t+\gamma V_\omega(s_{t+1})$
-
-
-
-### 6. Actor 损失函数
-
-```
-auto action = m_ActorNet->forward(s0).gather(1, a);
-auto logProbs = torch::log(action);
-auto actorLoss = torch::mean(-logProbs * td.detach());
-```
-
-`m_ActorNet->forward(s0)` 输出每个状态下所有动作的概率，`gather(1, a)` 取出轨迹中实际执行动作的概率：
-
-$\pi_\theta(a_t|s_t)$
-
-Actor 损失为：
-
-$\mathcal L_{Actor}=-\operatorname{mean}\left(\log\pi_\theta(a_t|s_t)\delta_t\right)$
-
-`td.detach()` 非常重要。TD 误差由 Critic 计算，但更新 Actor 时只把它作为评价动作好坏的固定权重，不允许 Actor 损失的梯度传播到 Critic 网络。
-
-因此 `actorLoss.backward()` 只更新 Actor 对应的梯度。
+    actorLoss.backward();
+    criticLoss.backward();
 
 
-
-### 7. Critic 损失函数
-
-```
-auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));
+    m_pAdamActor->step();
+    m_pAdamCritic->step();
+}
 ```
 
-Critic 使用均方误差：
-
-$\mathcal L_{Critic}=\operatorname{MSE}(V_\omega(s_t),y_t)$
-
-`v1.detach()` 将 TD 目标视为固定标签，阻止梯度通过下一状态价值 $V_\omega(s_{t+1})$ 继续传播。这样 Critic 只调整当前状态的预测值 `v0`，使其接近 TD 目标 `v1`。
 
 
 
-### 8. 更新 Actor 和 Critic
 
-```
-m_pAdamActor->zero_grad();
-m_pAdamCritic->zero_grad();
+### 5. 训练终止条件
 
-actorLoss.backward();
-criticLoss.backward();
-
-m_pAdamActor->step();
-m_pAdamCritic->step();
-```
-
-一次训练过程如下：
-
-1. 清空 Actor 和 Critic 上一次更新留下的梯度；
-2. 反向传播 Actor 损失；
-3. 反向传播 Critic 损失；
-4. Actor 优化器更新策略网络；
-5. Critic 优化器更新价值网络。
-
-两个网络使用独立参数和独立优化器。Actor 依赖 Critic 的 TD 误差进行学习，但通过 `detach()` 隔离了两个损失之间不需要的梯度传播。
-
-
-
-### 9. 训练终止条件
-
-```
+```cpp
 static int count = 0;
 
 if (450 < vList.size())
@@ -373,26 +230,134 @@ else
 
 
 
+### 运行效果
+
+```
+
+
+int main()
+{
+    DeepQNetwork  deepQN;
+    //deepQN.Play(400);
+    //deepQN.DoubleDQN(400);
+    DuelingDQN duelingDQN;
+    //duelingDQN.Play(400);
+
+    PolicyGradient policyGradient;
+    //policyGradient.Play(1000);
+
+    ActorCritic actorCritic;
+    actorCritic.Play(1000);
+
+}
+
+/**
+
+Currently Actor-Critic
+GenerateTrainData .....
+train i: 80 / 1000 , rewardCount: 11
+train i: 100 / 1000 , rewardCount: 15
+train i: 120 / 1000 , rewardCount: 41
+train i: 140 / 1000 , rewardCount: 13
+train i: 160 / 1000 , rewardCount: 50
+train i: 180 / 1000 , rewardCount: 37
+train i: 200 / 1000 , rewardCount: 19
+train i: 220 / 1000 , rewardCount: 29
+train i: 240 / 1000 , rewardCount: 51
+train i: 260 / 1000 , rewardCount: 76
+train i: 280 / 1000 , rewardCount: 38
+train i: 300 / 1000 , rewardCount: 49
+train i: 320 / 1000 , rewardCount: 124
+train i: 340 / 1000 , rewardCount: 54
+train i: 360 / 1000 , rewardCount: 148
+train i: 380 / 1000 , rewardCount: 95
+train i: 400 / 1000 , rewardCount: 180
+train i: 420 / 1000 , rewardCount: 470
+train i: 440 / 1000 , rewardCount: 212
+train i: 460 / 1000 , rewardCount: 233
+train i: 480 / 1000 , rewardCount: 249
+train i: 500 / 1000 , rewardCount: 470
+train i: 520 / 1000 , rewardCount: 146
+train i: 540 / 1000 , rewardCount: 394
+train i: 560 / 1000 , rewardCount: 470
+train i: 579, break Generate Train ####
+
+TestData .....
+count: 1 , rewardCount: 492
+count: 2 , rewardCount: 500
+count: 3 , rewardCount: 500
+count: 4 , rewardCount: 500
+count: 5 , rewardCount: 500
+count: 6 , rewardCount: 500
+count: 7 , rewardCount: 500
+count: 8 , rewardCount: 500
+count: 9 , rewardCount: 500
+count: 10 , rewardCount: 500
+count: 11 , rewardCount: 500
+count: 12 , rewardCount: 500
+count: 13 , rewardCount: 500
+count: 14 , rewardCount: 500
+count: 15 , rewardCount: 500
+count: 16 , rewardCount: 500
+count: 17 , rewardCount: 500
+count: 18 , rewardCount: 500
+count: 19 , rewardCount: 500
+count: 20 , rewardCount: 500
+count: 21 , rewardCount: 500
+count: 22 , rewardCount: 500
+count: 23 , rewardCount: 500
+count: 24 , rewardCount: 444
+count: 25 , rewardCount: 500
+count: 26 , rewardCount: 492
+count: 27 , rewardCount: 500
+count: 28 , rewardCount: 500
+count: 29 , rewardCount: 500
+count: 30 , rewardCount: 410
+count: 31 , rewardCount: 500
+count: 32 , rewardCount: 500
+count: 33 , rewardCount: 500
+count: 34 , rewardCount: 500
+count: 35 , rewardCount: 396
+count: 36 , rewardCount: 500
+count: 37 , rewardCount: 500
+count: 38 , rewardCount: 500
+count: 39 , rewardCount: 500
+count: 40 , rewardCount: 500
+count: 41 , rewardCount: 500
+count: 42 , rewardCount: 421
+count: 43 , rewardCount: 500
+count: 44 , rewardCount: 500
+count: 45 , rewardCount: 500
+count: 46 , rewardCount: 500
+count: 47 , rewardCount: 435
+count: 48 , rewardCount: 486
+count: 49 , rewardCount: 500
+count: 50 , rewardCount: 500
+count: 51 , rewardCount: 500
+count: 52 , rewardCount: 500
+count: 53 , rewardCount: 500
+count: 54 , rewardCount: 500
+count: 55 , rewardCount: 462
+count: 56 , rewardCount: 500
+count: 57 , rewardCount: 500
+count: 58 , rewardCount: 500
+count: 59 , rewardCount: 500
+count: 60 , rewardCount: 500
+count: 61 , rewardCount: 500
+count: 62 , rewardCount: 391
+count: 63 , rewardCount: 500
+count: 64 , rewardCount: 500
+count: 65 , rewardCount: 430
+count: 66 , rewardCount: 500
+
+
+
+**/
+
+```
+
+
+
+
+
 ## ActorCritic 与策略梯度的区别
-
-| 项目       | REINFORCE        | ActorCritic      |
-| -------- | ---------------- | ---------------- |
-| 策略网络     | Actor            | Actor            |
-| 价值网络     | 无                | Critic           |
-| 动作评价     | 蒙特卡洛累计回报 $G_t$   | TD 误差 $\delta_t$ |
-| 是否等待完整回报 | 是                | 不需要完整累计回报        |
-| 更新目标     | $-G_t\log\pi(a_t | s_t)$            |
-| 方差       | 较大               | 通常较小             |
-| 偏差       | 蒙特卡洛估计偏差较小       | TD 自举会引入一定偏差     |
-
-ActorCritic 使用 Critic 作为策略梯度的基线，降低了梯度估计的方差；同时使用下一状态的估计价值进行自举，不必完全依赖回合结束后的实际累计回报。
-
-其基本训练关系为：
-
-$Actor:\quad\max_\theta\log\pi_\theta(a_t|s_t)\delta_t$
-
-$Critic:\quad\min_\omega\left(r_t+\gamma V_\omega(s_{t+1})-V_\omega(s_t)\right)^2$
-
-ActorCritic 是 A2C、A3C、PPO、DDPG、SAC 等现代强化学习算法的重要基础。
-
-
