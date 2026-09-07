@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "XTrainPredict.h"
 
 
@@ -50,13 +50,13 @@ void XTrainPredict::TestData()
             SaveModel(model, m_strModelPath);
         }
     }
-    std::cout << "²âÊÔ:" << std::endl;
+    std::cout << "æµ‹è¯•:" << std::endl;
     model->eval();
     std::vector<std::string> tests;
 
-    tests.push_back("´ºÃß²»¾õÏş");
-    tests.push_back("Ç½½ÇÊıÖ¦Ã·");
-    tests.push_back("´²Ç°Ã÷ÔÂ¹â");
+    tests.push_back("æ˜¥çœ ä¸è§‰æ™“");
+    tests.push_back("å¢™è§’æ•°ææ¢…");
+    tests.push_back("åºŠå‰æ˜æœˆå…‰");
 
     VectorInt64 vList;
     int64_t eos = m_xDataset.GetEOS();
@@ -110,7 +110,7 @@ bool XTrainPredict::TrainData(XDecoderOnly& model)
     LogStream log(m_strLogTrain, step == 0 ? ios::out : ios::app);
     log << "batchsize: " << m_batchsize<< " ,num data: " << *m_xDataset.size() << std::endl;
     log <<  "head: "<< m_numHeads<<" , layer: " << m_numLayers << " , dim: " << (m_numHeads * 64)<< ", LR: " << LR<<  std::endl;
-    log << "ÑµÁ·Ä£ĞÍ,  step: " << step << std::endl;
+    log << "è®­ç»ƒæ¨¡å‹,  step: " << step << std::endl;
 
     XBatchSampler sampler(*m_xDataset.size());
     auto datasetTrain = m_xDataset.map(torch::data::transforms::Stack<>());
@@ -134,8 +134,9 @@ bool XTrainPredict::TrainData(XDecoderOnly& model)
             auto tgt = item.target.to(m_device).reshape({ -1 });
             auto loss = lossFnCEL(output, tgt);
 
-            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
+           
             loss.backward();
+            torch::nn::utils::clip_grad_norm_(model->parameters(), 1.0);
             optimizer.step();
             sinLoss = loss.item<float>();
             totalLoss += sinLoss;
