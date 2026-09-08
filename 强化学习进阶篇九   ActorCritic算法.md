@@ -1,155 +1,25 @@
-# Actor-Critic 算法
+# ActorCritic算法
 
-## 算法回顾
+**Actor‑Critic 是现代主流深度强化学习算法的基础骨架，是承上启下的枢纽**，TRPO、PPO、SAC、DDPG 全部是在 Actor‑Critic 这个骨架上修改目标函数、损失、正则而来。Actor‑Critic 融合了两大路线：
 
-- 车杆事件：随机初始状态 → 选择动作→下一个状态→ $\dots$ → 结束
+1. 策略梯度算法，用神经网络对动作进行建模（分布概率），算法目标是最大化轨迹期望总回报。
 
-- DQN 以及 DQN的改进算法**基于价值**的方法解决连续状态的问题，用神经网络代替$Q$表(**拟合动作价值**)。 基于最大值选择动作，算法目标是优化价值神经网络。
+2. 基于价值方法，用神经网络代替$Q$表(**拟合动作价值**)。 基于最大值选择动作，算法目标是优化价值神经网络。
 
-- 策略梯度算法是**基于策略**的方法，用神经网络对动作进行建模（分布概率），算法目标是最大化轨迹期望总回报。
+回顾车杆游戏整个流程：随机初始状态 → 选择动作→下一个状态→ $\dots$ → 结束。 价值方法用价值网络拟合动作价值然后选择最优的动作，策略梯度用策略网络直接给出最优的动作。
 
 ![ActorCritic](ActorCritic.png)
 
-## ActorCritic 算法
-
-策略梯度算法使用策略网络 $\pi_\theta(a|s)$ 直接输出动作概率，并使用一个完整回合的累计折扣回报 $G_t$ 更新网络：
-
-$\mathcal L_{Actor}=-G_t\log\pi_\theta(a_t|s_t)$
-
-这种算法简单直观，但必须等一个回合结束后才能计算累计回报，而且蒙特卡洛回报 $G_t$ 的方差较大，训练过程容易波动。Actor-Critic 是囊括一系列算法的整体架构，目前很多高效的前沿算法都属于 Actor-Critic 算法，它既学习价值函数，又学习策略函数。
-
-ActorCritic（演员-评论家）算法同时训练两个神经网络：
-
-- **Actor（演员）**：策略网络 $\pi_\theta(a|s)$，根据当前状态选择动作 （**用上一章策略梯度网络**）；
-- **Critic（评论家）**：价值网络 $V_\omega(s)$，评价当前状态的价值，并指导 Actor 更新 (**ValueNet与DQN中的价值网络一样**)。
-
-可以这样理解：Actor 负责做动作，Critic 负责评价动作产生的结果。Actor 根据 Critic 给出的评价调整动作概率，Critic 根据实际奖励不断提高自己的评价准确性。
-
-ActorCritic 不需要等待回合结束再计算完整的累计回报，而是利用当前奖励和下一状态价值构造 TD 目标，因此可以更及时地更新网络。
 
 
+Actor‑Critic是融合了价值方法和策略梯度 既学习价值函数，又学习策略函数，以策略梯度为主线，价值函数为副线（辅助）Actor（演员）和Critic（评论家）。
 
+## Actor‑Critic更新公式
+
+策略梯度算法使用策略网络 $\pi_\theta(a|s)$ 直接输出动作概率，并使用一个完整回合的累计折扣回报 $G_t$ 更新网络：$\mathcal L_{Actor}=-G_t\log\pi_\theta(a_t|s_t)$ 。结合Critic价值网络之后，不需要等待回合结束再计算完整的累计回报。用Critic价值网络**时序差分误差TD代替$G_t$** 如图
 ![ActorCritic2.png](ActorCritic2.png)
 
-
-
-
-
-**ActorCritic 实现** 如上图 策略梯度算法更新时：
-
-公式：$\mathcal L_{Actor}=-G_t\log\pi_\theta(a_t|s_t)$  中 由$G_t$ 换成 $TD$ ,$TD$是Critic网络中的**时序差分的误差**
-
-
-
-
-
-### 1. 创建 Actor、Critic 和优化器
-
-```cpp
-void ActorCritic::GenerateTrainData(int maxCount)
-{
-    cout << "Currently Actor-Critic" << endl;
-
-    m_dbGamma = 0.98;
-
-    auto input = m_objEnv->GetStateDim();
-    auto output = m_objEnv->GetActionDim();
-
-    m_ActorNet = PolicyNet(input, output);
-    m_CriticNet = ValueNet(input, 1);
-
-    m_CriticNet->to(m_device);
-    m_ActorNet->to(m_device);
-
-    m_pAdamActor = new torch::optim::Adam(
-        m_ActorNet->parameters(), { m_dbActorLR });
-    m_pAdamCritic = new torch::optim::Adam(
-        m_CriticNet->parameters(), { m_dbCriticLR });
-
-    m_ActorNet->train();
-    m_CriticNet->train();
-
-    BaseAdvanced::GenerateTrainData(maxCount);
-
-    m_ActorNet->eval();
-    m_CriticNet->eval();
-
-    delete m_pAdamActor;
-    m_pAdamActor = nullptr;
-
-    delete m_pAdamCritic;
-    m_pAdamCritic = nullptr;
-}
-```
-
-Actor 和 Critic 是两个独立的神经网络，并分别使用 Adam 优化器：
-
-- Actor 学习率 `m_dbActorLR = 1e-3`；
-- Critic 学习率 `m_dbCriticLR = 1e-2`；
-- 折扣因子 $\gamma=0.98$。
-
-Critic 需要尽快学习出较准确的价值估计，因此本实现为 Critic 设置了比 Actor 更大的学习率。
-
-ActorCritic 不需要 DQN 中的目标网络，也不需要使用 $\epsilon$-贪心策略。
-
-
-
-### 2. Actor 选择动作
-
-```cpp
-double ActorCritic::TakeAction(VectorDouble& s0, bool bPredict)
-{
-    torch::NoGradGuard no_grad;
-    auto s = VectorDoubleTensor(s0, m_device);
-    auto logits = m_ActorNet->forward(s);
-    torch::Tensor action;
-
-    if (bPredict)
-    {
-        action = logits.argmax(-1);
-    }
-    else
-    {
-        Categorical categorical(logits);
-        action = categorical.sample();
-    }
-
-    return action.item<int>();
-}
-```
-
-使用 `bPredict` 区分训练和评测：
-
-- **训练时：** 按照 Actor 输出的概率分布随机采样动作，保持策略探索能力；
-- **评测时：** 选择概率最大的动作。
-
-`torch::NoGradGuard` 表示环境交互阶段不记录梯度。训练时会根据保存的状态和动作重新执行网络前向计算。
-
-
-
-### 3. 将一个回合的数据转换成张量
-
-```
-auto [s0, a, r, s1, done] = QwListToTensor(vList, m_device);
-```
-
-一个回合中每一步的数据格式为：
-
-$(s_t,a_t,r_t,s_{t+1},done_t)$
-
-转换完成后：
-
-- `s0`：当前状态批次；
-- `a`：实际执行的动作批次；
-- `r`：即时奖励批次；
-- `s1`：下一状态批次；
-- `done`：回合终止标记批次。
-
-本实现一次使用当前回合中的全部数据计算 Actor 和 Critic 的平均损失。
-
-
-
-### 4. 更新策略
+### 更新公式代码
 
 ```cpp
 void ActorCritic::TrainGenerateItem2(const QwList& vList)
@@ -196,39 +66,44 @@ void ActorCritic::TrainGenerateItem2(const QwList& vList)
 }
 ```
 
-
-
-
-
-### 5. 训练终止条件
+### 创建 Actor、Critic 和优化器
 
 ```cpp
-static int count = 0;
+void ActorCritic::GenerateTrainData(int maxCount)
+{
+    cout << "Currently Actor-Critic" << endl;
 
-if (450 < vList.size())
-{
-    count++;
-    if (3 < count)
-    {
-        m_bEndGenerateTrain = true;
-        return;
-    }
-}
-else
-{
-    count = 0;
+    m_dbGamma = 0.98;
+
+    auto input = m_objEnv->GetStateDim();
+    auto output = m_objEnv->GetActionDim();
+
+    m_ActorNet = PolicyNet(input, output);
+    m_CriticNet = ValueNet(input, 1);
+
+    m_CriticNet->to(m_device);
+    m_ActorNet->to(m_device);
+
+    m_pAdamActor = new torch::optim::Adam(
+        m_ActorNet->parameters(), { m_dbActorLR });
+    m_pAdamCritic = new torch::optim::Adam(
+        m_CriticNet->parameters(), { m_dbCriticLR });
+
+    m_ActorNet->train();
+    m_CriticNet->train();
+
+    BaseAdvanced::GenerateTrainData(maxCount);
+
+    m_ActorNet->eval();
+    m_CriticNet->eval();
+
+    delete m_pAdamActor;
+    m_pAdamActor = nullptr;
+
+    delete m_pAdamCritic;
+    m_pAdamCritic = nullptr;
 }
 ```
-
-当单回合步数超过 450 时，说明策略已经能够让车杆保持较长时间。本实现使用 `count` 记录连续达标次数：
-
-- 回合步数超过 450，`count` 加 $1$；
-- 回合未达到 450，`count` 清零；
-- 连续 4 个回合超过 450 后终止训练。
-
-**训练终止条件：** 达到最大迭代次数，或连续 4 个回合的步数超过 450。
-
-
 
 ### 运行效果
 
@@ -351,17 +226,8 @@ count: 65 , rewardCount: 430
 count: 66 , rewardCount: 500
 
 
-
 **/
 
 ```
 
 
-
-
-
-## ActorCritic 是现代 RL 的骨架
-
-AC 融合了两大路线
-
-**Actor‑Critic 是当代深度强化学习实用算法的骨架始祖**。PPO、SAC、TD3 全部是在 AC 这个骨架上修改目标函数、损失、正则而来。
