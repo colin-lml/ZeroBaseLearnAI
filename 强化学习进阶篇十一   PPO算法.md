@@ -1,16 +1,16 @@
-# PPO 算法
 
-## PPO 算法由来
+
+# PPO 简介
 
 普通 ActorCritic 使用策略梯度更新 Actor：
 
-$\mathcal L_{Actor}=-\mathbb E_t\left[\log\pi_\theta(a_t|s_t)A_t\right]$
+$\mathcal L_{Actor}=-\log\pi_\theta(a_t|s_t)\delta_t$
 
 如果一次参数更新过大，新策略可能与采集数据时的旧策略差异过大，导致策略性能突然下降。
 
 TRPO 使用 KL 散度构造信赖域，通过 Hessian 向量积、共轭梯度和回溯线搜索限制策略变化。TRPO 更新稳定，但二阶优化过程复杂，计算量也比较大。
 
-PPO（Proximal Policy Optimization，近端策略优化）保留了“新策略不能离旧策略太远”的思想，但使用一阶优化器 Adam 直接训练，不再计算 Hessian 矩阵相关信息。
+PPO（Proximal Policy Optimization，近端策略优化）保留了“新策略不能离旧策略太远”的思想，但使用一阶优化器 Adam 直接训练，不再计算 Hessian 矩阵相关信息。PPO有两种形式**PPO-惩罚** 和**PPO-截断** ，PPO是在TRPO的基础上作减法。
 
 PPO 常用的实现是 **PPO-Clip**。它通过裁剪新旧策略的概率比率，限制一次更新对策略产生的影响：
 
@@ -24,9 +24,15 @@ $L^{CLIP}(\theta)=\mathbb E_t\left[\min\left(r_t(\theta)A_t,\operatorname{clip}(
 
 
 
-## PPO 公式推导
+# PPO 公式推导
 
-### 1. 重要性采样比率
+## 0. 回顾TRPO
+
+![3ecdcc10c56a33a432267f7aa09155ed](ppo.png)
+
+
+
+## 1. 重要性采样比率
 
 一批轨迹由旧策略 $\pi_{\theta_{old}}$ 采样得到。Actor 更新后，需要使用同一批数据评价新策略 $\pi_\theta$，因此引入重要性采样比率：
 
@@ -48,7 +54,7 @@ $L^{CPI}(\theta)=\mathbb E_t\left[r_t(\theta)A_t\right]$
 
 
 
-### 2. 裁剪代理目标
+## 2. 裁剪代理目标
 
 PPO 将概率比率限制在：
 
@@ -74,7 +80,7 @@ $\mathcal L_{Actor}=-L^{CLIP}(\theta)$
 
 
 
-### 3. 裁剪的直观含义
+## 3. 裁剪的直观含义
 
 当优势 $A_t>0$ 时，说明动作 $a_t$ 比预期好，应该增大该动作概率。但是当比率超过 $1+\epsilon$ 后，继续增大概率不会继续提高裁剪目标。
 
@@ -84,7 +90,7 @@ $\mathcal L_{Actor}=-L^{CLIP}(\theta)$
 
 
 
-### 4. GAE 优势估计
+## 4. GAE 优势估计
 
 首先使用 Critic 计算 TD 误差：
 
@@ -105,13 +111,13 @@ $A_t=\delta_t+\gamma\lambda\delta_{t+1}+(\gamma\lambda)^2\delta_{t+2}+\cdots$
   
   
 
-## PPO 实现细节
+# PPO 实现细节
 
-### 0. Actor 和 Critic 网络
+## 0. Actor 和 Critic 网络
 
 PPO 使用 ActorCritic 结构：
 
-```
+```cpp
 PolicyNet m_ActorNet;
 ValueNet m_CriticNet;
 ```
@@ -128,9 +134,9 @@ Actor 根据裁剪代理目标更新，Critic 根据 TD 目标更新。
 
 
 
-### 1. PPO 超参数
+## 1. PPO 超参数
 
-```
+```cpp
 const double m_dbActorLR = 1e-3;
 const double m_dbCriticLR = 1e-2;
 const double m_dbLmbda = 0.95;
@@ -148,9 +154,9 @@ const int m_nPPOEpochs = 10;
   
   
 
-### 2. 创建网络和优化器
+## 2. 创建网络和优化器
 
-```
+```cpp
 void PPO::GenerateTrainData(int maxCount)
 {
     cout << "Currently PPO" << endl;
@@ -166,10 +172,8 @@ void PPO::GenerateTrainData(int maxCount)
     m_CriticNet->to(m_device);
     m_ActorNet->to(m_device);
 
-    m_pAdamActor = new torch::optim::Adam(
-        m_ActorNet->parameters(), { m_dbActorLR });
-    m_pAdamCritic = new torch::optim::Adam(
-        m_CriticNet->parameters(), { m_dbCriticLR });
+    m_pAdamActor = new torch::optim::Adam(m_ActorNet->parameters(), { m_dbActorLR });
+    m_pAdamCritic = new torch::optim::Adam(m_CriticNet->parameters(), { m_dbCriticLR });
 
     m_ActorNet->train();
     m_CriticNet->train();
@@ -187,13 +191,13 @@ void PPO::GenerateTrainData(int maxCount)
 }
 ```
 
-PPO 不需要 DQN 的目标网络，也不需要 TRPO 的共轭梯度和回溯线搜索。Actor 和 Critic 都使用 Adam 优化器训练。
 
 
 
-### 3. 根据 Actor 选择动作
 
-```
+## 3. 根据 Actor 选择动作
+
+```cpp
 double PPO::TakeAction(VectorDouble& s0, bool bPredict)
 {
     torch::NoGradGuard no_grad;
@@ -217,18 +221,17 @@ double PPO::TakeAction(VectorDouble& s0, bool bPredict)
 
 训练时按照 Actor 输出的类别分布采样动作，评测时选择概率最大的动作。
 
-PPO 是同策略（On-Policy）算法，训练数据由当前旧策略产生。更新完成后，应重新与环境交互并采集新数据，而不是像 DQN 一样长期重复使用历史经验回放数据。
 
 
 
-### 4. 计算 TD 目标并更新 Critic
 
-```
+## 4. 计算 TD 目标并更新 Critic
+
+```cpp
 auto [s0, a, r, s1, done] = QwListToTensor(vList, m_device);
 
 auto v0 = m_CriticNet->forward(s0);
-auto v1 = r + m_dbGamma *
-    m_CriticNet->forward(s1).detach() * (1 - done);
+auto v1 = r + m_dbGamma * m_CriticNet->forward(s1).detach() * (1 - done);
 auto td = v1 - v0;
 
 auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));
@@ -251,11 +254,10 @@ $\mathcal L_{Critic}=\operatorname{MSE}(V_\omega(s_t),y_t)$
 
 
 
-### 5. 计算 GAE
+## 5. 计算 GAE
 
-```
-torch::Tensor PPO::ComputeAdvantage(
-    double gamma, double lmbda, torch::Tensor& td)
+```cpp
+torch::Tensor PPO::ComputeAdvantage(double gamma, double lmbda, torch::Tensor& td)
 {
     auto device = td.device();
     td.detach_();
@@ -270,18 +272,14 @@ torch::Tensor PPO::ComputeAdvantage(
         double adv = 0.0;
         for (int64_t i = n - 1; i >= 0; --i)
         {
-            double delta = (m == 1)
-                ? td[i].item<double>()
-                : td[i][col].item<double>();
+            double delta = (m == 1)? td[i].item<double>(): td[i][col].item<double>();
             adv = gamma * lmbda * adv + delta;
-            advantages[static_cast<size_t>(i * m + col)]
-                = static_cast<float>(adv);
+            advantages[static_cast<size_t>(i * m + col)] = static_cast<float>(adv);
         }
     }
 
     auto options = torch::TensorOptions().dtype(torch::kFloat32);
-    auto adv = torch::from_blob(
-        advantages.data(), { n, m }, options).clone();
+    auto adv = torch::from_blob(advantages.data(), { n, m }, options).clone();
     return adv.to(device);
 }
 ```
@@ -294,9 +292,9 @@ $adv\leftarrow\delta_t+\gamma\lambda adv$
 
 
 
-### 6. 优势归一化
+## 6. 优势归一化
 
-```
+```cpp
 auto adv = ComputeAdvantage(m_dbGamma, m_dbLmbda, td);
 
 auto mean = adv.mean();
@@ -314,28 +312,12 @@ $\hat A_t=\frac{A_t-\operatorname{mean}(A)}{\operatorname{std}(A)+10^{-8}}$
 
 
 
-### 7. 保存旧策略动作概率
-
-```
-auto oldLogProbs = torch::log(
-    m_ActorNet->forward(s0).gather(1, a)).detach();
-```
-
-在更新 Actor 前，先保存旧策略对轨迹中实际动作的对数概率：
-
-$\log\pi_{\theta_{old}}(a_t|s_t)$
-
-`gather(1, a)` 从所有动作概率中取出实际执行动作对应的概率。
-
-`oldLogProbs` 必须调用 `detach()`。在后续 10 轮 Actor 更新中，旧策略概率保持不变，只有当前策略概率重新计算。
 
 
+## 8. 计算新旧策略概率比率
 
-### 8. 计算新旧策略概率比率
-
-```
-auto logProbs = torch::log(
-    m_ActorNet->forward(s0).gather(1, a));
+```cpp
+auto logProbs = torch::log(m_ActorNet->forward(s0).gather(1, a));
 auto ratio = torch::exp(logProbs - oldLogProbs);
 ```
 
@@ -351,12 +333,11 @@ $r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{old}(a_t|s_t)\right)$
 
 
 
-### 9. PPO 裁剪损失
+## 9. PPO 裁剪损失
 
-```
+```cpp
 auto surr1 = ratio * adv_norm;
-auto surr2 = torch::clamp(
-    ratio, 1.0 - m_dbEps, 1.0 + m_dbEps) * adv_norm;
+auto surr2 = torch::clamp(ratio, 1.0 - m_dbEps, 1.0 + m_dbEps) * adv_norm;
 auto actorLoss = torch::mean(-torch::min(surr1, surr2));
 ```
 
@@ -372,18 +353,15 @@ $\mathcal L_{Actor}=-\operatorname{mean}\left(\min(surr1,surr2)\right)$
 
 
 
-### 10. 使用同一批数据训练多轮
+## 10. 使用同一批数据训练多轮
 
-```
+```cpp
 for (int i = 0; i < m_nPPOEpochs; i++)
 {
-    auto logProbs = torch::log(
-        m_ActorNet->forward(s0).gather(1, a));
+    auto logProbs = torch::log(m_ActorNet->forward(s0).gather(1, a));
     auto ratio = torch::exp(logProbs - oldLogProbs);
     auto surr1 = ratio * adv_norm;
-    auto surr2 = torch::clamp(
-        ratio, 1.0 - m_dbEps,
-        1.0 + m_dbEps) * adv_norm;
+    auto surr2 = torch::clamp(ratio, 1.0 - m_dbEps,1.0 + m_dbEps) * adv_norm;
     auto actorLoss = torch::mean(-torch::min(surr1, surr2));
 
     m_pAdamActor->zero_grad();
@@ -392,15 +370,13 @@ for (int i = 0; i < m_nPPOEpochs; i++)
 }
 ```
 
-本实现对同一个回合的数据重复训练 Actor 10 次。这样可以提高当前轨迹的样本利用率。
+本实现对同一个回合的数据重复训练 Actor 10 次(`m_nPPOEpochs`人为定义)。这样可以提高当前轨迹的样本利用率。
 
 每一轮都重新计算新策略概率和 `ratio`，但旧策略概率 `oldLogProbs`、优势 `adv_norm` 保持不变。裁剪目标用于限制多轮训练过程中策略偏离旧策略的程度。
 
-这里 Critic 每个回合只更新一次，Actor 更新 10 次。
 
 
-
-### 11. 完整训练流程
+## 11. 完整训练流程
 
 `TrainGenerateItem2()` 的主要流程为：
 
@@ -415,9 +391,9 @@ for (int i = 0; i < m_nPPOEpochs; i++)
    
    
 
-### 12. 训练终止条件
+## 12. 训练终止条件
 
-```
+```cpp
 static int count = 0;
 
 if (450 < vList.size())
@@ -457,22 +433,3 @@ else
 TRPO 显式要求平均 KL 散度小于指定阈值，理论约束更直接；PPO 使用裁剪概率比率近似限制策略变化，实现更简单，并且可以使用常规的小批量梯度优化方法。
 
 
-
-## PPO 与 ActorCritic 的区别
-
-| 项目       | ActorCritic   | PPO       |
-| -------- | ------------- | --------- |
-| Actor 损失 | $-\log\pi(a)$ | $(s)A$    |
-| 新旧策略比率   | 不使用           | 使用        |
-| 策略更新限制   | 主要依赖学习率       | 使用概率比率裁剪  |
-| 优势估计     | 单步 TD 误差      | GAE       |
-| 同批数据训练次数 | 通常一次          | 本实现为 10 次 |
-| 更新稳定性    | 可能出现过大更新      | 通常更加稳定    |
-
-PPO 可以理解为在 ActorCritic 基础上加入三项主要改进：
-
-1. 使用 GAE 获得更稳定的优势估计；
-2. 使用重要性采样比率比较新旧策略；
-3. 使用裁剪代理目标限制策略更新幅度。
-
-这些改进使 PPO 在保持实现简单的同时，获得了较好的训练稳定性和样本利用率。
