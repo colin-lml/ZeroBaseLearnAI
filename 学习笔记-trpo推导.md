@@ -1,3 +1,11 @@
+# 预备知识点
+
+1. [拉格朗日乘子法](https://blog.csdn.net/qq00769539/article/details/163340267?spm=1011.2415.3001.5331)
+2. [KL 散度](https://blog.csdn.net/qq00769539/article/details/163107459?spm=1011.2415.3001.5331)
+3. [最优化理论](https://blog.csdn.net/qq00769539/article/details/163482078?spm=1011.2415.3001.5331)
+   
+   
+
 # 广义优势估计GAE
 
 ## 蒙特卡洛优势 MC
@@ -248,6 +256,838 @@ $\begin{cases}
 
 # TRPO策略更新实现代码
 
+## 0. Actor 和 Critic 网络
 
+
+
+TRPO 使用两个神经网络：
+
+
+
+```
+
+PolicyNet m_ActorNet;
+
+ValueNet m_CriticNet;
+
+```
+
+
+
+Actor 使用 `PolicyNet`，输入状态，经过 `softmax` 输出所有离散动作的概率：
+
+
+
+$\pi_\theta(\cdot|s)=[P(a_0|s),P(a_1|s),\ldots]$
+
+
+
+Critic 使用 `ValueNet`，输入状态并输出一个标量状态价值：
+
+
+
+$V_\omega(s)$
+
+
+
+Actor 不使用普通 Adam 优化器，而是通过共轭梯度和回溯线搜索更新参数。Critic 仍然使用 Adam 优化器最小化价值损失。
+
+
+
+
+
+## 1. 创建网络和 Critic 优化器
+
+
+
+```
+
+void TRPO::GenerateTrainData(int maxCount)
+
+{
+
+    cout << "Currently TRPO" << endl;
+
+
+
+    m_dbGamma = 0.98;
+
+    m_dbAlpha = 0.5;
+
+
+
+    auto input = m_objEnv->GetStateDim();
+
+    auto output = m_objEnv->GetActionDim();
+
+
+
+    m_ActorNet = PolicyNet(input, output);
+
+    m_CriticNet = ValueNet(input, 1);
+
+
+
+    m_CriticNet->to(m_device);
+
+    m_ActorNet->to(m_device);
+
+
+
+    m_pAdamCritic = new torch::optim::Adam(
+
+        m_CriticNet->parameters(), { m_dbCriticLR });
+
+
+
+    m_ActorNet->train();
+
+    m_CriticNet->train();
+
+
+
+    BaseAdvanced::GenerateTrainData(maxCount);
+
+
+
+    m_ActorNet->eval();
+
+    m_CriticNet->eval();
+
+
+
+    delete m_pAdamCritic;
+
+    m_pAdamCritic = nullptr;
+
+}
+
+```
+
+
+
+主要超参数为：
+
+
+
+- 折扣因子 `m_dbGamma = 0.98`；
+
+- GAE 参数 `m_dbLmbda = 0.95`；
+
+- Critic 学习率 `m_dbCriticLR = 1e-2`；
+
+- KL 约束 `m_dbklConstraint = 5e-4`；
+
+- 回溯线搜索系数 `m_dbAlpha = 0.5`。
+  
+  
+
+## 2. 根据 Actor 选择动作
+
+
+
+```
+
+double TRPO::TakeAction(VectorDouble& s0, bool bPredict)
+
+{
+
+    torch::NoGradGuard no_grad;
+
+    auto s = VectorDoubleTensor(s0, m_device);
+
+    auto logits = m_ActorNet->forward(s);
+
+    torch::Tensor action;
+
+
+
+    if (bPredict)
+
+    {
+
+        action = logits.argmax(-1);
+
+    }
+
+    else
+
+    {
+
+        Categorical categorical(logits);
+
+        action = categorical.sample();
+
+    }
+
+
+
+    return action.item<int>();
+
+}
+
+```
+
+
+
+训练时按照 Actor 输出的类别分布采样动作，评测时选择概率最大的动作。TRPO 属于同策略（On-Policy）算法，当前回合数据由更新前的旧策略生成，并在策略更新时立即使用。
+
+
+
+
+
+## 3. 更新 Critic
+
+
+
+```
+
+auto [s0, a, r, s1, done] = QwListToTensor(vList, m_device);
+
+
+
+auto v0 = m_CriticNet->forward(s0);
+
+auto v1 = r + m_dbGamma * m_CriticNet->forward(s1) * (1 - done);
+
+auto td = v1 - v0;
+
+
+
+auto criticLoss = torch::mean(torch::mse_loss(v0, v1.detach()));
+
+m_pAdamCritic->zero_grad();
+
+criticLoss.backward();
+
+m_pAdamCritic->step();
+
+```
+
+
+
+Critic 的 TD 目标为：
+
+
+
+$y_t=r_t+\gamma V_\omega(s_{t+1})(1-done_t)$
+
+
+
+Critic 损失为：
+
+
+
+$\mathcal L_{Critic}=\operatorname{MSE}(V_\omega(s_t),y_t)$
+
+
+
+`v1.detach()` 将 TD 目标作为固定标签，避免梯度通过下一状态价值传播。变量 `td` 保存 Critic 更新前计算的 TD 误差，后续用于计算 GAE 优势。
+
+
+
+
+
+## 4. 计算 GAE
+
+
+
+```
+
+torch::Tensor TRPO::ComputeAdvantage(
+
+    double gamma, double lmbda, torch::Tensor& td)
+
+{
+
+    auto device = td.device();
+
+    td.detach_();
+
+    td = td.cpu().contiguous();
+
+
+
+    auto n = td.size(0);
+
+    auto m = td.size(1);
+
+    std::vector<float> advantages(static_cast<size_t>(n * m));
+
+
+
+    for (int64_t col = 0; col < m; ++col)
+
+    {
+
+        double adv = 0.0;
+
+        for (int64_t i = n - 1; i >= 0; --i)
+
+        {
+
+            double delta = (m == 1)
+
+                ? td[i].item<double>()
+
+                : td[i][col].item<double>();
+
+            adv = gamma * lmbda * adv + delta;
+
+            advantages[static_cast<size_t>(i * m + col)]
+
+                = static_cast<float>(adv);
+
+        }
+
+    }
+
+
+
+    auto options = torch::TensorOptions().dtype(torch::kFloat32);
+
+    auto adv = torch::from_blob(
+
+        advantages.data(), { n, m }, options).clone();
+
+    return adv.to(device);
+
+}
+
+```
+
+
+
+代码从轨迹末尾向前执行：
+
+
+
+$adv\leftarrow\delta_t+\gamma\lambda adv$
+
+
+
+`td.detach_()` 切断 TD 误差与 Critic 计算图的联系，因为优势值只作为更新 Actor 的固定权重。
+
+
+
+计算过程放在 CPU 上完成，最终再把优势张量移动回原来的设备。
+
+
+
+
+
+## 5. 优势归一化
+
+
+
+```
+
+auto adv = ComputeAdvantage(m_dbGamma, m_dbLmbda, td);
+
+
+
+auto mean = adv.mean();
+
+auto std = adv.std();
+
+auto adv_norm = (adv - mean) / (std + 1e-8);
+
+```
+
+
+
+优势归一化公式为：
+
+
+
+$\hat A_t=\frac{A_t-\operatorname{mean}(A)}{\operatorname{std}(A)+10^{-8}}$
+
+
+
+归一化不会改变动作优势的相对大小，可以减少不同回合奖励尺度变化对策略更新的影响。分母加 $10^{-8}$ 用于防止标准差为 $0$ 时除零。
+
+
+
+
+
+## 6. 保存旧策略信息
+
+
+
+```
+
+auto logProbs = torch::log(
+
+    m_ActorNet->forward(s0).gather(1, a)).detach();
+
+auto actionDists = Categorical(
+
+    m_ActorNet->forward(s0).detach());
+
+```
+
+
+
+在更新 Actor 前，需要保存旧策略：
+
+
+
+- `logProbs`：旧策略对轨迹实际动作的对数概率；
+
+- `actionDists`：旧策略在每个状态下的完整动作分布。
+  
+  
+
+实际动作的旧概率用于计算重要性采样比率，完整旧分布用于计算新旧策略之间的 KL 散度。调用 `detach()` 后，这些数据不会随着 Actor 参数更新而变化。
+
+
+
+
+
+## 7. 计算代理目标
+
+
+
+```
+
+torch::Tensor TRPO::ComputeSurrogateObj(
+
+    const torch::Tensor& s,
+
+    const torch::Tensor& a,
+
+    const torch::Tensor& adv,
+
+    const torch::Tensor& oldLogProbs,
+
+    PolicyNet& actorNet)
+
+{
+
+    auto probs = actorNet->forward(s).gather(1, a);
+
+    auto logProbs = torch::log(probs);
+
+    auto ratio = torch::exp(logProbs - oldLogProbs);
+
+    return (ratio * adv).mean();
+
+}
+
+```
+
+
+
+对应公式：
+
+
+
+$r_t(\theta)=\exp\left(\log\pi_\theta(a_t|s_t)-\log\pi_{old}(a_t|s_t)\right)$
+
+
+
+$L(\theta)=\operatorname{mean}\left(r_t(\theta)\hat A_t\right)$
+
+
+
+TRPO 的目标是最大化代理目标，因此后续沿其梯度方向更新，而不是像常规损失函数一样执行梯度下降。
+
+
+
+
+
+## 8. Hessian 向量积
+
+
+
+```
+
+auto newDists = Categorical(m_ActorNet->forward(s));
+
+auto kl = torch::mean(oldsDists.kl_divergence(newDists));
+
+
+
+auto grads = torch::autograd::grad(
+
+    { kl }, params, {}, true, true, true);
+
+auto vectorGrad = torch::cat(flatGradParts);
+
+auto klGradVectorProduct = torch::dot(vectorGrad, v);
+
+auto grad2 = torch::autograd::grad(
+
+    { klGradVectorProduct }, params, {}, true, false, true);
+
+auto Hv = torch::cat(flat2Parts);
+
+
+
+constexpr double damping = 0.1;
+
+return Hv + damping * v;
+
+```
+
+
+
+首先对平均 KL 散度求一次梯度，并保留计算图；然后将 KL 梯度与向量 $v$ 做内积，再对结果求一次梯度，得到：
+
+
+
+$Hv=\nabla_\theta\left((\nabla_\theta D_{KL})^Tv\right)$
+
+
+
+这种方法不需要显式构造大小为“参数量 × 参数量”的 Hessian 矩阵。
+
+
+
+返回结果中加入阻尼项：
+
+
+
+$Hv\leftarrow Hv+0.1v$
+
+
+
+阻尼能够改善数值稳定性，避免 Hessian 接近奇异时共轭梯度求解发生剧烈波动。
+
+
+
+
+
+## 9. 共轭梯度法
+
+
+
+```
+
+torch::Tensor TRPO::ConjugateGradient(
+
+    const torch::Tensor& objGrad,
+
+    const torch::Tensor& s,
+
+    const Categorical& oldsDists)
+
+{
+
+    auto x = torch::zeros_like(objGrad);
+
+    auto r = objGrad.clone();
+
+    auto p = r.clone();
+
+    auto rdotr = torch::dot(r, r);
+
+
+
+    for (int i = 0; i < 20; i++)
+
+    {
+
+        auto Hp = HessianMatrixVectorProduct(s, oldsDists, p);
+
+        auto alpha = rdotr / torch::dot(p, Hp);
+
+        x += alpha * p;
+
+        r -= alpha * Hp;
+
+        auto new_rdotr = torch::dot(r, r);
+
+
+
+        if (new_rdotr.item<double>() < 1e-9)
+
+        {
+
+            break;
+
+        }
+
+
+
+        auto beta = new_rdotr / rdotr;
+
+        p = r + beta * p;
+
+        rdotr = new_rdotr;
+
+    }
+
+
+
+    return x;
+
+}
+
+```
+
+
+
+共轭梯度法用于近似求解线性方程：
+
+
+
+$Hx=g$
+
+
+
+返回的 $x$ 近似为：
+
+
+
+$x\approx H^{-1}g$
+
+
+
+本实现最多迭代 20 次。当残差平方小于 $10^{-9}$ 时提前停止。
+
+
+
+
+
+## 10. 计算完整更新步长
+
+
+
+```
+
+auto surrogateObj = ComputeSurrogateObj(
+
+    s, a, adv, oldLogProbs, m_ActorNet);
+
+auto grads = torch::autograd::grad(
+
+    { surrogateObj }, m_ActorNet->parameters());
+
+
+
+auto flatGrad = torch::cat(flat);
+
+auto searchDirection = ConjugateGradient(
+
+    flatGrad, s, oldsDists);
+
+auto Hd = HessianMatrixVectorProduct(
+
+    s, oldsDists, searchDirection);
+
+auto stepScale = torch::sqrt(
+
+    2 * m_dbklConstraint /
+
+    torch::dot(searchDirection, Hd));
+
+auto fullStep = (stepScale * searchDirection).detach();
+
+```
+
+
+
+首先计算代理目标梯度 $g$，然后使用共轭梯度法得到搜索方向：
+
+
+
+$d\approx H^{-1}g$
+
+
+
+再按照 KL 约束缩放搜索方向：
+
+
+
+$fullStep=\sqrt{\frac{2\delta}{d^THd}}d$
+
+
+
+`fullStep` 是二阶近似下能够满足 KL 约束的最大更新步长，但由于神经网络是非线性的，实际更新后仍可能违反 KL 约束，因此还需要回溯线搜索。
+
+
+
+
+
+## 11. 回溯线搜索
+
+
+
+```
+
+for (int i = 0; i < 15; i++)
+
+{
+
+    auto coefficient = std::pow(m_dbAlpha, i);
+
+    auto newParams = oldParam + coefficient * fullStep;
+
+
+
+    VectorToParameters(newParams, *tmpActor);
+
+
+
+    auto newActionDists = Categorical(tmpActor->forward(s));
+
+    auto kl = torch::mean(
+
+        oldsDists.kl_divergence(newActionDists));
+
+    auto newSurrogate = ComputeSurrogateObj(
+
+        s, a, adv, oldLogProbs, tmpActor);
+
+
+
+    if (newSurrogate.item<double>() >
+
+            oldSurrogate.item<double>() &&
+
+        kl.item<double>() < m_dbklConstraint)
+
+    {
+
+        bUpdate = true;
+
+        return newParams.detach();
+
+    }
+
+}
+
+```
+
+
+
+第 $i$ 次尝试的参数为：
+
+
+
+$\theta_{new}=\theta_{old}+\alpha^i fullStep$
+
+
+
+本实现中 $\alpha=0.5$，最多尝试 15 次。候选参数必须同时满足两个条件：
+
+
+
+1. 新代理目标大于旧代理目标；
+
+2. 新旧策略平均 KL 散度小于 `m_dbklConstraint`。
+   
+   
+
+如果完整步长不满足条件，就依次尝试 $0.5$、$0.25$、$0.125$ 倍步长。如果所有候选参数都不满足条件，则保留旧参数，不执行本次 Actor 更新。
+
+
+
+使用临时策略网络 `tmpActor` 测试候选参数，可以避免在确认步长有效之前修改正式 Actor。
+
+
+
+
+
+## 12. 完整 Actor 更新
+
+
+
+```
+
+bool bUpdate;
+
+auto newParams = LineSearch(
+
+    s, a, adv, oldLogProbs, oldsDists,
+
+    fullStep, bUpdate);
+
+
+
+if (bUpdate)
+
+{
+
+    VectorToParameters(newParams, *m_ActorNet);
+
+}
+
+```
+
+
+
+TRPO 的 Actor 更新流程为：
+
+
+
+1. 计算代理目标梯度 $g$；
+
+2. 使用 Hessian 向量积表示 KL 曲率；
+
+3. 使用共轭梯度法近似计算 $H^{-1}g$；
+
+4. 根据 KL 上限计算完整步长；
+
+5. 使用回溯线搜索检查代理目标和真实 KL 散度；
+
+6. 找到合格参数后更新 Actor，否则放弃本次更新。
+   
+   
+
+## 13. 训练终止条件
+
+
+
+```
+
+static int count = 0;
+
+
+
+if (450 < vList.size())
+
+{
+
+    count++;
+
+    if (3 < count)
+
+    {
+
+        m_bEndGenerateTrain = true;
+
+        return;
+
+    }
+
+}
+
+else
+
+{
+
+    count = 0;
+
+}
+
+```
+
+
+
+当单回合步数超过 450 时，`count` 加 $1$；如果下一回合未达标，`count` 清零。连续 4 个回合超过 450 后结束训练。
+
+
+
+**训练终止条件：** 达到最大迭代次数，或连续 4 个回合的步数超过 450。
+
+
+
+# TRPO现状
+
+- **极少落地，多用于仿真预研**
+
+- **TRPO 是理论上漂亮的原型，证明了信赖域约束能稳定策略更新；工业上没人直接跑原生 TRPO，但它的核心思想被 PPO 继承，PPO 成为工业强化学习的事实标准。**
 
 
