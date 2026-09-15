@@ -1,5 +1,50 @@
 # SAC 算法
 
+## 物理来源
+
+玻尔兹曼分布是统计物理：热平衡下，粒子在不同能级的概率分布；能量越高，占据概率越低。RL 相当于把**能量换成动作价值 Q**。
+
+
+
+## 玻尔兹曼分布定义
+
+系统处于状态$i$ 的概率：
+
+$p_i = \frac{e^{-E_i/(kT)}}{\sum_j e^{-E_j/(kT)}}$
+
+* $E_i$：第 $i$ 个状态能量
+* $k$：玻尔兹曼常数
+* $T$：温度 \($T>0$\)
+  
+  
+
+### RL 简化写法（动作选择，最常用）
+
+把能量替换成动作价值 $Q(s,a)$，引入温度参数 $\tau$：
+
+$\pi(a|s)=\frac{\exp\left(Q(s,a)/\tau\right)}{\sum_{a'}\exp\left(Q(s,a')/\tau\right)}$
+
+ 这个就是 **softmax 策略 = 玻尔兹曼探索**
+
+简单例子
+----
+
+动作 $A：Q=5$；动作 $B：Q=3；\tau=2$
+
+$\pi(A)=\frac{e^{5/2}}{e^{5/2}+e^{3/2}} \approx 0.731,\quad \pi(B)\approx0.269$
+
+调高温度$\tau=10$：
+
+$\pi(A)=\frac{e^{0.5}}{e^{0.5}+e^{0.3}}\approx0.550,\quad \pi(B)\approx0.450$
+
+温度升高，两个动作概率差距变小。
+
+
+
+
+
+
+
 ## SAC 算法由来
 
 DDPG 使用确定性 Actor 直接输出连续动作：
@@ -226,7 +271,7 @@ TORCH_MODULE(SACPolicyNetCont);
 
 使用 `softplus` 保证标准差为正：
 
-$$\sigma=\operatorname{softplus}(x)+10^{-6}$$
+$\sigma=\operatorname{softplus}(x)+10^{-6}$
 
 
 
