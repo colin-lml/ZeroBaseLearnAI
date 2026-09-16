@@ -20,11 +20,9 @@ public:
     // 对应 Python：dist.log_prob(value)
     torch::Tensor log_prob(const torch::Tensor& value) const
     {
-        constexpr double logTwoPi = 1.8378770664093453;
+        double logTwoPi = std::log(2 * M_PI);///1.8378770664093453;//
 
-        return -0.5 * ((value - m_mean) / m_std).pow(2)
-            - torch::log(m_std)
-            - 0.5 * logTwoPi;
+        return -0.5 * ((value - m_mean) / m_std).pow(2)- torch::log(m_std)- 0.5 * logTwoPi;
     }
 
 private:
