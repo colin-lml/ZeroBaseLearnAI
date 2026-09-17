@@ -50,6 +50,7 @@ $\pi(A)=\frac{e^{0.5}}{e^{0.5}+e^{0.3}}\approx0.550,\quad \pi(B)\approx0.450$
 
 1. 定义
    一维高斯分布记作：$\boldsymbol{z \sim \mathcal N(\mu,\sigma^2)}$
+   
    - $\mu$：**均值**，分布中心；
    
    - $\sigma$：**标准差**，控制分布 “胖瘦”；
@@ -57,16 +58,47 @@ $\pi(A)=\frac{e^{0.5}}{e^{0.5}+e^{0.3}}\approx0.550,\quad \pi(B)\approx0.450$
    - $\sigma^2$：方差。
    
    概率密度函数 PDF（Probability Density Function）：
-   
    $p(z)=\frac{1}{\sqrt{2\pi}\sigma}\exp\left(-\frac{(z-\mu)^2}{2\sigma^2}\right)$
    
    > 概率密度 \(p(z)\)：不是概率！
-   > 
    > 连续随机变量，单点概率为 0；
-   > 
    > $\displaystyle P(a<z<b)=\int_{a}^{b} p(z)dz$，面积才是概率。
-   > 
-   > 
+
+2. 概率密度函数 PDF推导过程，
+   
+   - 核心思路：**先从标准正态 $\mathcal N(0,1)$ 入手，再做变量平移缩放得到高斯分布**
+   - 标准正态：$\mu=0,\sigma=1$
+   - **构造目标函数： 高斯分布是熵最大**的分布 $\max_{p(x)} \quad H(p)=-\int_{-\infty}^{+\infty}p(x)\ln p(x)\,dx$  ，连续用$\int$表示求和 离散用$\sum$ 表示求和
+   - **约束条件** $\begin{cases}\max_{p(x)} \quad H(p)=-\int_{-\infty}^{+\infty}p(x)\ln p(x)\,dx \\ 
+      归一化： \int_{-\infty}^{+\infty}\ p(x)dx=1 \quad 所有概率之和为1  \\
+     均值为0：  \int_{-\infty}^{+\infty}\ x \ p(x) dx=0\\
+     方差为 1：  \int_{-\infty}^{+\infty}\ x^2\  p(x) dx=1\\
+     \end{cases}$
+   - **拉格朗日乘子法**构造目标 $\mathcal L=-\int p(x)\ln p(x)\,dx + \lambda_1 \underbrace{\left(1-\int p(x)\,dx\right)}_{归一化}+\lambda_2 \underbrace{\left(0-\int x p(x)\,dx\right)}_{均值为0}+\lambda_3 \underbrace{\left(1-\int x^2 p(x)\,dx\right)}_{方差为1}$
+   - **令$p=p(x)$ ，求偏导等于0** $\begin{cases} \\ \dfrac{\partial \mathcal L}{\partial p}= - \underbrace{\dfrac{\partial }{\partial p} \left(\int p\ln p \ dx \right)}_{= -(\ln p +1)} + \underbrace{\dfrac{\partial }{\partial p} \lambda_1 \left(1-\int p\,dx\right)}_{= -\lambda_1} + \underbrace{\dfrac{\partial }{\partial p} \lambda_2 \left(0-\int x \ p\,dx\right)}_{=-\lambda_2\ x} + \underbrace{\dfrac{\partial }{\partial p} \lambda_3 \left(1-\int x^2 p\,dx\right)}_{=-\lambda_3 \ x}=0 \\ \\
+     \dfrac{\partial \mathcal L}{\partial p}= -\ln p -1 - \lambda_1 - \lambda_2 \ x - \lambda_3 \ x^2=0 \iff \ln p=-1 - \lambda_1 -\lambda_2 \ x - \lambda_2 \ x^2 \\\\
+     \ln p(x)=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ x^2 \iff p(x)=e^{(-1 - \lambda_1)+ (-\lambda_2 \ x)+ (- \lambda_3 \ x^2)} \\\\
+     \dfrac{\partial \mathcal L}{\partial \lambda_1}=1 -\int p \ dx=0 \quad  归一化\\\\
+     \dfrac{\partial \mathcal L}{\partial \lambda_2}=0 -\int x p \ dx=0 \quad 均值\\\\
+     \dfrac{\partial \mathcal L}{\partial \lambda_3}=1 -\int x^2 p \ dx=0 \quad 方差\\\\
+     \end{cases}$
+   - $求解 \lambda_1、\lambda_2、\lambda_3=\begin{cases}均值为=0 \quad \lambda_2 \left(0-\int x p(x)\,dx\right)=0   \quad\lambda_2=0 \\\\ 
+     p(x)=e^{(-1 - \lambda_1)+ (- \lambda_3 \ x^2)}\\\\
+     高斯积分公式  I=\int e^{-ax^2}dx=\sqrt{\frac{\pi}{a}} \quad 由极坐标推导出来 I^2 = \left(\int_{-\infty}^{\infty} e^{-a x^2}dx\right)\left(\int_{-\infty}^{\infty} e^{-a y^2}dy\right) \\\\
+     \textcircled{1} =\dfrac{dI}{d(a)}=\dfrac{dI}{d(a)}\left(\sqrt{\frac{\pi}{a}}=\sqrt{\pi}\cdot a^{-\frac{1}{2}}\right)=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac12-1}=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac32}\\\\
+      \textcircled{2} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \int \frac{\partial}{\partial \lambda_3} e^{-ax^2}dx=\int -x^2 e^{-ax^2}dx =-\int x^2 e^{-ax^2}dx\\\\
+       \textcircled{3} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \underbrace{\int x^2 e^{-ax^2}dx=  \dfrac12 \sqrt{\pi}\cdot a^{-\frac32}}\\\\
+     归一化=1\quad \int p(x)\ dx=1 \iff \int e^{-1 - \lambda_1} \cdot  e^{-\lambda_3 \ x^2}\ dx= e^{-1 - \lambda_1} \cdot \sqrt{\dfrac{\pi}{\lambda_3}}=e^{-1 - \lambda_1} \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1\\\\
+     方差为 =1\quad \int x^2 p(x)dx=1 \iff \int x^2 e^{-1 - \lambda_1} \cdot e^{-\lambda_3 \ x^2}\ dx =e^{-1 - \lambda_1} \cdot e^{-1 - \lambda_1} =1\\\\
+     \end{cases}$
+
+       
+
+
+
+
+
+
 
 ## SAC 算法由来
 
@@ -660,5 +692,3 @@ SAC 的一次更新流程为：
 | 经验回放      | 使用            | 使用              |
 
 DDPG 追求当前状态下的单个最优动作，SAC 学习一个既能获得高奖励又保持随机性的动作分布。双 Critic 和最大熵目标通常使 SAC 具有更好的探索能力与训练稳定性。
-
-
