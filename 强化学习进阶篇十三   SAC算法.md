@@ -76,21 +76,22 @@ $\pi(A)=\frac{e^{0.5}}{e^{0.5}+e^{0.3}}\approx0.550,\quad \pi(B)\approx0.450$
    
    - **拉格朗日乘子法**构造目标 $\mathcal L=-\int p(x)\ln p(x)\,dx + \lambda_1 \underbrace{\left(1-\int p(x)\,dx\right)}_{归一化}+\lambda_2 \underbrace{\left(\mu-\int x p(x)\,dx\right)}_{均值}+\lambda_3 \underbrace{\left(\sigma^2-\int x^2 p(x)\,dx\right)}_{方差为}$
    
-   - **令$p=p(x)$ ，求偏导等于0** $\begin{cases} \\ \dfrac{\partial \mathcal L}{\partial p}= - \underbrace{\dfrac{\partial }{\partial p} \left(\int p\ln p \ dx \right)}_{= -(\ln p +1)} + \underbrace{\dfrac{\partial }{\partial p} \lambda_1 \left(1-\int p\,dx\right)}_{= -\lambda_1} + \underbrace{\dfrac{\partial }{\partial p} \lambda_2 \left(\mu-\int x \ p\,dx\right)}_{=-\lambda_2\ x} + \underbrace{\dfrac{\partial }{\partial p} \lambda_3 \left(\sigma^2-\int x^2 p\,dx\right)}_{=-\lambda_3 \ x}=0 \\ \\
-     \dfrac{\partial \mathcal L}{\partial p}= -\ln p -1 - \lambda_1 - \lambda_2 \ x - \lambda_3 \ x^2=0 \iff \ln p=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ x^2 \\\\
-     \ln p(x)=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ x^2 \iff p(x)=e^{(-1 - \lambda_1)+ (-\lambda_2 \ x)+ (- \lambda_3 \ x^2)} \\\\
+   - **令$p=p(x)$ ，求偏导等于0** $\begin{cases} \\ \dfrac{\partial \mathcal L}{\partial p}= - \underbrace{\dfrac{\partial }{\partial p} \left(\int p\ln p \ dx \right)}_{= -(\ln p +1)} + \underbrace{\dfrac{\partial }{\partial p} \lambda_1 \left(1-\int p\,dx\right)}_{= -\lambda_1} + \underbrace{\dfrac{\partial }{\partial p} \lambda_2 \left(\mu-\int x \ p\,dx\right)}_{=-\lambda_2\ x} + \underbrace{\dfrac{\partial }{\partial p} \lambda_3 \left(\sigma^2-\int (x-\mu)^2 p\,dx\right)}_{=-\lambda_3 \ (x-\mu)^2}=0 \\ \\
+     \dfrac{\partial \mathcal L}{\partial p}= -\ln p -1 - \lambda_1 - \lambda_2 \ x - \lambda_3 \ (x-\mu)^2=0 \iff \ln p=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ (x-\mu)^2 \\\\
+     \ln p(x)=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ (x-\mu)^2 \iff p(x)=e^{(-1 - \lambda_1)+ (-\lambda_2 \ x)+ (- \lambda_3 \ (x-\mu)^2)} \\\\
      \dfrac{\partial \mathcal L}{\partial \lambda_1}=1 -\int p \ dx=0 \quad  归一化\\\\
      \dfrac{\partial \mathcal L}{\partial \lambda_2}=\mu -\int x p \ dx=0 \quad 均值\\\\
-     \dfrac{\partial \mathcal L}{\partial \lambda_3}=\sigma^2 -\int x^2 p \ dx=0 \quad 方差\\\\
+     \dfrac{\partial \mathcal L}{\partial \lambda_3}=\sigma^2 -\int (x-\mu)^2 p \ dx=0 \quad 方差\\\\
      \end{cases}$
    
-   - $求解 \lambda_1、\lambda_2、\lambda_3=\begin{cases}均值为=\mu \quad \lambda_2 \left(\mu-\int x p(x)\,dx\right)=0  \\\\ 
+   - $求解 \lambda_1、\lambda_2、\lambda_3=\begin{cases}
      高斯积分公式  I=\int e^{-ax^2}dx=\sqrt{\frac{\pi}{a}} \quad 由极坐标推导出来 I^2 = \left(\int_{-\infty}^{\infty} e^{-a x^2}dx\right)\left(\int_{-\infty}^{\infty} e^{-a y^2}dy\right) \\\\
      \textcircled{1} =\dfrac{dI}{d(a)}=\dfrac{dI}{d(a)}\left(\sqrt{\frac{\pi}{a}}=\sqrt{\pi}\cdot a^{-\frac{1}{2}}\right)=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac12-1}=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac32}\\\\
       \textcircled{2} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \int \frac{\partial}{\partial \lambda_3} e^{-ax^2}dx=\int -x^2 e^{-ax^2}dx =-\int x^2 e^{-ax^2}dx\\\\
-       \textcircled{3} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \underbrace{\int x^2 e^{-ax^2}dx=  \dfrac12 \sqrt{\pi}\cdot a^{-\frac32}}\\\\
+     \textcircled{3} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \underbrace{\int x^2 e^{-ax^2}dx=  \dfrac12 \sqrt{\pi}\cdot a^{-\frac32}}\\\\
+     p(x)=e^{(-1 - \lambda_1)+ (-\lambda_2 \ x)+ (- \lambda_3 \ (x-\mu)^2)}\\\\
      归一化=1\quad \int p(x)\ dx=1 \iff \int e^{-1 - \lambda_1} \cdot  e^{-\lambda_3 \ x^2}\ dx= e^{-1 - \lambda_1} \cdot \sqrt{\dfrac{\pi}{\lambda_3}}=e^{-1 - \lambda_1} \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1\\\\
-     方差为 =\sigma^2\quad \int x^2 p(x)dx=\sigma^2 \iff \int x^2 e^{-1 - \lambda_1} \cdot e^{-\lambda_3 \ x^2}\ dx =e^{-1 - \lambda_1} \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =\sigma^2\\\\
+     方差为 =\sigma^2\quad \int (x-\mu)^2 p(x)dx=\sigma^2 \iff \int x^2 e^{-1 - \lambda_1} \cdot e^{-\lambda_3 \ (x-\mu)^2}\ dx =e^{-1 - \lambda_1} \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =\sigma^2\\\\
      解方程=\begin{cases} e^{-1 - \lambda_1} \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1 \\
      e^{-1 - \lambda_1} \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =1 \end{cases}\\\\
      \lambda_3=\dfrac12\\\\
