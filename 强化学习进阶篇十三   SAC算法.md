@@ -89,7 +89,7 @@ $\pi(A)=\frac{e^{0.5}}{e^{0.5}+e^{0.3}}\approx0.550,\quad \pi(B)\approx0.450$
       \textcircled{2} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \int \frac{\partial}{\partial \lambda_3} e^{-ax^2}dx=\int -x^2 e^{-ax^2}dx =-\int x^2 e^{-ax^2}dx\\\\
        \textcircled{3} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \underbrace{\int x^2 e^{-ax^2}dx=  \dfrac12 \sqrt{\pi}\cdot a^{-\frac32}}\\\\
      归一化=1\quad \int p(x)\ dx=1 \iff \int e^{-1 - \lambda_1} \cdot  e^{-\lambda_3 \ x^2}\ dx= e^{-1 - \lambda_1} \cdot \sqrt{\dfrac{\pi}{\lambda_3}}=e^{-1 - \lambda_1} \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1\\\\
-     方差为 =1\quad \int x^2 p(x)dx=1 \iff \int x^2 e^{-1 - \lambda_1} \cdot e^{-\lambda_3 \ x^2}\ dx =e^{-1 - \lambda_1} \cdot e^{-1 - \lambda_1} =1\\\\
+     方差为 =1\quad \int x^2 p(x)dx=1 \iff \int x^2 e^{-1 - \lambda_1} \cdot e^{-\lambda_3 \ x^2}\ dx =e^{-1 - \lambda_1} \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =1\\\\
      \end{cases}$
 
        
