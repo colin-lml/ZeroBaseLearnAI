@@ -168,7 +168,7 @@ $\int_{-\infty}^{\infty}p(x)\,dx=1$
 
 $\int_{-\infty}^{\infty}e^{C}\cdot e^{-\lambda_3(x-\mu)^2}dx=e^{C}\cdot\sqrt{\frac{\pi}{\lambda_3}}=1$
 
-$e^{C}\cdot\sqrt{\pi}\cdot\lambda_3^{-1/2}=1$
+$式(1)=\begin{cases}e^{C}\cdot\sqrt{\pi}\cdot\lambda_3^{-1/2}=1\end{cases}$
 
 ### 3.3 方差方程
 
@@ -176,7 +176,7 @@ $\int_{-\infty}^{\infty}(x-\mu)^2 p(x)\,dx=\sigma^2$
 
 令 $z=x-\mu$：
 
-$e^{C}\cdot\frac12\sqrt{\pi}\cdot\lambda_3^{-3/2}=\sigma^2 $
+$式(2)=\begin{cases}e^{C}\cdot\frac12\sqrt{\pi}\cdot\lambda_3^{-3/2}=\sigma^2 \end{cases}$
 
 ### 3.4 联立求解 $\lambda_3$
 
@@ -233,11 +233,20 @@ $z = \mu + \varepsilon \cdot \sigma,\quad \varepsilon \sim \mathcal N(0,1)$
 
 核心问题：变换变量后，概率密度会变，也就说经过Tanh 压缩概率密变了。
 
+$z\sim U(0,2)$（0 到 2 均匀分布），密度 $p_z(z)=1$
+
+做变换 $u = \frac{1}{2}z$（把区间**压缩**到 0 到 1）
+
+* $z=1$ 对应 $u=0.5$
+* 原来 z 在 0.5 附近的概率密度是 1，现在 u 在 1 附近的概率密度变成了多少？
+
+答案：$p_u(u)=?$
+
 一般公式：**变量替换法则**
 
 - 如果 $u = g(z)$，单调可导，那么：$p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|$
-
-
+  
+  
 
 # 正态分布的实现
 
