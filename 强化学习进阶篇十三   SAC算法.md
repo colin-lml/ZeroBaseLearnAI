@@ -1,4 +1,4 @@
-# SAC 算法
+# SAC 算法思想来源
 
 ## 物理来源
 
@@ -46,70 +46,7 @@ $\pi(A)=\frac{e^{0.5}}{e^{0.5}+e^{0.3}}\approx0.550,\quad \pi(B)\approx0.450$
 - 熵正则化 则状态价值函数 $V(s_t)=\mathbb{E}_{t}[Q(s_t,a_t)] + \underbrace {\alpha \mathcal H(\dots)}_{熵正则项}$ ，其中$\alpha$是一个正则化的系数
 - 熵正则项$\mathcal H(\dots)$ 用策略网络**逼近理论玻尔兹曼策略，本章没实现玻尔兹曼分布**，而是用**高斯分布** 它适用连续控制任务。
 
-## 高斯分布（正态分布）
-
-1. 定义
-   一维高斯分布记作：$\boldsymbol{z \sim \mathcal N(\mu,\sigma^2)}$
-   
-   - $\mu$：**均值**，分布中心；
-   
-   - $\sigma$：**标准差**，控制分布 “胖瘦”；
-   
-   - $\sigma^2$：方差。
-   
-   概率密度函数 PDF（Probability Density Function）：
-   $p(z)=\frac{1}{\sqrt{2\pi}\sigma}\exp\left(-\frac{(z-\mu)^2}{2\sigma^2}\right)$
-   
-   > 概率密度 \(p(z)\)：不是概率！
-   > 连续随机变量，单点概率为 0；
-   > $\displaystyle P(a<z<b)=\int_{a}^{b} p(z)dz$，面积才是概率。
-
-2. **最大熵原理推导高斯分布**
-   
-   - **构造目标函数： 高斯分布是熵最大**的分布 $\max_{p(x)} \quad H(p)=-\int_{-\infty}^{+\infty}p(x)\ln p(x)\,dx$  ，连续用$\int$表示求和 离散用$\sum$ 表示求和
-   
-   - **约束条件** $\begin{cases}\max_{p(x)} \quad H(p)=-\int_{-\infty}^{+\infty}p(x)\ln p(x)\,dx \\ 
-        归一化： \int_{-\infty}^{+\infty}\ p(x)dx=1 \quad 所有概率之和为1  \\
-       均值为\mu：  \int_{-\infty}^{+\infty}\ x \ p(x) dx=\mu\\
-       方差为 \sigma^2：  \int_{-\infty}^{+\infty}\ (x-\mu)^2\  p(x) dx=\sigma^2\\
-       \end{cases}$
-- **拉格朗日乘子法**构造目标 $\mathcal L=-\int p(x)\ln p(x)\,dx + \lambda_1 \underbrace{\left(1-\int p(x)\,dx\right)}_{归一化}+\lambda_2 \underbrace{\left(\mu-\int x p(x)\,dx\right)}_{均值}+\lambda_3 \underbrace{\left(\sigma^2-\int (x-\mu)^2 p(x)\,dx\right)}_{方差为}$
-
-- **令$p=p(x)$ ，求偏导等于0** $\begin{cases} \\ \dfrac{\partial \mathcal L}{\partial p}= - \underbrace{\dfrac{\partial }{\partial p} \left(\int p\ln p \ dx \right)}_{= -(\ln p +1)} + \underbrace{\dfrac{\partial }{\partial p} \lambda_1 \left(1-\int p\,dx\right)}_{= -\lambda_1} + \underbrace{\dfrac{\partial }{\partial p} \lambda_2 \left(\mu-\int x \ p\,dx\right)}_{=-\lambda_2\ x} + \underbrace{\dfrac{\partial }{\partial p} \lambda_3 \left(\sigma^2-\int (x-\mu)^2 p\,dx\right)}_{=-\lambda_3 \ (x-\mu)^2}=0 \\ \\
-  \dfrac{\partial \mathcal L}{\partial p}= -\ln p -1 - \lambda_1 - \lambda_2 \ x - \lambda_3 \ (x-\mu)^2=0 \iff \ln p=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ (x-\mu)^2 \\\\ \lambda_2\ 负责把高斯中心从 \mu 推开；均值约束要求中心必须在 \mu，所以 \lambda_2 只能是 0\\\\
-  \textcircled{1}\ln p(x)=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ (x-\mu)^2 \iff \ln p(x)=\underbrace {-1 - \lambda_1}_{常数C} \underbrace{-\lambda_2 \ x}_{一次项系数设置为\lambda_2=0 } - \lambda_3 \underbrace{(x-\mu)^2}_{中心} \\\\ 
-  \textcircled{2}\ln p(x)=-1 - \lambda_1  - \lambda_3\ (x-\mu)^2 \quad \Rightarrow  \lambda_2=0 \ , \ C=-1 - \lambda_1\\\\
-  \boxed{\ln p(x)=C+(-\lambda_3 (x-\mu)^2) \quad \Rightarrow p(x)=e^{C}\cdot e^{-\lambda_3 (x-\mu)^2}}\\\\
-  \end{cases}$
-
-- $求解 \lambda_1、\lambda_2、\lambda_3、p(x)=\begin{cases}
-  高斯积分公式  I=\int e^{-ax^2}dx=\sqrt{\frac{\pi}{a}} \quad 由极坐标推导出来 I^2 = \left(\int_{-\infty}^{\infty} e^{-a x^2}dx\right)\left(\int_{-\infty}^{\infty} e^{-a y^2}dy\right) \\\\
-  \textcircled{1} =\dfrac{dI}{d(a)}=\dfrac{dI}{d(a)}\left(\sqrt{\frac{\pi}{a}}=\sqrt{\pi}\cdot a^{-\frac{1}{2}}\right)=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac12-1}=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac32}\\\\
-  \textcircled{2} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \int \frac{\partial}{\partial \lambda_3} e^{-ax^2}dx=\int -x^2 e^{-ax^2}dx =-\int x^2 e^{-ax^2}dx\\\\
-  \textcircled{3} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \underbrace{\int x^2 e^{-ax^2}dx=  \dfrac12 \sqrt{\pi}\cdot a^{-\frac32}}\\\\
-  \ln p(x)=C+(-\lambda_3 (x-\mu)^2) \quad \Rightarrow p(x)=e^{C}\cdot e^{-\lambda_3 (x-\mu)^2}\\\\
-  归一化=1\quad \int p(x)\ dx=1 \iff \int e^{C}  \cdot    e^{-\lambda_3 \ (x-\mu)^2}\ dx= e^{C}  \cdot \sqrt{\dfrac{\pi}{\lambda_3}}=e^{C} \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1\\\\
-  方差为 =\sigma^2\quad \int (x-\mu)^2 p(x)dx=\sigma^2 \iff \int (x-\mu)^2 e^{C}  \cdot e^{-\lambda_3 \ (x-\mu)^2}\ dx =e^{C}  \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =\sigma^2\\\\
-  解方程=\begin{cases} e^{C}  \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1 \\
-  e^{C}  \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =\sigma^2 \iff e^{C}  \cdot \dfrac{1}{2\sigma^2} \sqrt{\pi}\cdot \lambda_3^{-\frac32} =1 \\
-  \lambda_3^{-\frac{1}{2}}=\dfrac{1}{2\sigma^2} \cdot \lambda_3^{-\frac32} \iff \lambda_3=\dfrac{1}{2\sigma^2}
-  \end{cases}\\\\
-  \lambda_3=\dfrac{1}{2\sigma^2} \quad  \lambda_2=0 \quad  带入解出\lambda_1  \Rightarrow \quad e^C \cdot \sqrt{\dfrac{\pi}{\lambda_3}}=1 \\\\
-  \lambda_1 = \begin{cases}  \textcircled{1} \quad C=-1 - \lambda_1  \\
-  \textcircled{2} \quad  \lambda_3=\dfrac{1}{2\sigma^2} 带入 \sqrt{\dfrac{\pi}{\lambda_3}} \quad \Rightarrow \sigma \sqrt{2\pi} \\
-  \textcircled{3} \quad e^{(-1-\lambda_1)} \cdot\underbrace {\sigma \sqrt{2\pi}}_{= e^{\ln(\sigma \sqrt{2\pi}) }}=e^0 \quad \Rightarrow -1-\lambda_1 + \ln(\sigma \sqrt{2\pi})=0\\
-  \textcircled{4} \quad \lambda_1=-1 + \ln(\sigma \sqrt{2\pi})\\
-  \textcircled{5} \quad \lambda_1= \frac12\ln({2\pi})+\ln\sigma-1\\
-  \end{cases}\\\\
-  \boxed{\begin{aligned}&\lambda_1=\frac12\ln({2\pi})+\ln\sigma-1 \\ &\lambda_2=0 \\ &\lambda_3=\dfrac{1}{2\sigma^2} \end{aligned}} \\\\
-  \ln p(x)=-1 - \lambda_1  - \lambda_3 \ (x-\mu)^2 \Rightarrow \\\\
-  \ln p(x)=\begin{cases} -1-\lambda_1=-1-[-1 + \ln(\sigma \sqrt{2\pi})]= - \ln(\sigma \sqrt{2\pi}) \\ 
-  -\lambda_3 (x-\mu)^2=-\dfrac{(x-\mu)^2}{2\sigma^2}\\
-  \end{cases} \\\\
-  \boxed{\ln p(x)=-\ln(\sigma \sqrt{2\pi})-\dfrac{(x-\mu)^2}{2\sigma^2}=-\dfrac12 \ln(2\pi)-\ln \sigma - \dfrac12 (\dfrac{x-\mu}{\sigma})^2}\\\\
-  \end{cases}$
-
-       
+      
 
 # 高斯分布（正态分布）
 
@@ -158,38 +95,36 @@ $\mathcal L=-\int p(x)\ln p(x)\,dx
 +\lambda_2\underbrace{\left(\mu-\int x\,p(x)\,dx\right)}_{\text{均值}}
 +\lambda_3\underbrace{\left(\sigma^2-\int (x-\mu)^2 p(x)\,dx\right)}_{\text{方差}}$
 
-### 2.3 变分求导
+### 2.3 求导
 
-对 $p(x)$ 求变分并令其为 0：
+对 $p(x)$ 求导并令其为 0：$\frac{\delta\mathcal L}{\delta p(x)}=0$
 
-$\frac{\delta\mathcal L}{\delta p(x)}=0$
+逐项求导：
 
-逐项求变分：
-
-$\begin{aligned}
-&\frac{\delta}{\delta p}\left(-\int p\ln p\,dx\right) = -(\ln p+1) \\
-&\frac{\delta}{\delta p}\left[\lambda_1\left(1-\int p\,dx\right)\right] = -\lambda_1 \\
-&\frac{\delta}{\delta p}\left[\lambda_2\left(\mu-\int x p\,dx\right)\right] = -\lambda_2 x \\
-&\frac{\delta}{\delta p}\left[\lambda_3\left(\sigma^2-\int (x-\mu)^2 p\,dx\right)\right] = -\lambda_3(x-\mu)^2
-\end{aligned}$
+$\begin{cases}\begin{aligned}
+&\textcircled{1}\quad \frac{\delta}{\delta p}\left(-\int p\ln p\,dx\right) = -(\ln p+1) \\
+&\textcircled{2}\quad \frac{\delta}{\delta p}\left[\lambda_1\left(1-\int p\,dx\right)\right] = -\lambda_1 \\
+&\textcircled{3}\quad \frac{\delta}{\delta p}\left[\lambda_2\left(\mu-\int x p\,dx\right)\right] = -\lambda_2 x \\
+&\textcircled{4}\quad\frac{\delta}{\delta p}\left[\lambda_3\left(\sigma^2-\int (x-\mu)^2 p\,dx\right)\right] = -\lambda_3(x-\mu)^2
+\end{aligned} \end{cases}$
 
 合并：
 
-$-\ln p-1-\lambda_1-\lambda_2 x-\lambda_3(x-\mu)^2=0$
-
-$\ln p(x)=-1-\lambda_1-\lambda_2 x-\lambda_3(x-\mu)^2$
+$\begin{cases}-\ln p-1-\lambda_1-\lambda_2 x-\lambda_3(x-\mu)^2=0\\
+\ln p(x)=-1-\lambda_1-\lambda_2 x-\lambda_3(x-\mu)^2\end{cases}$
 
 ### 2.4 确定 $\lambda_2=0$
 
 令 $y=x-\mu$，即 $x=y+\mu$，代入：
 
-$\ln p=-1-\lambda_1-\lambda_2(y+\mu)-\lambda_3 y^2$
+$\ln p=-1-\lambda_1-\lambda_2(y+\mu)-\lambda_3 y^2=(-1-\lambda_1-\lambda_2\mu)-\lambda_2 y-\lambda_3 y^2$
 
-$=(-1-\lambda_1-\lambda_2\mu)-\lambda_2 y-\lambda_3 y^2$
 
-对 $y$ 配方：
 
-$-\lambda_2 y-\lambda_3 y^2=-\lambda_3\left(y+\frac{\lambda_2}{2\lambda_3}\right)^2+\frac{\lambda_2^2}{4\lambda_3}$
+$对y配方=\begin{cases} -\lambda_2 y-\lambda_3 y^2=-\lambda_3(\frac{\lambda_2}{\lambda_3}y+y^2)\\\\
+ -\lambda_3(\frac{\lambda_2}{\lambda_3}y+y^2)=-\lambda_3(-\frac{\lambda_2^2}{4\lambda_3^2}+\underbrace{\frac{\lambda_2^2}{4\lambda_3^2}+ \frac{\lambda_2}{\lambda_3}y  +y^2}_{=(\frac{\lambda_2}{2\lambda_3}+y)^2})\\\\
+ -\lambda_2 y-\lambda_3 y^2=-\lambda_3\left(y+\frac{\lambda_2}{2\lambda_3}\right)^2+\frac{\lambda_2^2}{4\lambda_3}\\
+\end{cases}$
 
 $y$ 的中心（均值）为：
 
@@ -203,11 +138,9 @@ $-\frac{\lambda_2}{2\lambda_3}=0 \quad\Longrightarrow\quad \boxed{\lambda_2=0}$
 
 ### 2.5 分布形式
 
-$\ln p(x)=-1-\lambda_1-\lambda_3(x-\mu)^2$
-
-令 $C=-1-\lambda_1$：
-
-$p(x)=e^{C}\cdot e^{-\lambda_3(x-\mu)^2}$
+$\begin{cases}\ln p(x)=-1-\lambda_1-\lambda_3(x-\mu)^2\\
+令 C=-1-\lambda_1：\\
+p(x)=e^{C}\cdot e^{-\lambda_3(x-\mu)^2}\end{cases}$
 
 ---
 
@@ -235,9 +168,7 @@ $\int_{-\infty}^{\infty}p(x)\,dx=1$
 
 $\int_{-\infty}^{\infty}e^{C}\cdot e^{-\lambda_3(x-\mu)^2}dx=e^{C}\cdot\sqrt{\frac{\pi}{\lambda_3}}=1$
 
-$$
-e^{C}\cdot\sqrt{\pi}\cdot\lambda_3^{-1/2}=1\tag{1}
-$$
+$e^{C}\cdot\sqrt{\pi}\cdot\lambda_3^{-1/2}=1$
 
 ### 3.3 方差方程
 
@@ -249,33 +180,22 @@ $e^{C}\cdot\frac12\sqrt{\pi}\cdot\lambda_3^{-3/2}=\sigma^2 $
 
 ### 3.4 联立求解 $\lambda_3$
 
-式 (1) 和式 (2) 相除：
+$式 (1) 和式 (2)解方程=\begin{cases} e^{C} \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1 \\e^{C} \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =\sigma^2 \iff e^{C} \cdot \dfrac{1}{2\sigma^2} \sqrt{\pi}\cdot \lambda_3^{-\frac32} =1 \\\lambda_3^{-\frac{1}{2}}=\dfrac{1}{2\sigma^2} \cdot \lambda_3^{-\frac32} \iff \lambda_3=\dfrac{1}{2\sigma^2}\end{cases}$
 
-$\frac{\frac12\sqrt{\pi}\,\lambda_3^{-3/2}}{\sqrt{\pi}\,\lambda_3^{-1/2}}=\sigma^2$
 
-$\frac{1}{2\lambda_3}=\sigma^2$
+
+
 
 $\boxed{\lambda_3=\frac{1}{2\sigma^2}}$
 
 ### 3.5 求解 $\lambda_1$
 
-$C=-1-\lambda_1$
+$\lambda_1 = \begin{cases} \textcircled{1} \quad C=-1 - \lambda_1 \\\textcircled{2} \quad \lambda_3=\dfrac{1}{2\sigma^2} 带入 \sqrt{\dfrac{\pi}{\lambda_3}} \quad \Rightarrow \sigma \sqrt{2\pi} \\\textcircled{3} \quad e^{(-1-\lambda_1)} \cdot\underbrace {\sigma \sqrt{2\pi}}_{= e^{\ln(\sigma \sqrt{2\pi}) }}=e^0 \quad \Rightarrow -1-\lambda_1 + \ln(\sigma \sqrt{2\pi})=0\\\textcircled{4} \quad \lambda_1=-1 + \ln(\sigma \sqrt{2\pi})\\\textcircled{5} \quad \lambda_1= \frac12\ln({2\pi})+\ln\sigma-1\\\end{cases}$
 
-代入 $\lambda_3=\dfrac{1}{2\sigma^2}$：
 
-$\sqrt{\frac{\pi}{\lambda_3}}=\sqrt{2\pi\sigma^2}=\sigma\sqrt{2\pi}$
 
-由归一化方程：
-
-$e^{-1-\lambda_1}\cdot\sigma\sqrt{2\pi}=1$
-
-两边取对数：
-
-$-1-\lambda_1+\ln(\sigma\sqrt{2\pi})=0$
-
-$\lambda_1=-1+\ln(\sigma\sqrt{2\pi})$
-
-$\boxed{\lambda_1=\frac12\ln(2\pi)+\ln\sigma-1}$
+$\begin{cases}\quad \boxed{\lambda_1=\ln(\sigma\sqrt{2\pi})-1}\\\\
+\quad\boxed{\lambda_1=\frac12\ln(2\pi)+\ln\sigma-1}\end{cases}$
 
 ---
 
@@ -293,29 +213,72 @@ $\boxed{
 
 ### 对数概率密度
 
-代入 $\ln p(x)=-1-\lambda_1-\lambda_3(x-\mu)^2$：
+$\begin{cases}\ln p(x)=-1 - \lambda_1 - \lambda_3 \ (x-\mu)^2 \Rightarrow \\\\\ln p(x)=\begin{cases} -1-\lambda_1=-1-[-1 + \ln(\sigma \sqrt{2\pi})]= - \ln(\sigma \sqrt{2\pi}) \\ -\lambda_3 (x-\mu)^2=-\dfrac{(x-\mu)^2}{2\sigma^2}\\\end{cases} \\\\\boxed{\ln p(x)=-\ln(\sigma \sqrt{2\pi})-\dfrac{(x-\mu)^2}{2\sigma^2}=-\dfrac12 \ln(2\pi)-\ln \sigma - \dfrac12 (\dfrac{x-\mu}{\sigma})^2}\\\\ \end{cases}$
 
-$-1-\lambda_1=-\ln(\sigma\sqrt{2\pi})$
+## 5.重参数化采样
 
-$-\lambda_3(x-\mu)^2=-\frac{(x-\mu)^2}{2\sigma^2}$
+从高斯分布 $\mathcal N(\mu,\sigma^2)$采样，并且采样结果可以对 $\mu,\sigma$ 求梯度。
 
-$\boxed{\ln p(x)=-\frac12\ln(2\pi)-\ln\sigma-\frac12\left(\frac{x-\mu}{\sigma}\right)^2}$
+$z = \mu + \varepsilon \cdot \sigma,\quad \varepsilon \sim \mathcal N(0,1)$
 
-### 概率密度函数
+## 6.Tanh 压缩
 
-$\boxed{p(x)=\frac{1}{\sqrt{2\pi}\,\sigma}\exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)}$
+- 高斯分布 $\mathcal N(\mu,\sigma^2)$ 的取值范围是 $(-\infty,+\infty)$
 
-> 这就是标准高斯分布 PDF，由最大熵原理 + 归一化/均值/方差三个约束唯一推出。
+- $u = \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}$
+
+- $\tanh$ 的输出范围永远在 $(-1,1)$
+
+## 7. 修正概率密度
+
+核心问题：变换变量后，概率密度会变，也就说经过Tanh 压缩概率密变了。
+
+一般公式：**变量替换法则**
+
+- 如果 $u = g(z)$，单调可导，那么：$p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|$
+
+
+
+# 正态分布的实现
+
+$\boxed{\ln p(x)=-\ln(\sigma \sqrt{2\pi})-\dfrac{(x-\mu)^2}{2\sigma^2}=-\dfrac12 \ln(2\pi)-\ln \sigma - \dfrac12 (\dfrac{x-\mu}{\sigma})^2}$
+
+```cpp
+class NormalDistribution
+{
+public:
+    NormalDistribution(torch::Tensor mean, torch::Tensor std)
+        : m_mean(std::move(mean)),m_std(std::move(std))
+    {
+    }
+
+    // 对应 Python：dist.rsample()
+    torch::Tensor rsample() const
+    {
+        const auto epsilon = torch::randn_like(m_std);
+        return m_mean + m_std * epsilon;
+    }
+
+    // 对应 上面公式
+    torch::Tensor log_prob(const torch::Tensor& value) const
+    {
+        double logTwoPi = std::log(2 * M_PI);///1.8378770664093453;//
+
+        return -0.5 * ((value - m_mean) / m_std).pow(2)- torch::log(m_std)- 0.5 * logTwoPi;
+    }
+
+private:
+    torch::Tensor m_mean; // 均值
+    torch::Tensor m_std;  // 方差
+};
+
+```
 
 
 
 
 
-
-
-
-
-## SAC 算法由来
+# SAC 算法由来
 
 DDPG 使用确定性 Actor 直接输出连续动作：
 
