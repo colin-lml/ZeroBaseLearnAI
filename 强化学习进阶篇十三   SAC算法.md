@@ -235,7 +235,9 @@ $\int_{-\infty}^{\infty}p(x)\,dx=1$
 
 $\int_{-\infty}^{\infty}e^{C}\cdot e^{-\lambda_3(x-\mu)^2}dx=e^{C}\cdot\sqrt{\frac{\pi}{\lambda_3}}=1$
 
-$e^{C}\cdot\sqrt{\pi}\cdot\lambda_3^{-1/2}=1\tag{1}$
+$$
+e^{C}\cdot\sqrt{\pi}\cdot\lambda_3^{-1/2}=1\tag{1}
+$$
 
 ### 3.3 方差方程
 
@@ -243,7 +245,7 @@ $\int_{-\infty}^{\infty}(x-\mu)^2 p(x)\,dx=\sigma^2$
 
 令 $z=x-\mu$：
 
-$e^{C}\cdot\frac12\sqrt{\pi}\cdot\lambda_3^{-3/2}=\sigma^2 \tag{2}$
+$e^{C}\cdot\frac12\sqrt{\pi}\cdot\lambda_3^{-3/2}=\sigma^2 $
 
 ### 3.4 联立求解 $\lambda_3$
 
