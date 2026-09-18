@@ -64,43 +64,324 @@ $\pi(A)=\frac{e^{0.5}}{e^{0.5}+e^{0.3}}\approx0.550,\quad \pi(B)\approx0.450$
    > 连续随机变量，单点概率为 0；
    > $\displaystyle P(a<z<b)=\int_{a}^{b} p(z)dz$，面积才是概率。
 
-2. 概率密度函数 PDF推导过程，
+2. **最大熵原理推导高斯分布**
    
    - **构造目标函数： 高斯分布是熵最大**的分布 $\max_{p(x)} \quad H(p)=-\int_{-\infty}^{+\infty}p(x)\ln p(x)\,dx$  ，连续用$\int$表示求和 离散用$\sum$ 表示求和
    
    - **约束条件** $\begin{cases}\max_{p(x)} \quad H(p)=-\int_{-\infty}^{+\infty}p(x)\ln p(x)\,dx \\ 
-      归一化： \int_{-\infty}^{+\infty}\ p(x)dx=1 \quad 所有概率之和为1  \\
-     均值为\mu：  \int_{-\infty}^{+\infty}\ x \ p(x) dx=\mu\\
-     方差为 \sigma^2：  \int_{-\infty}^{+\infty}\ x^2\  p(x) dx=\sigma^2\\
-     \end{cases}$
-   
-   - **拉格朗日乘子法**构造目标 $\mathcal L=-\int p(x)\ln p(x)\,dx + \lambda_1 \underbrace{\left(1-\int p(x)\,dx\right)}_{归一化}+\lambda_2 \underbrace{\left(\mu-\int x p(x)\,dx\right)}_{均值}+\lambda_3 \underbrace{\left(\sigma^2-\int x^2 p(x)\,dx\right)}_{方差为}$
-   
-   - **令$p=p(x)$ ，求偏导等于0** $\begin{cases} \\ \dfrac{\partial \mathcal L}{\partial p}= - \underbrace{\dfrac{\partial }{\partial p} \left(\int p\ln p \ dx \right)}_{= -(\ln p +1)} + \underbrace{\dfrac{\partial }{\partial p} \lambda_1 \left(1-\int p\,dx\right)}_{= -\lambda_1} + \underbrace{\dfrac{\partial }{\partial p} \lambda_2 \left(\mu-\int x \ p\,dx\right)}_{=-\lambda_2\ x} + \underbrace{\dfrac{\partial }{\partial p} \lambda_3 \left(\sigma^2-\int (x-\mu)^2 p\,dx\right)}_{=-\lambda_3 \ (x-\mu)^2}=0 \\ \\
-     \dfrac{\partial \mathcal L}{\partial p}= -\ln p -1 - \lambda_1 - \lambda_2 \ x - \lambda_3 \ (x-\mu)^2=0 \iff \ln p=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ (x-\mu)^2 \\\\
-     \ln p(x)=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ (x-\mu)^2 \iff p(x)=e^{(-1 - \lambda_1)+ (-\lambda_2 \ x)+ (- \lambda_3 \ (x-\mu)^2)} \\\\
-     \dfrac{\partial \mathcal L}{\partial \lambda_1}=1 -\int p \ dx=0 \quad  归一化\\\\
-     \dfrac{\partial \mathcal L}{\partial \lambda_2}=\mu -\int x p \ dx=0 \quad 均值\\\\
-     \dfrac{\partial \mathcal L}{\partial \lambda_3}=\sigma^2 -\int (x-\mu)^2 p \ dx=0 \quad 方差\\\\
-     \end{cases}$
-   
-   - $求解 \lambda_1、\lambda_2、\lambda_3=\begin{cases}
-     高斯积分公式  I=\int e^{-ax^2}dx=\sqrt{\frac{\pi}{a}} \quad 由极坐标推导出来 I^2 = \left(\int_{-\infty}^{\infty} e^{-a x^2}dx\right)\left(\int_{-\infty}^{\infty} e^{-a y^2}dy\right) \\\\
-     \textcircled{1} =\dfrac{dI}{d(a)}=\dfrac{dI}{d(a)}\left(\sqrt{\frac{\pi}{a}}=\sqrt{\pi}\cdot a^{-\frac{1}{2}}\right)=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac12-1}=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac32}\\\\
-      \textcircled{2} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \int \frac{\partial}{\partial \lambda_3} e^{-ax^2}dx=\int -x^2 e^{-ax^2}dx =-\int x^2 e^{-ax^2}dx\\\\
-     \textcircled{3} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \underbrace{\int x^2 e^{-ax^2}dx=  \dfrac12 \sqrt{\pi}\cdot a^{-\frac32}}\\\\
-     p(x)=e^{(-1 - \lambda_1)+ (-\lambda_2 \ x)+ (- \lambda_3 \ (x-\mu)^2)}\\\\
-     归一化=1\quad \int p(x)\ dx=1 \iff \int e^{-1 - \lambda_1} \cdot  e^{-\lambda_3 \ x^2}\ dx= e^{-1 - \lambda_1} \cdot \sqrt{\dfrac{\pi}{\lambda_3}}=e^{-1 - \lambda_1} \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1\\\\
-     方差为 =\sigma^2\quad \int (x-\mu)^2 p(x)dx=\sigma^2 \iff \int x^2 e^{-1 - \lambda_1} \cdot e^{-\lambda_3 \ (x-\mu)^2}\ dx =e^{-1 - \lambda_1} \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =\sigma^2\\\\
-     解方程=\begin{cases} e^{-1 - \lambda_1} \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1 \\
-     e^{-1 - \lambda_1} \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =1 \end{cases}\\\\
-     \lambda_3=\dfrac12\\\\
-     \lambda_1=\dfrac12 \ln(2\pi)-1\\\\
-     p(x)=e^{(-1 - \lambda_1)+ (- \lambda_3 \ x^2)}=e^{-1 -(\frac12 \ln(2\pi)-1 ) } \cdot e^{-\frac12 x^2}= \underbrace{e^{-\frac12 \ln(2\pi)}}_{k \ln         a=\ln a^{k}\quad y=e^{ln(y)}} \cdot e^{-\frac12 x^2}\\\\
-     p(x)=\dfrac{1}{\sqrt{2\pi}} \cdot e^{-\frac12 x^2}
-     \end{cases}$
+        归一化： \int_{-\infty}^{+\infty}\ p(x)dx=1 \quad 所有概率之和为1  \\
+       均值为\mu：  \int_{-\infty}^{+\infty}\ x \ p(x) dx=\mu\\
+       方差为 \sigma^2：  \int_{-\infty}^{+\infty}\ (x-\mu)^2\  p(x) dx=\sigma^2\\
+       \end{cases}$
+- **拉格朗日乘子法**构造目标 $\mathcal L=-\int p(x)\ln p(x)\,dx + \lambda_1 \underbrace{\left(1-\int p(x)\,dx\right)}_{归一化}+\lambda_2 \underbrace{\left(\mu-\int x p(x)\,dx\right)}_{均值}+\lambda_3 \underbrace{\left(\sigma^2-\int (x-\mu)^2 p(x)\,dx\right)}_{方差为}$
+
+- **令$p=p(x)$ ，求偏导等于0** $\begin{cases} \\ \dfrac{\partial \mathcal L}{\partial p}= - \underbrace{\dfrac{\partial }{\partial p} \left(\int p\ln p \ dx \right)}_{= -(\ln p +1)} + \underbrace{\dfrac{\partial }{\partial p} \lambda_1 \left(1-\int p\,dx\right)}_{= -\lambda_1} + \underbrace{\dfrac{\partial }{\partial p} \lambda_2 \left(\mu-\int x \ p\,dx\right)}_{=-\lambda_2\ x} + \underbrace{\dfrac{\partial }{\partial p} \lambda_3 \left(\sigma^2-\int (x-\mu)^2 p\,dx\right)}_{=-\lambda_3 \ (x-\mu)^2}=0 \\ \\
+  \dfrac{\partial \mathcal L}{\partial p}= -\ln p -1 - \lambda_1 - \lambda_2 \ x - \lambda_3 \ (x-\mu)^2=0 \iff \ln p=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ (x-\mu)^2 \\\\ \lambda_2\ 负责把高斯中心从 \mu 推开；均值约束要求中心必须在 \mu，所以 \lambda_2 只能是 0\\\\
+  \textcircled{1}\ln p(x)=-1 - \lambda_1 -\lambda_2 \ x - \lambda_3 \ (x-\mu)^2 \iff \ln p(x)=\underbrace {-1 - \lambda_1}_{常数C} \underbrace{-\lambda_2 \ x}_{一次项系数设置为\lambda_2=0 } - \lambda_3 \underbrace{(x-\mu)^2}_{中心} \\\\ 
+  \textcircled{2}\ln p(x)=-1 - \lambda_1  - \lambda_3\ (x-\mu)^2 \quad \Rightarrow  \lambda_2=0 \ , \ C=-1 - \lambda_1\\\\
+  \boxed{\ln p(x)=C+(-\lambda_3 (x-\mu)^2) \quad \Rightarrow p(x)=e^{C}\cdot e^{-\lambda_3 (x-\mu)^2}}\\\\
+  \end{cases}$
+
+- $求解 \lambda_1、\lambda_2、\lambda_3、p(x)=\begin{cases}
+  高斯积分公式  I=\int e^{-ax^2}dx=\sqrt{\frac{\pi}{a}} \quad 由极坐标推导出来 I^2 = \left(\int_{-\infty}^{\infty} e^{-a x^2}dx\right)\left(\int_{-\infty}^{\infty} e^{-a y^2}dy\right) \\\\
+  \textcircled{1} =\dfrac{dI}{d(a)}=\dfrac{dI}{d(a)}\left(\sqrt{\frac{\pi}{a}}=\sqrt{\pi}\cdot a^{-\frac{1}{2}}\right)=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac12-1}=-\dfrac12 \sqrt{\pi}\cdot a^{-\frac32}\\\\
+  \textcircled{2} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \int \frac{\partial}{\partial \lambda_3} e^{-ax^2}dx=\int -x^2 e^{-ax^2}dx =-\int x^2 e^{-ax^2}dx\\\\
+  \textcircled{3} =\dfrac{dI}{d(a)}=\int e^{-ax^2}dx= \underbrace{\int x^2 e^{-ax^2}dx=  \dfrac12 \sqrt{\pi}\cdot a^{-\frac32}}\\\\
+  \ln p(x)=C+(-\lambda_3 (x-\mu)^2) \quad \Rightarrow p(x)=e^{C}\cdot e^{-\lambda_3 (x-\mu)^2}\\\\
+  归一化=1\quad \int p(x)\ dx=1 \iff \int e^{C}  \cdot    e^{-\lambda_3 \ (x-\mu)^2}\ dx= e^{C}  \cdot \sqrt{\dfrac{\pi}{\lambda_3}}=e^{C} \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1\\\\
+  方差为 =\sigma^2\quad \int (x-\mu)^2 p(x)dx=\sigma^2 \iff \int (x-\mu)^2 e^{C}  \cdot e^{-\lambda_3 \ (x-\mu)^2}\ dx =e^{C}  \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =\sigma^2\\\\
+  解方程=\begin{cases} e^{C}  \cdot \sqrt{\pi} \cdot \lambda_3^{-\frac{1}{2}}=1 \\
+  e^{C}  \cdot \dfrac12 \sqrt{\pi}\cdot \lambda_3^{-\frac32} =\sigma^2 \iff e^{C}  \cdot \dfrac{1}{2\sigma^2} \sqrt{\pi}\cdot \lambda_3^{-\frac32} =1 \\
+  \lambda_3^{-\frac{1}{2}}=\dfrac{1}{2\sigma^2} \cdot \lambda_3^{-\frac32} \iff \lambda_3=\dfrac{1}{2\sigma^2}
+  \end{cases}\\\\
+  \lambda_3=\dfrac{1}{2\sigma^2} \quad  \lambda_2=0 \quad  带入解出\lambda_1  \Rightarrow \quad e^C \cdot \sqrt{\dfrac{\pi}{\lambda_3}}=1 \\\\
+  \lambda_1 = \begin{cases}  \textcircled{1} \quad C=-1 - \lambda_1  \\
+  \textcircled{2} \quad  \lambda_3=\dfrac{1}{2\sigma^2} 带入 \sqrt{\dfrac{\pi}{\lambda_3}} \quad \Rightarrow \sigma \sqrt{2\pi} \\
+  \textcircled{3} \quad e^{(-1-\lambda_1)} \cdot\underbrace {\sigma \sqrt{2\pi}}_{= e^{\ln(\sigma \sqrt{2\pi}) }}=e^0 \quad \Rightarrow -1-\lambda_1 + \ln(\sigma \sqrt{2\pi})=0\\
+  \textcircled{4} \quad \lambda_1=-1 + \ln(\sigma \sqrt{2\pi})\\
+  \textcircled{5} \quad \lambda_1= \frac12\ln({2\pi})+\ln\sigma-1\\
+  \end{cases}\\\\
+  \boxed{\begin{aligned}&\lambda_1=\frac12\ln({2\pi})+\ln\sigma-1 \\ &\lambda_2=0 \\ &\lambda_3=\dfrac{1}{2\sigma^2} \end{aligned}} \\\\
+  \ln p(x)=-1 - \lambda_1  - \lambda_3 \ (x-\mu)^2 \Rightarrow \\\\
+  \ln p(x)=\begin{cases} -1-\lambda_1=-1-[-1 + \ln(\sigma \sqrt{2\pi})]= - \ln(\sigma \sqrt{2\pi}) \\ 
+  -\lambda_3 (x-\mu)^2=-\dfrac{(x-\mu)^2}{2\sigma^2}\\
+  \end{cases} \\\\
+  \boxed{\ln p(x)=-\ln(\sigma \sqrt{2\pi})-\dfrac{(x-\mu)^2}{2\sigma^2}=-\dfrac12 \ln(2\pi)-\ln \sigma - \dfrac12 (\dfrac{x-\mu}{\sigma})^2}\\\\
+  \end{cases}$
 
        
+
+# 高斯分布（正态分布）
+
+## 1. 定义
+
+一维高斯分布记作：$\boldsymbol{z \sim \mathcal N(\mu,\sigma^2)}$
+
+- $\mu$：**均值**，分布中心
+- $\sigma$：**标准差**，控制分布"胖瘦"
+- $\sigma^2$：方差
+
+概率密度函数 PDF（Probability Density Function）：
+
+$$
+p(z)=\frac{1}{\sqrt{2\pi}\sigma}\exp\left(-\frac{(z-\mu)^2}{2\sigma^2}\right)
+$$
+
+> **概率密度 $p(z)$ 不是概率！**
+> 
+> 连续随机变量单点概率为 0；
+> $P(a<z<b)=\int_{a}^{b} p(z)\,dz$
+> 面积才是概率。
+
+---
+
+## 2. 最大熵原理推导高斯分布
+
+高斯分布是**已知均值和方差时熵最大**的分布。
+
+- 离散：$H(p)=-\sum_i p_i\ln p_i$
+- 连续：$H(p)=-\int_{-\infty}^{+\infty} p(x)\ln p(x)\,dx$
+
+### 2.1 约束条件
+
+$$
+\begin{cases}
+\max\limits_{p(x)} \quad H(p)=-\displaystyle\int_{-\infty}^{+\infty}p(x)\ln p(x)\,dx \\[6pt]
+\text{归一化：}\quad \displaystyle\int_{-\infty}^{+\infty} p(x)\,dx=1 \\[6pt]
+\text{均值为 }\mu：\quad \displaystyle\int_{-\infty}^{+\infty} x\,p(x)\,dx=\mu \\[6pt]
+\text{方差为 }\sigma^2：\quad \displaystyle\int_{-\infty}^{+\infty}(x-\mu)^2\,p(x)\,dx=\sigma^2
+\end{cases}
+$$
+
+### 2.2 拉格朗日乘子法
+
+构造拉格朗日函数：
+
+$$
+\mathcal L=-\int p(x)\ln p(x)\,dx
++\lambda_1\underbrace{\left(1-\int p(x)\,dx\right)}_{\text{归一化}}
++\lambda_2\underbrace{\left(\mu-\int x\,p(x)\,dx\right)}_{\text{均值}}
++\lambda_3\underbrace{\left(\sigma^2-\int (x-\mu)^2 p(x)\,dx\right)}_{\text{方差}}
+$$
+
+### 2.3 变分求导
+
+对 $p(x)$ 求变分并令其为 0：
+
+$$
+\frac{\delta\mathcal L}{\delta p(x)}=0
+$$
+
+逐项求变分：
+
+$$
+\begin{aligned}
+&\frac{\delta}{\delta p}\left(-\int p\ln p\,dx\right) = -(\ln p+1) \\
+&\frac{\delta}{\delta p}\left[\lambda_1\left(1-\int p\,dx\right)\right] = -\lambda_1 \\
+&\frac{\delta}{\delta p}\left[\lambda_2\left(\mu-\int x p\,dx\right)\right] = -\lambda_2 x \\
+&\frac{\delta}{\delta p}\left[\lambda_3\left(\sigma^2-\int (x-\mu)^2 p\,dx\right)\right] = -\lambda_3(x-\mu)^2
+\end{aligned}
+$$
+
+合并：
+
+$$
+-\ln p-1-\lambda_1-\lambda_2 x-\lambda_3(x-\mu)^2=0
+$$
+
+$$
+\ln p(x)=-1-\lambda_1-\lambda_2 x-\lambda_3(x-\mu)^2
+$$
+
+### 2.4 确定 $\lambda_2=0$
+
+令 $y=x-\mu$，即 $x=y+\mu$，代入：
+
+$$
+\ln p=-1-\lambda_1-\lambda_2(y+\mu)-\lambda_3 y^2
+$$
+
+$$
+=(-1-\lambda_1-\lambda_2\mu)-\lambda_2 y-\lambda_3 y^2
+$$
+
+对 $y$ 配方：
+
+$$
+-\lambda_2 y-\lambda_3 y^2=-\lambda_3\left(y+\frac{\lambda_2}{2\lambda_3}\right)^2+\frac{\lambda_2^2}{4\lambda_3}
+$$
+
+$y$ 的中心（均值）为：
+
+$$
+\mathbb{E}[y]=-\frac{\lambda_2}{2\lambda_3}
+$$
+
+由均值约束 $\mathbb{E}[x]=\mu$，即 $\mathbb{E}[y]=0$：
+
+$$
+-\frac{\lambda_2}{2\lambda_3}=0 \quad\Longrightarrow\quad \boxed{\lambda_2=0}
+$$
+
+> **直观理解**：$\lambda_2$ 负责把高斯中心从 $\mu$ 推开；均值约束要求中心必须在 $\mu$，所以 $\lambda_2$ 只能是 0。
+
+### 2.5 分布形式
+
+$$
+\ln p(x)=-1-\lambda_1-\lambda_3(x-\mu)^2
+$$
+
+令 $C=-1-\lambda_1$：
+
+$$
+p(x)=e^{C}\cdot e^{-\lambda_3(x-\mu)^2}
+$$
+
+---
+
+## 3. 求解拉格朗日乘子
+
+### 3.1 高斯积分公式
+
+$$
+I=\int_{-\infty}^{\infty}e^{-ax^2}\,dx=\sqrt{\frac{\pi}{a}}
+$$
+
+由极坐标推导：
+
+$$
+I^2=\left(\int_{-\infty}^{\infty}e^{-ax^2}dx\right)\left(\int_{-\infty}^{\infty}e^{-ay^2}dy\right)=\int\!\!\int e^{-a(x^2+y^2)}dx\,dy=\int_0^{2\pi}\!\!\int_0^\infty e^{-ar^2}r\,dr\,d\theta=\frac{\pi}{a}
+$$
+
+**二阶矩**（对参数 $a$ 求导）：
+
+$$
+\frac{dI}{da}=\sqrt{\pi}\cdot\left(-\frac12\right)a^{-3/2}=-\frac12\sqrt{\pi}\,a^{-3/2}
+$$
+
+$$
+\frac{dI}{da}=\int_{-\infty}^{\infty}\frac{\partial}{\partial a}e^{-ax^2}dx=-\int_{-\infty}^{\infty}x^2 e^{-ax^2}dx
+$$
+
+$$
+\boxed{\int_{-\infty}^{\infty}x^2 e^{-ax^2}dx=\frac12\sqrt{\pi}\,a^{-3/2}}
+$$
+
+### 3.2 归一化方程
+
+$$
+\int_{-\infty}^{\infty}p(x)\,dx=1
+$$
+
+$$
+\int_{-\infty}^{\infty}e^{C}\cdot e^{-\lambda_3(x-\mu)^2}dx=e^{C}\cdot\sqrt{\frac{\pi}{\lambda_3}}=1
+$$
+
+$$
+e^{C}\cdot\sqrt{\pi}\cdot\lambda_3^{-1/2}=1 \tag{1}
+$$
+
+### 3.3 方差方程
+
+$$
+\int_{-\infty}^{\infty}(x-\mu)^2 p(x)\,dx=\sigma^2
+$$
+
+令 $z=x-\mu$：
+
+$$
+e^{C}\cdot\frac12\sqrt{\pi}\cdot\lambda_3^{-3/2}=\sigma^2 \tag{2}
+$$
+
+### 3.4 联立求解 $\lambda_3$
+
+式 (1) 和式 (2) 相除：
+
+$$
+\frac{\frac12\sqrt{\pi}\,\lambda_3^{-3/2}}{\sqrt{\pi}\,\lambda_3^{-1/2}}=\sigma^2
+$$
+
+$$
+\frac{1}{2\lambda_3}=\sigma^2
+$$
+
+$$
+\boxed{\lambda_3=\frac{1}{2\sigma^2}}
+$$
+
+### 3.5 求解 $\lambda_1$
+
+$$
+C=-1-\lambda_1
+$$
+
+代入 $\lambda_3=\dfrac{1}{2\sigma^2}$：
+
+$$
+\sqrt{\frac{\pi}{\lambda_3}}=\sqrt{2\pi\sigma^2}=\sigma\sqrt{2\pi}
+$$
+
+由归一化方程：
+
+$$
+e^{-1-\lambda_1}\cdot\sigma\sqrt{2\pi}=1
+$$
+
+两边取对数：
+
+$$
+-1-\lambda_1+\ln(\sigma\sqrt{2\pi})=0
+$$
+
+$$
+\lambda_1=-1+\ln(\sigma\sqrt{2\pi})
+$$
+
+$$
+\boxed{\lambda_1=\frac12\ln(2\pi)+\ln\sigma-1}
+$$
+
+---
+
+## 4. 最终结果
+
+### 拉格朗日乘子汇总
+
+$$
+\boxed{
+\begin{aligned}
+\lambda_1 &= \frac12\ln(2\pi)+\ln\sigma-1 \\
+\lambda_2 &= 0 \\
+\lambda_3 &= \frac{1}{2\sigma^2}
+\end{aligned}
+}
+$$
+
+### 对数概率密度
+
+代入 $\ln p(x)=-1-\lambda_1-\lambda_3(x-\mu)^2$：
+
+$$
+-1-\lambda_1=-\ln(\sigma\sqrt{2\pi})
+$$
+
+$$
+-\lambda_3(x-\mu)^2=-\frac{(x-\mu)^2}{2\sigma^2}
+$$
+
+$$
+\boxed{\ln p(x)=-\frac12\ln(2\pi)-\ln\sigma-\frac12\left(\frac{x-\mu}{\sigma}\right)^2}
+$$
+
+### 概率密度函数
+
+$$
+\boxed{p(x)=\frac{1}{\sqrt{2\pi}\,\sigma}\exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)}
+$$
+
+> 这就是标准高斯分布 PDF，由最大熵原理 + 归一化/均值/方差三个约束唯一推出。
+
+
 
 
 
@@ -700,3 +981,5 @@ SAC 的一次更新流程为：
 | 经验回放      | 使用            | 使用              |
 
 DDPG 追求当前状态下的单个最优动作，SAC 学习一个既能获得高奖励又保持随机性的动作分布。双 Critic 和最大熵目标通常使 SAC 具有更好的探索能力与训练稳定性。
+
+
