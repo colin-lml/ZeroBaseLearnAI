@@ -231,22 +231,30 @@ $z = \mu + \varepsilon \cdot \sigma,\quad \varepsilon \sim \mathcal N(0,1)$
 
 ## 7. 修正概率密度
 
-核心问题：变换变量后，概率密度会变，也就说经过Tanh 压缩概率密变了。
+核心问题：变换变量后，概率密度会变，也就说经过$\tanh$ 压缩概率密变了。
 
-$z\sim U(0,2)$（0 到 2 均匀分布），密度 $p_z(z)=1$
+$z\sim U(0,2)$（0 到 2 均匀分布），质量计算公式$ \ 密度=\frac{质量}{体积}$  密度 $p_z(z)=\dfrac{1}{2-0}=0.5$
 
-做变换 $u = \frac{1}{2}z$（把区间**压缩**到 0 到 1）
+做变换 $u = \frac{1}{2}z$（把区间**压缩**到 0 到 1）概率密度变成了多少$p_u(u)=?$
 
-* $z=1$ 对应 $u=0.5$
-* 原来 z 在 0.5 附近的概率密度是 1，现在 u 在 1 附近的概率密度变成了多少？
+答案：$p_u(u)=\dfrac{1}{1-0}=1$
 
-答案：$p_u(u)=?$
+### 7.1 变量替换法则
 
-一般公式：**变量替换法则**
+   如果 $u = g(z)$，单调可导，那么：$p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|$
+  上面例子$u = g(z)=\frac12z \ , \quad p_z(z)=0.5$
+  $\frac{dz}{du}$表示: $z=2u$函数对 $u$ 求导 所以$\frac{dz}{du}=2$
+  答案：$p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|=0.5\cdot2=1$
 
-- 如果 $u = g(z)$，单调可导，那么：$p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|$
-  
-  
+### 7.2 在SAC上的使用
+
+1. $u = \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}$
+
+2. $p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|$
+
+3. $p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|$
+   
+   
 
 # 正态分布的实现
 
