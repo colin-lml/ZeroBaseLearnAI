@@ -164,19 +164,15 @@ $\boxed{\int_{-\infty}^{\infty}x^2 e^{-ax^2}dx=\frac12\sqrt{\pi}\,a^{-3/2}}$
 
 ### 3.2 归一化方程
 
-$\int_{-\infty}^{\infty}p(x)\,dx=1$
-
-$\int_{-\infty}^{\infty}e^{C}\cdot e^{-\lambda_3(x-\mu)^2}dx=e^{C}\cdot\sqrt{\frac{\pi}{\lambda_3}}=1$
-
-$式(1)=\begin{cases}e^{C}\cdot\sqrt{\pi}\cdot\lambda_3^{-1/2}=1\end{cases}$
+$式(1)=\begin{cases}\  \int_{-\infty}^{\infty}p(x)\,dx=1 \quad , p(x)=e^{C}\cdot e^{-\lambda_3(x-\mu)^2}\\
+\ \int_{-\infty}^{\infty}e^{C}\cdot e^{-\lambda_3(x-\mu)^2}dx=e^{C}\cdot\sqrt{\frac{\pi}{\lambda_3}}=1\\
+\ \boxed {e^{C}\cdot\sqrt{\pi}\cdot\lambda_3^{-1/2}=1}\\
+\end{cases}$
 
 ### 3.3 方差方程
 
-$\int_{-\infty}^{\infty}(x-\mu)^2 p(x)\,dx=\sigma^2$
-
-令 $z=x-\mu$：
-
-$式(2)=\begin{cases}e^{C}\cdot\frac12\sqrt{\pi}\cdot\lambda_3^{-3/2}=\sigma^2 \end{cases}$
+$式(2)=\begin{cases} \ \int_{-\infty}^{\infty}(x-\mu)^2 p(x)\,dx=\sigma^2 \quad , p(x)=e^{C}\cdot e^{-\lambda_3(x-\mu)^2} \\
+\ \boxed {e^{C}\cdot\frac12\sqrt{\pi}\cdot\lambda_3^{-3/2}=\sigma^2} \end{cases}$
 
 ### 3.4 联立求解 $\lambda_3$
 
@@ -243,20 +239,24 @@ $z\sim U(0,2)$（0 到 2 均匀分布），质量计算公式$ \ 密度=\frac{�
 
    如果 $u = g(z)$，单调可导，那么：$p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|$
   上面例子$u = g(z)=\frac12z \ , \quad p_z(z)=0.5$
-  $\frac{dz}{du}$表示: $z=2u$函数对 $u$ 求导 所以$\frac{dz}{du}=2$
+
+- $\frac{dz}{du}$表示: $z=2u$函数对 $u$ 求导 所以$\frac{dz}{du}=2$
+   答案：$p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|=0.5\cdot2=1$
+
+- $\dfrac{dz}{du}=\dfrac{1}{\dfrac{du}{dz}},\dfrac{du}{dz}=g(z)'=\dfrac{1}{2}, \dfrac{dz}{du}=2$
   答案：$p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|=0.5\cdot2=1$
 
 ### 7.2 在SAC上的使用
 
 1. $u = \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}$
 
-2. $p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|$
+2. $u = \tanh(z) \frac{du}{dz} = 1-\tanh^2(z) = 1-u^2$
 
-3. $p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|$
+3. $p_u(u) = p_z(z) \cdot \left|\frac{dz}{du}\right|=p_z(z) \cdot \dfrac{1}{1-u^2}$
    
    
 
-# 正态分布的实现
+## 8. 正态分布的实现
 
 $\boxed{\ln p(x)=-\ln(\sigma \sqrt{2\pi})-\dfrac{(x-\mu)^2}{2\sigma^2}=-\dfrac12 \ln(2\pi)-\ln \sigma - \dfrac12 (\dfrac{x-\mu}{\sigma})^2}$
 
@@ -291,33 +291,68 @@ private:
 
 ```
 
+## 9. 随机策略网络(熵正则项)
+
+核心思路：神经网络接收状态作为输入，输出高斯分布的均值与方差；基于该高斯分布采样得到原始动作，再经 Tanh 映射得到最终动作，同时计算动作对应的对数概率。
+
+```cpp
+class SACPolicyNetContImpl : public torch::nn::Module
+{
+public:
+
+    SACPolicyNetContImpl() = default;
+    SACPolicyNetContImpl(int64_t input, int64_t output, double actionBound, int64_t hidden = 128)
+    {
+        m_fc1 = register_module("fc1", torch::nn::Linear(input, hidden));
+        m_mu = register_module("mu", torch::nn::Linear(hidden, output));
+        m_std = register_module("std", torch::nn::Linear(hidden, output));
+        m_dbActionBound = actionBound;
+    }
+
+    std::tuple<torch::Tensor, torch::Tensor> forward(torch::Tensor x)
+    {
+        x = torch::relu(m_fc1->forward(x));
+        auto mu = m_mu->forward(x);
+        auto std = torch::softplus(m_std->forward(x)) + 1e-6;
+
+        NormalDistribution normal(mu, std);
+        auto normalSample = normal.rsample();
+        auto logProb = normal.log_prob(normalSample);
+        auto action = torch::tanh(normalSample);
+
+        logProb = logProb - torch::log(1.0 - action.pow(2) + 1e-7);
+        logProb = logProb.sum(-1, true);
+        action = action * m_dbActionBound;
+
+        return { action, logProb };
+    }
+
+    torch::Tensor mean_action(torch::Tensor x)
+    {
+        x = torch::relu(m_fc1->forward(x));
+        return m_dbActionBound * torch::tanh(m_mu->forward(x));
+    }
+
+private:
+    torch::nn::Linear m_fc1{ nullptr };
+    torch::nn::Linear m_mu{ nullptr };
+    torch::nn::Linear m_std{ nullptr };
+    double m_dbActionBound = 2.0;
+};
+
+TORCH_MODULE(SACPolicyNetCont);
+
+```
 
 
 
+# SAC 算法的实现
 
-# SAC 算法由来
-
-DDPG 使用确定性 Actor 直接输出连续动作：
-
-$a=\mu_\theta(s)$
-
-训练时需要额外加入高斯噪声进行探索。确定性策略对噪声大小、Critic 的估计误差和网络初始值比较敏感，训练过程可能不稳定。
-
-SAC（Soft Actor-Critic，柔性演员-评论家）使用**随机策略**和**最大熵强化学习**。它不仅希望获得较高的累计奖励，还希望策略保持一定的随机性：
-
-$J(\pi)=\mathbb E_\pi\left[\sum_t\gamma^t\left(r_t+\alpha\mathcal H(\pi(\cdot|s_t))\right)\right]$
-
-其中：
-
-- $r_t$：环境奖励；
-- $\mathcal H(\pi(\cdot|s_t))$：策略熵；
-- $\alpha$：温度系数，用于平衡奖励与熵。
-
-策略熵越大，动作分布越分散，探索能力越强；策略熵越小，动作越集中，更倾向于利用当前最优动作。
+最难部分在最大熵原理推导过程,策略熵越大，动作分布越分散，探索能力越强；策略熵越小，动作越集中，更倾向于利用当前最优动作。
 
 连续动作 SAC 主要包括：
 
-- 一个随机 Actor；
+- 一个随机 Actor（熵正则项）；
 - 两个在线 Critic；
 - 两个目标 Critic；
 - 经验回放；
@@ -328,28 +363,7 @@ SAC 使用两个 Critic 并取较小值，降低单个 Critic 对动作价值的
 
 
 
-## SAC 公式推导
-
-### 1. 最大熵目标
-
-策略熵可以写为：
-
-$\mathcal H(\pi(\cdot|s))=\mathbb E_{a\sim\pi}\left[-\log\pi(a|s)\right]$
-
-因此最大熵目标同时鼓励：
-
-1. 获得更高的环境奖励；
-2. 保持更高的动作随机性。
-
-温度系数 $\alpha$ 决定熵的重要程度：
-
-- $\alpha$ 较大：更重视探索；
-- $\alpha$ 较小：更重视当前奖励；
-- $\alpha\rightarrow0$：目标逐渐接近普通的奖励最大化。
-  
-  
-
-### 2. Soft Critic 目标
+### 1. Soft Critic 目标
 
 Actor 在下一状态采样动作：
 
@@ -373,7 +387,7 @@ $\mathcal L_{Q_i}=\mathbb E\left[\left(Q_{\omega_i}(s,a)-y\right)^2\right],\quad
 
 
 
-### 3. Actor 目标
+### 2. Actor 目标
 
 Actor 希望生成高价值动作，同时保持策略熵：
 
@@ -386,504 +400,158 @@ $\mathcal L_{Actor}=\mathbb E_{s\sim D,a\sim\pi_\theta}\left[\alpha\log\pi_\thet
   
   
 
-### 4. 自动温度系数
+### 3. 创建 Actor、双 Critic 和目标 Critic
 
-固定的 $\alpha$ 需要针对不同环境手动调整。SAC 可以设置目标熵并自动训练温度系数：
+`void SAC::GenerateTrainData(int maxCount)`
 
-$\alpha=\exp(\log\alpha)$
+```cpp
+   cout << "Currently SAC (continuous)" << endl;
+   m_maxMewardCount = 200;
+   m_minLogCount = 20;
+   m_minLogStep = 6;
 
-使用 $\log\alpha$ 作为可训练参数，可以保证：
+   // 超参数（可按需要调整）
+   m_dbGamma = 0.98;
+   m_dbTau = 0.005;
+   m_batchSize = 64;
 
-$\alpha>0$
+   GetReplayDataList().clear();
 
-本实现将目标熵设置为负动作维度：
+   auto input = m_objEnv->GetStateDim();
+   auto output = m_objEnv->GetActionDim();
+   auto actionBound = m_objEnv->GetActionHigh();
 
-$\mathcal H_{target}=-|\mathcal A|$
+   TORCH_CHECK(output == 1, "SAC currently supports one-dimensional continuous actions");
 
-当前环境只支持一维连续动作，因此：
+   m_actor = SACPolicyNetCont(input, output, actionBound);
+   m_critic1 = QValueNetCont(input, output);
+   m_critic2 = QValueNetCont(input, output);
+   m_targetCritic1 = QValueNetCont(input, output);
+   m_targetCritic2 = QValueNetCont(input, output);
 
-$\mathcal H_{target}=-1$
+   m_actor->to(m_device);
+   m_critic1->to(m_device);
+   m_critic2->to(m_device);
+   m_targetCritic1->to(m_device);
+   m_targetCritic2->to(m_device);
 
-**总结：** SAC 使用随机 Actor 提供探索，使用熵正则平衡探索与利用，使用双 Critic 减少价值过估计，并自动调整温度系数。
+   // 将目标网络初始化为 critic 网络参数
+   CopyModuleParameters(*m_critic1, *m_targetCritic1);
+   CopyModuleParameters(*m_critic2, *m_targetCritic2);
 
+   // 优化器
+   m_pActorOpt = std::make_unique<torch::optim::Adam>(m_actor->parameters(), torch::optim::AdamOptions(m_dbActorLRDefault));
+   m_pCritic1Opt = std::make_unique<torch::optim::Adam>(m_critic1->parameters(), torch::optim::AdamOptions(m_dbCriticLRDefault));
+   m_pCritic2Opt = std::make_unique<torch::optim::Adam>(m_critic2->parameters(), torch::optim::AdamOptions(m_dbCriticLRDefault));
 
+   // 可训练 log alpha (初始化为 log(0.01))
+   m_logAlpha = torch::full({}, std::log(0.01), torch::TensorOptions().device(m_device).dtype(torch::kFloat32));
+   m_logAlpha.set_requires_grad(true);
+   // alpha 优化器，使用单张 tensor 参数列表
+   m_pAlphaOpt = std::make_unique<torch::optim::Adam>(std::initializer_list<torch::Tensor>{m_logAlpha}, torch::optim::AdamOptions(m_dbAlphaLRDefault));
 
-## SAC 实现细节
+   // 训练模式
+   m_actor->train();
+   m_critic1->train();
+   m_critic2->train();
+   m_targetCritic1->eval();
+   m_targetCritic2->eval();
 
-### 0. 正态分布
+   // 连续动作 SAC 的目标熵通常为 -动作维度
+   m_dbTargetEntropy = -static_cast<double>(m_objEnv->GetActionDim());
 
-```
-class NormalDistribution
-{
-public:
-    NormalDistribution(torch::Tensor mean, torch::Tensor std)
-        : m_mean(std::move(mean)), m_std(std::move(std))
-    {
-    }
+   // 使用 BaseAdvanced 统一的数据生成循环（内部会调用 TrainGenerateItem1/2）
+   BaseAdvanced::GenerateTrainData(maxCount);
 
-    torch::Tensor rsample() const
-    {
-        const auto epsilon = torch::randn_like(m_std);
-        return m_mean + m_std * epsilon;
-    }
+   // eval 模式
+   m_actor->eval();
+   m_critic1->eval();
+   m_critic2->eval();
 
-    torch::Tensor log_prob(const torch::Tensor& value) const
-    {
-        constexpr double logTwoPi = 1.8378770664093453;
-
-        return -0.5 * ((value - m_mean) / m_std).pow(2)
-            - torch::log(m_std)
-            - 0.5 * logTwoPi;
-    }
-
-private:
-    torch::Tensor m_mean;
-    torch::Tensor m_std;
-};
-```
-
-Actor 输出正态分布的均值和标准差，然后从分布中采样连续动作。
-
-`rsample()` 使用重参数化技巧：
-
-$u=\mu_\theta(s)+\sigma_\theta(s)\epsilon$
-
-$\epsilon\sim\mathcal N(0,1)$
-
-随机性来自与网络参数无关的 $\epsilon$，采样结果 $u$ 仍然可以对 $\mu_\theta$ 和 $\sigma_\theta$ 求导，使 Actor 能够通过 Critic 反向传播训练。
-
-`log_prob()` 计算正态分布采样值的对数概率。
-
-
-
-### 1. SAC 随机 Actor 网络
-
-```
-class SACPolicyNetContImpl : public torch::nn::Module
-{
-public:
-    SACPolicyNetContImpl() = default;
-
-    SACPolicyNetContImpl(
-        int64_t input,
-        int64_t output,
-        double actionBound,
-        int64_t hidden = 128)
-    {
-        m_fc1 = register_module(
-            "fc1", torch::nn::Linear(input, hidden));
-        m_mu = register_module(
-            "mu", torch::nn::Linear(hidden, output));
-        m_std = register_module(
-            "std", torch::nn::Linear(hidden, output));
-        m_dbActionBound = actionBound;
-    }
-
-    std::tuple<torch::Tensor, torch::Tensor> forward(torch::Tensor x)
-    {
-        x = torch::relu(m_fc1->forward(x));
-        auto mu = m_mu->forward(x);
-        auto std = torch::softplus(m_std->forward(x)) + 1e-6;
-
-        NormalDistribution normal(mu, std);
-        auto normalSample = normal.rsample();
-        auto logProb = normal.log_prob(normalSample);
-        auto action = torch::tanh(normalSample);
-
-        logProb = logProb
-            - torch::log(1.0 - action.pow(2) + 1e-7);
-        logProb = logProb.sum(-1, true);
-        action = action * m_dbActionBound;
-
-        return { action, logProb };
-    }
-
-    torch::Tensor mean_action(torch::Tensor x)
-    {
-        x = torch::relu(m_fc1->forward(x));
-        return m_dbActionBound * torch::tanh(m_mu->forward(x));
-    }
-
-private:
-    torch::nn::Linear m_fc1{ nullptr };
-    torch::nn::Linear m_mu{ nullptr };
-    torch::nn::Linear m_std{ nullptr };
-    double m_dbActionBound = 2.0;
-};
-
-TORCH_MODULE(SACPolicyNetCont);
-```
-
-网络共享一个隐藏层，然后分成两个输出分支：
-
-- `m_mu`：输出正态分布均值 $\mu_\theta(s)$；
-- `m_std`：输出标准差对应的值。
-
-使用 `softplus` 保证标准差为正：
-
-$\sigma=\operatorname{softplus}(x)+10^{-6}$
-
-
-
-### 2. Tanh 动作压缩与概率修正
-
-正态分布的取值范围是 $(-\infty,+\infty)$，而环境动作有上下界。代码先采样未压缩变量 $u$，再使用：
-
-$a=\tanh(u)$
-
-将动作压缩到 $[-1,1]$，最后乘以 `actionBound` 得到环境动作。
-
-由于 `tanh` 改变了概率密度，必须修正对数概率：
-
-$\log\pi(a|s)=\log\mathcal N(u;\mu,\sigma)-\log(1-\tanh^2(u))$
-
-代码中加入 $10^{-7}$，防止动作接近 $-1$ 或 $1$ 时计算 $\log(0)$：
-
-```
-logProb = logProb
-    - torch::log(1.0 - action.pow(2) + 1e-7);
-```
-
-多维动作需要对所有动作维度的对数概率求和：
-
-```
-logProb = logProb.sum(-1, true);
+   // 释放资源（unique_ptr 会自动释放）
+   m_pActorOpt.reset();
+   m_pCritic1Opt.reset();
+   m_pCritic2Opt.reset();
+   m_pAlphaOpt.reset();
 ```
 
 
 
-### 3. 训练动作与评测动作
-
-```
-double SAC::TakeAction(VectorDouble& s0, bool bPredict)
-{
-    torch::NoGradGuard no_grad;
-    auto s = VectorDoubleTensor(s0, m_device);
-    torch::Tensor action;
-
-    if (bPredict)
-    {
-        action = m_actor->mean_action(s);
-    }
-    else
-    {
-        auto result = m_actor->forward(s);
-        action = std::get<0>(result);
-    }
-
-    auto value = action.squeeze().item<double>();
-    return std::clamp(
-        value,
-        m_objEnv->GetActionLow(),
-        m_objEnv->GetActionHigh());
-}
-```
-
-训练时从 Actor 的正态分布中随机采样动作，因此 SAC 不需要像 DDPG 一样额外添加高斯探索噪声。
-
-评测时使用均值分支：
-
-$a=actionBound\cdot\tanh(\mu_\theta(s))$
-
-这样可以获得稳定的确定性评测动作。最后使用 `std::clamp` 保证动作位于环境合法范围内。
 
 
+### 4. 训练更新
 
-### 4. 创建 Actor、双 Critic 和目标 Critic
+`void SAC::TrainGenerateItem1(const QwItem& item)`
 
-```
-m_actor = SACPolicyNetCont(input, output, actionBound);
-m_critic1 = QValueNetCont(input, output);
-m_critic2 = QValueNetCont(input, output);
-m_targetCritic1 = QValueNetCont(input, output);
-m_targetCritic2 = QValueNetCont(input, output);
+```cpp
+ ReplayBuffer replayBuffer;
+ auto samples = replayBuffer.sample(m_batchSize);
 
-m_actor->to(m_device);
-m_critic1->to(m_device);
-m_critic2->to(m_device);
-m_targetCritic1->to(m_device);
-m_targetCritic2->to(m_device);
+ if (samples.empty())
+ {
+     return;
+ }
 
-CopyModuleParameters(*m_critic1, *m_targetCritic1);
-CopyModuleParameters(*m_critic2, *m_targetCritic2);
-```
+ auto [s0, a, reward, s1, done] = QwListToTensor(samples, m_device, true);
 
-SAC 创建五个网络：
+ torch::Tensor tdTarget;
 
-1. 随机 Actor；
-2. 在线 Critic 1；
-3. 在线 Critic 2；
-4. 目标 Critic 1；
-5. 目标 Critic 2。
+ 
+ {
+     torch::NoGradGuard noGrad;
+     const auto alpha = m_logAlpha.exp();
+     auto [nextAction, nextLogProb] = m_actor->forward(s1);
+     const auto minTargetQ =torch::min(m_targetCritic1->forward(s1, nextAction), m_targetCritic2->forward(s1, nextAction));
 
-与 DDPG 不同，本实现没有目标 Actor。计算下一状态 TD 目标时，直接使用当前随机 Actor 采样动作，并通过 `NoGradGuard` 阻止梯度传播。
+     const auto nextValue =minTargetQ - alpha * nextLogProb;
 
-当前实现要求动作维度为 $1$：
+     tdTarget =reward+ m_dbGamma * (1.0 - done) * nextValue;
+ }
 
-```
-TORCH_CHECK(
-    output == 1,
-    "SAC currently supports one-dimensional continuous actions");
+ // 更新两个Q网络
+ {
+     auto criticLoss1 = torch::mean(torch::mse_loss(m_critic1->forward(s0, a), tdTarget.detach()));
+     auto criticLoss2 = torch::mean(torch::mse_loss(m_critic2->forward(s0, a), tdTarget.detach()));
+     m_pCritic1Opt->zero_grad();
+     m_pCritic2Opt->zero_grad();
+     criticLoss1.backward();
+     criticLoss2.backward();
+     m_pCritic1Opt->step();
+     m_pCritic2Opt->step();
+ }
+ // 更新策略网络
+
+ torch::Tensor detachedLogProb;
+ {
+     auto [newAction, logProb] = m_actor->forward(s0);
+     logProb = -logProb;
+     detachedLogProb = logProb.detach();
+
+		auto q1 = m_critic1->forward(s0, newAction);
+		auto q2 = m_critic2->forward(s0, newAction);
+     auto actorLoss = torch::mean(-m_logAlpha.exp() * logProb - torch::min(q1,q2));
+		m_pActorOpt->zero_grad();
+     actorLoss.backward();
+		m_pActorOpt->step();
+ }
+ //更新alpha值
+ {
+ 
+     auto alphaLoss = torch::mean((detachedLogProb - m_dbTargetEntropy).detach() * m_logAlpha.exp());
+     m_pAlphaOpt->zero_grad();
+     alphaLoss.backward();
+		m_pAlphaOpt->step();
+ }
+
+
+ SoftUpdate(*m_critic1, *m_targetCritic1);
+ SoftUpdate(*m_critic2, *m_targetCritic2);
 ```
 
 
 
-### 5. 创建优化器和温度参数
 
-```
-m_pActorOpt = std::make_unique<torch::optim::Adam>(
-    m_actor->parameters(),
-    torch::optim::AdamOptions(m_dbActorLRDefault));
-m_pCritic1Opt = std::make_unique<torch::optim::Adam>(
-    m_critic1->parameters(),
-    torch::optim::AdamOptions(m_dbCriticLRDefault));
-m_pCritic2Opt = std::make_unique<torch::optim::Adam>(
-    m_critic2->parameters(),
-    torch::optim::AdamOptions(m_dbCriticLRDefault));
 
-m_logAlpha = torch::full(
-    {}, std::log(0.01),
-    torch::TensorOptions()
-        .device(m_device)
-        .dtype(torch::kFloat32));
-m_logAlpha.set_requires_grad(true);
 
-m_pAlphaOpt = std::make_unique<torch::optim::Adam>(
-    std::initializer_list<torch::Tensor>{ m_logAlpha },
-    torch::optim::AdamOptions(m_dbAlphaLRDefault));
-```
 
-Actor、两个 Critic 和温度参数分别使用独立的 Adam 优化器，学习率均为 $10^{-3}$。
 
-温度系数初始化为：
-
-$\alpha=0.01$
-
-实际训练参数是：
-
-$\log\alpha=\log(0.01)$
-
-使用时通过 `m_logAlpha.exp()` 得到始终为正的 $\alpha$。
-
-
-
-### 6. 经验回放与训练时机
-
-```
-void SAC::TrainGenerateItem1(const QwItem& item)
-{
-    AddReplayDataList(item);
-
-    if (GetReplayDataList().size() >
-        static_cast<size_t>(m_nMinimalsize))
-    {
-        Update();
-    }
-}
-```
-
-每次与环境交互后，将：
-
-$(s,a,r,s',done)$
-
-加入经验回放缓冲区。当样本数量超过 500 后，每产生一个新样本就随机采样 64 条数据更新网络。
-
-SAC 与 DDPG 一样属于离策略（Off-Policy）算法，可以使用历史策略产生的经验，提高样本利用率。
-
-
-
-### 7. 计算 Soft TD 目标
-
-```
-torch::Tensor tdTarget;
-{
-    torch::NoGradGuard noGrad;
-    const auto alpha = m_logAlpha.exp();
-    auto [nextAction, nextLogProb] = m_actor->forward(s1);
-    const auto minTargetQ = torch::min(
-        m_targetCritic1->forward(s1, nextAction),
-        m_targetCritic2->forward(s1, nextAction));
-
-    const auto nextValue = minTargetQ - alpha * nextLogProb;
-
-    tdTarget = reward
-        + m_dbGamma * (1.0 - done) * nextValue;
-}
-```
-
-Actor 在下一状态随机采样动作和动作对数概率：
-
-$a'\sim\pi_\theta(\cdot|s')$
-
-两个目标 Critic 取较小值：
-
-$Q_{min}'=\min(Q_{\omega_1'}(s',a'),Q_{\omega_2'}(s',a'))$
-
-加入熵奖励后的下一状态价值为：
-
-$V(s')=Q_{min}'-\alpha\log\pi_\theta(a'|s')$
-
-TD 目标为：
-
-$y=r+\gamma(1-done)V(s')$
-
-整个目标计算位于 `torch::NoGradGuard` 中，不更新 Actor、目标 Critic和温度参数。
-
-
-
-### 8. 更新两个 Critic
-
-```
-auto criticLoss1 = torch::mean(torch::mse_loss(
-    m_critic1->forward(s0, a), tdTarget.detach()));
-auto criticLoss2 = torch::mean(torch::mse_loss(
-    m_critic2->forward(s0, a), tdTarget.detach()));
-
-m_pCritic1Opt->zero_grad();
-m_pCritic2Opt->zero_grad();
-criticLoss1.backward();
-criticLoss2.backward();
-m_pCritic1Opt->step();
-m_pCritic2Opt->step();
-```
-
-两个 Critic 使用同一个 TD 目标，但参数独立：
-
-$\mathcal L_{Q_1}=\operatorname{MSE}(Q_{\omega_1}(s,a),y)$
-
-$\mathcal L_{Q_2}=\operatorname{MSE}(Q_{\omega_2}(s,a),y)$
-
-后续计算目标和 Actor 损失时使用二者较小值，降低价值过估计造成的策略错误更新。
-
-
-
-### 9. 更新随机 Actor
-
-```
-auto [newAction, logProb] = m_actor->forward(s0);
-logProb = -logProb;
-detachedLogProb = logProb.detach();
-
-auto q1 = m_critic1->forward(s0, newAction);
-auto q2 = m_critic2->forward(s0, newAction);
-auto actorLoss = torch::mean(
-    -m_logAlpha.exp() * logProb - torch::min(q1, q2));
-
-m_pActorOpt->zero_grad();
-actorLoss.backward();
-m_pActorOpt->step();
-```
-
-网络原始输出的 `logProb` 是 $\log\pi(a|s)$。代码先执行：
-
-$logProb\leftarrow-\log\pi(a|s)$
-
-它可以看作当前采样动作的熵估计。代入代码中的损失：
-
-$\mathcal L_{Actor}=\mathbb E\left[-\alpha(-\log\pi(a|s))-Q_{min}(s,a)\right]$
-
-整理后得到标准 SAC Actor 损失：
-
-$\mathcal L_{Actor}=\mathbb E\left[\alpha\log\pi(a|s)-Q_{min}(s,a)\right]$
-
-Actor 通过重参数化采样接收梯度，同时学习提高动作价值并维持策略熵。
-
-
-
-### 10. 更新温度系数
-
-```
-auto alphaLoss = torch::mean(
-    (detachedLogProb - m_dbTargetEntropy).detach()
-    * m_logAlpha.exp());
-
-m_pAlphaOpt->zero_grad();
-alphaLoss.backward();
-m_pAlphaOpt->step();
-```
-
-代码中的 `detachedLogProb` 保存 $-\log\pi(a|s)$，温度损失为：
-
-$\mathcal L_\alpha=\mathbb E\left[\alpha\left(-\log\pi(a|s)-\mathcal H_{target}\right)\right]$
-
-Actor 的熵估计调用 `detach()`，因此温度更新不会反向修改 Actor。只有 `m_logAlpha` 通过独立优化器更新。
-
-目标熵设置为：
-
-```
-m_dbTargetEntropy =
-    -static_cast<double>(m_objEnv->GetActionDim());
-```
-
-温度系数根据当前策略熵和目标熵之间的关系自动变化，用于调节 Actor 损失与 Soft TD 目标中熵项的权重。
-
-
-
-### 11. 软更新目标 Critic
-
-```
-void SAC::SoftUpdate(
-    torch::nn::Module& source,
-    torch::nn::Module& target)
-{
-    torch::NoGradGuard no_grad;
-    auto srcParams = source.parameters();
-    auto tgtParams = target.parameters();
-
-    for (size_t i = 0; i < srcParams.size(); ++i)
-    {
-        tgtParams[i].mul_(1.0 - m_dbTau);
-        tgtParams[i].add_(srcParams[i], m_dbTau);
-    }
-}
-```
-
-每次训练结束后执行：
-
-```
-SoftUpdate(*m_critic1, *m_targetCritic1);
-SoftUpdate(*m_critic2, *m_targetCritic2);
-```
-
-更新公式为：
-
-$\omega_i'\leftarrow(1-\tau)\omega_i'+\tau\omega_i$
-
-本实现使用 $\tau=0.005$。目标 Critic 缓慢跟随在线 Critic，使 TD 目标保持稳定。
-
-
-
-### 12. 完整训练流程
-
-SAC 的一次更新流程为：
-
-1. 从经验回放中随机采样 64 条数据；
-2. Actor 在下一状态采样动作和对数概率；
-3. 两个目标 Critic 计算较小的目标 $Q$ 值；
-4. 加入策略熵项，构造 Soft TD 目标；
-5. 分别更新两个在线 Critic；
-6. Actor 重新采样当前状态动作；
-7. 使用 $\alpha\log\pi-Q_{min}$ 更新 Actor；
-8. 根据策略熵更新温度系数 $\alpha$；
-9. 软更新两个目标 Critic；
-10. 使用更新后的随机策略继续与环境交互。
-    
-    
-
-## SAC 与 DDPG 的区别
-
-| 项目        | DDPG          | SAC             |
-| --------- | ------------- | --------------- |
-| Actor 类型  | 确定性策略         | 随机策略            |
-| 动作输出      | 直接输出动作        | 输出正态分布参数并采样     |
-| 探索方式      | 额外加入高斯噪声      | 策略分布自然采样        |
-| Critic 数量 | 一个            | 两个              |
-| 目标 Critic | 一个            | 两个              |
-| 目标 Actor  | 使用            | 不使用             |
-| 价值目标      | 奖励与下一状态 $Q$ 值 | 奖励、下一状态 $Q$ 值和熵 |
-| Actor 目标  | 最大化 $Q$ 值     | 最大化 $Q$ 值和策略熵   |
-| 温度系数      | 无             | 自动训练 $\alpha$   |
-| 目标网络更新    | 软更新           | 软更新             |
-| 经验回放      | 使用            | 使用              |
-
-DDPG 追求当前状态下的单个最优动作，SAC 学习一个既能获得高奖励又保持随机性的动作分布。双 Critic 和最大熵目标通常使 SAC 具有更好的探索能力与训练稳定性。
